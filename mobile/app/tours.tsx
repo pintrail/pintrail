@@ -8,6 +8,10 @@ import {
   Image,
   FlatList,
   Alert,
+  Modal,
+  TextInput,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -28,6 +32,11 @@ export default function ToursView({
   onSiteSelect 
 }: ToursViewProps) {
   const [selectedTab, setSelectedTab] = useState<'available' | 'custom'>('available');
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [tourName, setTourName] = useState('');
+  const [tourDescription, setTourDescription] = useState('');
+  const [selectedSites, setSelectedSites] = useState<string[]>([]);
+  const [customTours, setCustomTours] = useState<Tour[]>([]);
 
   const getDifficultyColor = (difficulty: string) => {
     switch (difficulty) {
@@ -101,9 +110,91 @@ export default function ToursView({
   };
 
   const handleCreateCustomTour = () => {
+    setShowCreateModal(true);
+  };
+
+  const handleCloseTourModal = () => {
+    setShowCreateModal(false);
+    setTourName('');
+    setTourDescription('');
+    setSelectedSites([]);
+  };
+
+  const toggleSiteSelection = (siteId: string) => {
+    setSelectedSites(prev => {
+      if (prev.includes(siteId)) {
+        return prev.filter(id => id !== siteId);
+      } else {
+        return [...prev, siteId];
+      }
+    });
+  };
+
+  const calculateTourEstimates = () => {
+    const selectedSiteData = sites.filter(site => selectedSites.includes(site.id));
+    
+    // Estimate duration: 15 minutes per site + travel time
+    const baseDuration = selectedSiteData.length * 15;
+    const travelTime = Math.max(0, (selectedSiteData.length - 1) * 5); // 5 min between sites
+    const estimatedDuration = baseDuration + travelTime;
+    
+    // Estimate distance: rough calculation based on number of sites
+    const estimatedDistance = selectedSiteData.length * 400; // 400m per site average
+    
+    return { estimatedDuration, estimatedDistance };
+  };
+
+  const handleCreateTour = () => {
+    if (!tourName.trim()) {
+      Alert.alert('Error', 'Please enter a tour name');
+      return;
+    }
+    
+    if (!tourDescription.trim()) {
+      Alert.alert('Error', 'Please enter a tour description');
+      return;
+    }
+    
+    if (selectedSites.length === 0) {
+      Alert.alert('Error', 'Please select at least one site');
+      return;
+    }
+
+    const { estimatedDuration, estimatedDistance } = calculateTourEstimates();
+    
+    // Determine difficulty based on number of sites and distance
+    let difficulty: 'Easy' | 'Moderate' | 'Challenging' = 'Easy';
+    if (selectedSites.length >= 4 || estimatedDistance > 2000) {
+      difficulty = 'Challenging';
+    } else if (selectedSites.length >= 3 || estimatedDistance > 1000) {
+      difficulty = 'Moderate';
+    }
+
+    const newTour: Tour = {
+      id: `custom_${Date.now()}`,
+      name: tourName.trim(),
+      description: tourDescription.trim(),
+      siteIds: selectedSites,
+      estimatedDuration,
+      totalDistance: estimatedDistance,
+      difficulty,
+      isCustom: true,
+    };
+
+    // Add to local custom tours array
+    setCustomTours(prev => [...prev, newTour]);
+    
+    // Also call the optional callback if provided
+    onCreateTour?.(newTour);
+    
+    handleCloseTourModal();
+    
+    // Switch to custom tours tab to show the new tour
+    setSelectedTab('custom');
+    
     Alert.alert(
-      'Create Custom Tour',
-      'Custom tour creation feature coming soon!',
+      'Tour Created!',
+      `"${newTour.name}" has been added to your custom tours.`,
       [{ text: 'OK' }]
     );
   };
@@ -225,8 +316,142 @@ export default function ToursView({
     </View>
   );
 
+  const renderCreateTourModal = () => (
+    <Modal
+      visible={showCreateModal}
+      animationType="slide"
+      presentationStyle="pageSheet"
+      onRequestClose={handleCloseTourModal}
+    >
+      <SafeAreaView style={styles.modalContainer}>
+        <KeyboardAvoidingView 
+          style={styles.modalContent}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        >
+          {/* Modal Header */}
+          <View style={styles.modalHeader}>
+            <TouchableOpacity 
+              onPress={handleCloseTourModal}
+              style={styles.modalCancelButton}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.modalCancelText}>Cancel</Text>
+            </TouchableOpacity>
+            
+            <Text style={styles.modalTitle}>Create Custom Tour</Text>
+            
+            <TouchableOpacity 
+              onPress={handleCreateTour}
+              style={[
+                styles.modalCreateButton,
+                (!tourName.trim() || !tourDescription.trim() || selectedSites.length === 0) && 
+                styles.modalCreateButtonDisabled
+              ]}
+              disabled={!tourName.trim() || !tourDescription.trim() || selectedSites.length === 0}
+              activeOpacity={0.7}
+            >
+              <Text style={[
+                styles.modalCreateText,
+                (!tourName.trim() || !tourDescription.trim() || selectedSites.length === 0) && 
+                styles.modalCreateTextDisabled
+              ]}>Create</Text>
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView style={styles.modalScrollView} showsVerticalScrollIndicator={false}>
+            {/* Tour Name Field */}
+            <View style={styles.formSection}>
+              <Text style={styles.formLabel}>Tour Name</Text>
+              <TextInput
+                style={styles.formInput}
+                value={tourName}
+                onChangeText={setTourName}
+                placeholder="Enter tour name..."
+                placeholderTextColor="#9ca3af"
+                maxLength={50}
+              />
+            </View>
+
+            {/* Tour Description Field */}
+            <View style={styles.formSection}>
+              <Text style={styles.formLabel}>Description</Text>
+              <TextInput
+                style={[styles.formInput, styles.formTextArea]}
+                value={tourDescription}
+                onChangeText={setTourDescription}
+                placeholder="Describe your tour..."
+                placeholderTextColor="#9ca3af"
+                multiline
+                numberOfLines={3}
+                maxLength={200}
+                textAlignVertical="top"
+              />
+            </View>
+
+            {/* Site Selection */}
+            <View style={styles.formSection}>
+              <Text style={styles.formLabel}>
+                Select Sites ({selectedSites.length} selected)
+              </Text>
+              
+              {selectedSites.length > 0 && (
+                <View style={styles.tourPreview}>
+                  <Text style={styles.tourPreviewLabel}>Tour Preview:</Text>
+                  {(() => {
+                    const { estimatedDuration, estimatedDistance } = calculateTourEstimates();
+                    return (
+                      <View style={styles.tourPreviewStats}>
+                        <View style={styles.previewStat}>
+                          <Ionicons name="time-outline" size={14} color="#9ca3af" />
+                          <Text style={styles.previewStatText}>{formatDuration(estimatedDuration)}</Text>
+                        </View>
+                        <View style={styles.previewStat}>
+                          <Ionicons name="walk-outline" size={14} color="#9ca3af" />
+                          <Text style={styles.previewStatText}>{formatDistance(estimatedDistance)}</Text>
+                        </View>
+                      </View>
+                    );
+                  })()}
+                </View>
+              )}
+
+              <View style={styles.sitesList}>
+                {sites.map((site, index) => {
+                  const isSelected = selectedSites.includes(site.id);
+                  return (
+                    <TouchableOpacity
+                      key={site.id}
+                      style={[styles.siteItem, isSelected && styles.siteItemSelected]}
+                      onPress={() => toggleSiteSelection(site.id)}
+                      activeOpacity={0.7}
+                    >
+                      <View style={styles.siteItemContent}>
+                        <View style={styles.siteItemInfo}>
+                          <Text style={[styles.siteItemName, isSelected && styles.siteItemNameSelected]}>
+                            {site.name}
+                          </Text>
+                          <Text style={styles.siteItemCategory}>{site.category}</Text>
+                        </View>
+                        
+                        <View style={[styles.checkbox, isSelected && styles.checkboxSelected]}>
+                          {isSelected && (
+                            <Ionicons name="checkmark" size={16} color="#ffffff" />
+                          )}
+                        </View>
+                      </View>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </View>
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </SafeAreaView>
+    </Modal>
+  );
+
   const availableTours = tours.filter(tour => !tour.isCustom);
-  const customTours = tours.filter(tour => tour.isCustom);
+  // Use local customTours state instead of filtering from props
 
   return (
     <SafeAreaView style={styles.container}>
@@ -306,6 +531,9 @@ export default function ToursView({
           </>
         )}
       </View>
+
+      {/* Create Tour Modal */}
+      {renderCreateTourModal()}
     </SafeAreaView>
   );
 }
@@ -527,5 +755,152 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontSize: 14,
     fontWeight: '600',
+  },
+  // Modal Styles
+  modalContainer: {
+    flex: 1,
+    backgroundColor: '#0f172a', // slate-900
+  },
+  modalContent: {
+    flex: 1,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#374151', // gray-700
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#ffffff',
+  },
+  modalCancelButton: {
+    padding: 8,
+  },
+  modalCancelText: {
+    fontSize: 16,
+    color: '#9ca3af',
+  },
+  modalCreateButton: {
+    backgroundColor: '#10b981', // green-600
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  modalCreateButtonDisabled: {
+    backgroundColor: '#374151',
+    opacity: 0.5,
+  },
+  modalCreateText: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  modalCreateTextDisabled: {
+    color: '#9ca3af',
+  },
+  modalScrollView: {
+    flex: 1,
+    padding: 16,
+  },
+  formSection: {
+    marginBottom: 24,
+  },
+  formLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#ffffff',
+    marginBottom: 8,
+  },
+  formInput: {
+    backgroundColor: '#1e293b', // slate-800
+    borderWidth: 1,
+    borderColor: '#374151', // gray-700
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    color: '#ffffff',
+    fontSize: 16,
+  },
+  formTextArea: {
+    height: 80,
+    textAlignVertical: 'top',
+  },
+  tourPreview: {
+    backgroundColor: '#1e293b', // slate-800
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 16,
+  },
+  tourPreviewLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#ffffff',
+    marginBottom: 8,
+  },
+  tourPreviewStats: {
+    flexDirection: 'row',
+    gap: 16,
+  },
+  previewStat: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  previewStatText: {
+    fontSize: 12,
+    color: '#9ca3af',
+  },
+  sitesList: {
+    gap: 8,
+  },
+  siteItem: {
+    backgroundColor: '#1e293b', // slate-800
+    borderWidth: 1,
+    borderColor: '#374151', // gray-700
+    borderRadius: 8,
+    padding: 12,
+  },
+  siteItemSelected: {
+    borderColor: '#3b82f6',
+    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+  },
+  siteItemContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  siteItemInfo: {
+    flex: 1,
+  },
+  siteItemName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#ffffff',
+    marginBottom: 2,
+  },
+  siteItemNameSelected: {
+    color: '#3b82f6',
+  },
+  siteItemCategory: {
+    fontSize: 12,
+    color: '#9ca3af',
+  },
+  checkbox: {
+    width: 24,
+    height: 24,
+    borderWidth: 2,
+    borderColor: '#374151',
+    borderRadius: 4,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  checkboxSelected: {
+    backgroundColor: '#3b82f6',
+    borderColor: '#3b82f6',
   },
 });
