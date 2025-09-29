@@ -11,7 +11,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import BottomSheet, { BottomSheetView, BottomSheetFlatList } from '@gorhom/bottom-sheet';
-import { GestureHandlerRootView, NativeViewGestureHandler } from 'react-native-gesture-handler';
+import { GestureHandlerRootView, GestureDetector, Gesture } from 'react-native-gesture-handler';
 import { mockSites } from '../data/mockData';
 import type { Site } from '../types/types';
 
@@ -25,10 +25,10 @@ export default function MainView() {
 
   const [selectedSite, setSelectedSite] = useState<Site | null>(null);
   const [showSiteModal, setShowSiteModal] = useState(false);
-  
+
   // Bottom sheet refs and snap points
   const bottomSheetRef = useRef<BottomSheet>(null);
-  const snapPoints = useMemo(() => ['10%', '50%', '85%'], []);
+  const snapPoints = useMemo(() => ['10%', '50%'], []);
 
   const onRegionChangeComplete = (region: Region) => {
     setRegion(region);
@@ -43,6 +43,10 @@ export default function MainView() {
     // Handle sheet changes if needed
   }, []);
 
+  // Create native gesture for map
+  const nativeGesture = Gesture.Native();
+
+
   const getCategoryColor = (category: string) => {
     switch (category) {
       case 'Academic Building': return 'red';
@@ -54,9 +58,9 @@ export default function MainView() {
 
   const getCategoryBadgeColor = (category: string) => {
     switch (category) {
-      case 'Academic Building': return '#ef4444';
-      case 'Learning Center': return '#3b82f6';
-      case 'Natural Site': return '#10b981';
+      case 'Academic Building': return '#dc2626';
+      case 'Learning Center': return '#2563eb';
+      case 'Natural Site': return '#059669';
       default: return '#6b7280';
     }
   };
@@ -89,7 +93,7 @@ export default function MainView() {
           <View style={styles.siteInfo}>
             <Text style={styles.siteName}>{site.name}</Text>
             <View style={[styles.categoryBadge, { backgroundColor: getCategoryBadgeColor(site.category) }]}>
-              <Text style={styles.categoryText}>{site.category}</Text>
+              <Text style={styles.categoryBadgeText}>{site.category}</Text>
             </View>
           </View>
           {site.walkingTime !== undefined && site.walkingTime > 0 && (
@@ -126,7 +130,7 @@ export default function MainView() {
 
   return (
     <GestureHandlerRootView style={styles.container}>
-      <NativeViewGestureHandler>
+      <GestureDetector gesture={nativeGesture}>
         <MapView
           style={styles.map}
           region={region}
@@ -148,7 +152,7 @@ export default function MainView() {
             />
           ))}
         </MapView>
-      </NativeViewGestureHandler>
+      </GestureDetector>
 
       {/* Bottom Sheet for Site List */}
       <BottomSheet
@@ -159,23 +163,24 @@ export default function MainView() {
         enablePanDownToClose={false}
         handleIndicatorStyle={styles.sheetHandle}
         backgroundStyle={styles.bottomSheetBackground}
+        enableContentPanningGesture={false}
+        enableHandlePanningGesture={true}
+        enableOverDrag={false}
+        overDragResistanceFactor={0}
       >
-        <BottomSheetView style={styles.bottomSheetContent}>
-          {/* Sheet Header */}
-          <View style={styles.sheetHeader}>
-            <Text style={styles.sheetTitle}>Explore Sites</Text>
-            <Text style={styles.sheetSubtitle}>{mockSites.length} sites available</Text>
-          </View>
-
-          {/* Sites List */}
-          <BottomSheetFlatList
-            data={mockSites}
-            keyExtractor={(item: Site) => item.id}
-            renderItem={({ item, index }: { item: Site, index: number }) => renderSiteItem(item, index)}
-            contentContainerStyle={styles.flatListContent}
-            showsVerticalScrollIndicator={false}
-          />
-        </BottomSheetView>
+        <BottomSheetFlatList
+          data={mockSites}
+          keyExtractor={(item: Site) => item.id}
+          renderItem={({ item, index }: { item: Site, index: number }) => renderSiteItem(item, index)}
+          ListHeaderComponent={() => (
+            <View style={styles.sheetHeader}>
+              <Text style={styles.sheetTitle}>Explore Sites</Text>
+              <Text style={styles.sheetSubtitle}>{mockSites.length} sites available</Text>
+            </View>
+          )}
+          contentContainerStyle={styles.flatListContent}
+          showsVerticalScrollIndicator={false}
+        />
       </BottomSheet>
 
       {/* Site Details Modal */}
@@ -203,7 +208,7 @@ export default function MainView() {
               <Text style={styles.categoryText}>
                 {selectedSite.category}
               </Text>
-              
+
               <Text style={styles.descriptionText}>
                 {selectedSite.description}
               </Text>
@@ -268,12 +273,14 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   sheetHandle: {
-    backgroundColor: '#d1d5db',
-    width: 40,
-    height: 4,
+    backgroundColor: '#9ca3af',
+    width: 50,
+    height: 5,
+    borderRadius: 3,
   },
   sheetHeader: {
     paddingHorizontal: 16,
+    paddingTop: 0,
     paddingBottom: 16,
     borderBottomWidth: 1,
     borderBottomColor: '#f3f4f6',
@@ -390,9 +397,14 @@ const styles = StyleSheet.create({
   },
   categoryBadge: {
     alignSelf: 'flex-start',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  categoryBadgeText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#ffffff',
   },
   walkingTime: {
     flexDirection: 'row',
