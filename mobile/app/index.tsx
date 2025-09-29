@@ -6,11 +6,11 @@ import {
   Text,
   TouchableOpacity,
   Modal,
-  ScrollView
+  ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import BottomSheet, { BottomSheetView, BottomSheetFlatList } from '@gorhom/bottom-sheet';
+import BottomSheet, { BottomSheetFlatList } from '@gorhom/bottom-sheet';
 import { GestureHandlerRootView, GestureDetector, Gesture } from 'react-native-gesture-handler';
 import { mockSites } from '../data/mockData';
 import type { Site } from '../types/types';
@@ -28,7 +28,10 @@ export default function MainView() {
 
   // Bottom sheet refs and snap points
   const bottomSheetRef = useRef<BottomSheet>(null);
-  const snapPoints = useMemo(() => ['10%', '50%'], []);
+  const snapPoints = ['10%', '50%'];
+
+  // Marker refs to control callouts
+  const markerRefs = useRef<{ [key: string]: any }>({});
 
   const onRegionChangeComplete = (region: Region) => {
     setRegion(region);
@@ -80,8 +83,12 @@ export default function MainView() {
           latitude: site.location.lat,
           longitude: site.location.lng,
         });
-        // Expand bottom sheet to show site details
-        bottomSheetRef.current?.snapToIndex(1);
+        // Minimize bottom sheet to show map and pin clearly
+        bottomSheetRef.current?.snapToIndex(0);
+        // Show marker callout bubble after sheet minimizes
+        setTimeout(() => {
+          markerRefs.current[site.id]?.showCallout();
+        }, 600); // Slightly longer delay for sheet animation + map center
       }}
       activeOpacity={0.7}
     >
@@ -117,12 +124,6 @@ export default function MainView() {
             <Ionicons name="albums-outline" size={12} color="#9ca3af" />
             <Text style={styles.statText}>{site.artifacts.length} artifacts</Text>
           </View>
-          {site.qrCode && (
-            <View style={styles.statItem}>
-              <Ionicons name="qr-code-outline" size={12} color="#9ca3af" />
-              <Text style={styles.statText}>{site.qrCode}</Text>
-            </View>
-          )}
         </View>
       </View>
     </TouchableOpacity>
