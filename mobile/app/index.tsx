@@ -1,5 +1,6 @@
 import React, { useState, useRef, useMemo, useCallback } from 'react';
 import MapView, { Region, Marker } from 'react-native-maps';
+import { router } from 'expo-router';
 import {
   StyleSheet,
   View,
@@ -39,7 +40,8 @@ export default function MainView() {
 
   const handleMarkerPress = useCallback((site: Site) => {
     setSelectedSite(site);
-    setShowSiteModal(true);
+    // Navigate to detail page
+    router.push({ pathname: '/detail', params: { siteId: site.id } });
   }, []);
 
   const handleSheetChanges = useCallback((index: number) => {
@@ -142,6 +144,11 @@ export default function MainView() {
           {mockSites.map((site, index) => (
             <Marker
               key={site.id}
+              ref={(ref) => {
+                if (ref) {
+                  markerRefs.current[site.id] = ref;
+                }
+              }}
               coordinate={{
                 latitude: site.location.lat,
                 longitude: site.location.lng,

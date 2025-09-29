@@ -75,6 +75,12 @@ export default function RootLayout() {
           ),
         }}
       />
+      <Tabs.Screen
+        name="detail"
+        options={{
+          href: null, // this hides it from the tab bar
+        }}
+      />
     </Tabs>
   );
 }
