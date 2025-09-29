@@ -5,11 +5,13 @@ import {
   View,
   Text,
   TouchableOpacity,
-  ScrollView,
+  Modal,
+  ScrollView
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import BottomSheet, { BottomSheetView, BottomSheetFlatList } from '@gorhom/bottom-sheet';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { GestureHandlerRootView, NativeViewGestureHandler } from 'react-native-gesture-handler';
 import { mockSites } from '../data/mockData';
 import type { Site } from '../types/types';
 
@@ -22,19 +24,19 @@ export default function MainView() {
   });
 
   const [selectedSite, setSelectedSite] = useState<Site | null>(null);
-
+  const [showSiteModal, setShowSiteModal] = useState(false);
+  
   // Bottom sheet refs and snap points
   const bottomSheetRef = useRef<BottomSheet>(null);
-  const snapPoints = useMemo(() => ['12%', '35%', '85%'], []);
+  const snapPoints = useMemo(() => ['10%', '50%', '85%'], []);
 
-  const onRegionChange = (region: Region) => {
+  const onRegionChangeComplete = (region: Region) => {
     setRegion(region);
   };
 
   const handleMarkerPress = useCallback((site: Site) => {
     setSelectedSite(site);
-    // Animate to mid height when a site is selected
-    bottomSheetRef.current?.snapToIndex(1);
+    setShowSiteModal(true);
   }, []);
 
   const handleSheetChanges = useCallback((index: number) => {
@@ -43,11 +45,18 @@ export default function MainView() {
 
   const getCategoryColor = (category: string) => {
     switch (category) {
+      case 'Academic Building': return 'red';
+      case 'Learning Center': return 'blue';
+      case 'Natural Site': return 'green';
+      default: return 'red';
+    }
+  };
+
+  const getCategoryBadgeColor = (category: string) => {
+    switch (category) {
       case 'Academic Building': return '#ef4444';
       case 'Learning Center': return '#3b82f6';
       case 'Natural Site': return '#10b981';
-      case 'Historic Route': return '#f59e0b';
-      case 'Historic Building': return '#8b5cf6';
       default: return '#6b7280';
     }
   };
@@ -67,7 +76,7 @@ export default function MainView() {
           latitude: site.location.lat,
           longitude: site.location.lng,
         });
-        // Snap to mid height to show details
+        // Expand bottom sheet to show site details
         bottomSheetRef.current?.snapToIndex(1);
       }}
       activeOpacity={0.7}
@@ -79,7 +88,7 @@ export default function MainView() {
           </View>
           <View style={styles.siteInfo}>
             <Text style={styles.siteName}>{site.name}</Text>
-            <View style={[styles.categoryBadge, { backgroundColor: getCategoryColor(site.category) }]}>
+            <View style={[styles.categoryBadge, { backgroundColor: getCategoryBadgeColor(site.category) }]}>
               <Text style={styles.categoryText}>{site.category}</Text>
             </View>
           </View>
@@ -117,31 +126,31 @@ export default function MainView() {
 
   return (
     <GestureHandlerRootView style={styles.container}>
-      {/* Map */}
-      <MapView
-        style={styles.map}
-        region={region}
-        onRegionChange={onRegionChange}
-        showsUserLocation={true}
-        showsMyLocationButton={false}
-      >
-        {mockSites.map((site) => (
-          <Marker
-            key={site.id}
-            coordinate={{
-              latitude: site.location.lat,
-              longitude: site.location.lng,
-            }}
-            onPress={() => handleMarkerPress(site)}
-          >
-            <View style={[styles.markerContainer, { backgroundColor: getCategoryColor(site.category) }]}>
-              <Text style={styles.markerText}>{mockSites.indexOf(site) + 1}</Text>
-            </View>
-          </Marker>
-        ))}
-      </MapView>
+      <NativeViewGestureHandler>
+        <MapView
+          style={styles.map}
+          region={region}
+          onRegionChangeComplete={onRegionChangeComplete}
+          showsUserLocation={true}
+          showsMyLocationButton={false}
+        >
+          {mockSites.map((site, index) => (
+            <Marker
+              key={site.id}
+              coordinate={{
+                latitude: site.location.lat,
+                longitude: site.location.lng,
+              }}
+              title={site.name}
+              description={site.category}
+              pinColor={getCategoryColor(site.category)}
+              onPress={() => handleMarkerPress(site)}
+            />
+          ))}
+        </MapView>
+      </NativeViewGestureHandler>
 
-      {/* Bottom Sheet */}
+      {/* Bottom Sheet for Site List */}
       <BottomSheet
         ref={bottomSheetRef}
         index={0}
@@ -150,36 +159,70 @@ export default function MainView() {
         enablePanDownToClose={false}
         handleIndicatorStyle={styles.sheetHandle}
         backgroundStyle={styles.bottomSheetBackground}
-        enableDynamicSizing={false}
       >
-        {selectedSite ? (
-          // Selected Site Details
-          <BottomSheetView style={styles.bottomSheetContent}>
-            <View style={styles.sheetHeader}>
-              <Text style={styles.sheetTitle}>{selectedSite.name}</Text>
-              <Text style={styles.sheetSubtitle}>{selectedSite.category}</Text>
-            </View>
+        <BottomSheetView style={styles.bottomSheetContent}>
+          {/* Sheet Header */}
+          <View style={styles.sheetHeader}>
+            <Text style={styles.sheetTitle}>Explore Sites</Text>
+            <Text style={styles.sheetSubtitle}>{mockSites.length} sites available</Text>
+          </View>
 
-            <View style={styles.selectedSiteContent}>
-              <Text style={styles.selectedSiteDescription}>
+          {/* Sites List */}
+          <BottomSheetFlatList
+            data={mockSites}
+            keyExtractor={(item: Site) => item.id}
+            renderItem={({ item, index }: { item: Site, index: number }) => renderSiteItem(item, index)}
+            contentContainerStyle={styles.flatListContent}
+            showsVerticalScrollIndicator={false}
+          />
+        </BottomSheetView>
+      </BottomSheet>
+
+      {/* Site Details Modal */}
+      <Modal
+        visible={showSiteModal}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setShowSiteModal(false)}
+      >
+        <SafeAreaView style={styles.modalContainer}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>
+              {selectedSite?.name || 'Site Details'}
+            </Text>
+            <TouchableOpacity
+              onPress={() => setShowSiteModal(false)}
+              style={styles.closeButton}
+            >
+              <Ionicons name="close" size={24} color="#374151" />
+            </TouchableOpacity>
+          </View>
+
+          {selectedSite && (
+            <ScrollView style={styles.modalContent}>
+              <Text style={styles.categoryText}>
+                {selectedSite.category}
+              </Text>
+              
+              <Text style={styles.descriptionText}>
                 {selectedSite.description}
               </Text>
 
-              <View style={styles.selectedSiteDetails}>
+              <View style={styles.detailsSection}>
                 <View style={styles.detailRow}>
-                  <Ionicons name="location-outline" size={16} color="#9ca3af" />
+                  <Ionicons name="location-outline" size={20} color="#6b7280" />
                   <Text style={styles.detailText}>{selectedSite.address}</Text>
                 </View>
 
                 {selectedSite.walkingTime !== undefined && selectedSite.walkingTime > 0 && (
                   <View style={styles.detailRow}>
-                    <Ionicons name="time-outline" size={16} color="#9ca3af" />
+                    <Ionicons name="time-outline" size={20} color="#6b7280" />
                     <Text style={styles.detailText}>{selectedSite.walkingTime} minutes walk</Text>
                   </View>
                 )}
 
                 <View style={styles.detailRow}>
-                  <Ionicons name="albums-outline" size={16} color="#9ca3af" />
+                  <Ionicons name="albums-outline" size={20} color="#6b7280" />
                   <Text style={styles.detailText}>
                     {selectedSite.artifacts.length} artifact{selectedSite.artifacts.length !== 1 ? 's' : ''} available
                   </Text>
@@ -187,42 +230,15 @@ export default function MainView() {
 
                 {selectedSite.qrCode && (
                   <View style={styles.detailRow}>
-                    <Ionicons name="qr-code-outline" size={16} color="#9ca3af" />
+                    <Ionicons name="qr-code-outline" size={20} color="#6b7280" />
                     <Text style={styles.detailText}>QR Code: {selectedSite.qrCode}</Text>
                   </View>
                 )}
               </View>
-
-              <TouchableOpacity
-                style={styles.viewAllButton}
-                onPress={() => {
-                  setSelectedSite(null);
-                  bottomSheetRef.current?.snapToIndex(2);
-                }}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.viewAllButtonText}>View All Sites</Text>
-                <Ionicons name="list-outline" size={16} color="#3b82f6" />
-              </TouchableOpacity>
-            </View>
-          </BottomSheetView>
-        ) : (
-          // All Sites List - Use BottomSheetFlatList for scrolling
-          <BottomSheetFlatList
-            data={mockSites}
-            keyExtractor={(item: Site) => item.id}
-            renderItem={({ item, index }: { item: Site, index: number }) => renderSiteItem(item, index)}
-            ListHeaderComponent={() => (
-              <View style={styles.sheetHeader}>
-                <Text style={styles.sheetTitle}>Explore Sites</Text>
-                <Text style={styles.sheetSubtitle}>{mockSites.length} sites available</Text>
-              </View>
-            )}
-            contentContainerStyle={styles.flatListContent}
-            showsVerticalScrollIndicator={false}
-          />
-        )}
-      </BottomSheet>
+            </ScrollView>
+          )}
+        </SafeAreaView>
+      </Modal>
     </GestureHandlerRootView>
   );
 }
@@ -234,20 +250,6 @@ const styles = StyleSheet.create({
   map: {
     width: '100%',
     height: '100%',
-  },
-  markerContainer: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#ffffff',
-  },
-  markerText: {
-    color: '#ffffff',
-    fontSize: 12,
-    fontWeight: 'bold',
   },
   bottomSheetBackground: {
     backgroundColor: '#ffffff',
@@ -286,23 +288,50 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#6b7280',
   },
-  sheetContent: {
-    flex: 1,
+  flatListContent: {
     paddingHorizontal: 16,
-    paddingTop: 8,
+    paddingVertical: 4,
+    paddingBottom: 50,
   },
-  selectedSiteContent: {
-    paddingVertical: 16,
+  modalContainer: {
+    flex: 1,
+    backgroundColor: '#ffffff',
   },
-  selectedSiteDescription: {
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e7eb',
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#111827',
+    flex: 1,
+  },
+  closeButton: {
+    padding: 8,
+  },
+  modalContent: {
+    flex: 1,
+    padding: 16,
+  },
+  categoryText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6b7280',
+    marginBottom: 8,
+  },
+  descriptionText: {
     fontSize: 16,
     color: '#374151',
     lineHeight: 24,
-    marginBottom: 20,
+    marginBottom: 24,
   },
-  selectedSiteDetails: {
-    gap: 12,
-    marginBottom: 20,
+  detailsSection: {
+    gap: 16,
   },
   detailRow: {
     flexDirection: 'row',
@@ -310,26 +339,9 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   detailText: {
-    fontSize: 14,
-    color: '#6b7280',
+    fontSize: 16,
+    color: '#374151',
     flex: 1,
-  },
-  viewAllButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    backgroundColor: '#f8fafc',
-    borderWidth: 1,
-    borderColor: '#3b82f6',
-    borderRadius: 8,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-  },
-  viewAllButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#3b82f6',
   },
   sitesContainer: {
     paddingVertical: 16,
@@ -382,11 +394,6 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
     borderRadius: 8,
   },
-  categoryText: {
-    fontSize: 10,
-    fontWeight: '600',
-    color: '#ffffff',
-  },
   walkingTime: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -416,13 +423,5 @@ const styles = StyleSheet.create({
   statText: {
     fontSize: 12,
     color: '#9ca3af',
-  },
-  scrollViewContent: {
-    paddingBottom: 50, // Add extra padding at bottom for better scrolling
-  },
-  flatListContent: {
-    paddingHorizontal: 16,
-    paddingVertical: 4,
-    paddingBottom: 50,
   },
 });
