@@ -1,16 +1,21 @@
 {
   "expo": {
-    "name": "mobile",
-    "slug": "mobile",
+    "name": "pintrail",
+    "slug": "pintrail",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "mobile",
+    "scheme": "pintrail",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.yongye0997.pintrail",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
+    
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
@@ -43,6 +48,13 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "5815cc17-7872-49bd-b666-e6976b0f9799"
+      }
+    },
+    "owner": "yongye0997"
   }
 }
