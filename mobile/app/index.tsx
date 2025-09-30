@@ -17,21 +17,59 @@ export default function HomeScreen() {
     setState(region);
   };
 
+  type markerData = {
+    coordinate: {longitude: number, latitude: number },
+    id: number,
+    title: string,
+    pinColor: string,
+    description: string,
+    onPress: (e: any) => void
+  }
+
+  const markers: markerData[] = [
+    {
+      coordinate: { latitude: 42.39674910914364, longitude: -72.52415362726558 },
+      id: 1,
+      title: 'North B',
+      pinColor: 'red',
+      description: 'This is where Felix lives',
+      onPress: (e) => { e.stopPropagation(); setOpen(1); }
+    },
+    {
+      coordinate: { latitude: 42.39194359454453, longitude: -72.52466259261561 },
+      id: 2,
+      title: 'Hasbrouck',
+      pinColor: 'red',
+      description: 'I am currently coding this while in my Physics lab',
+      onPress: (e) => { e.stopPropagation(); setOpen(2); }
+    }
+  ];
+
 
   const [state, setState] = useState(getInitialRegion());
-  const [open, setOpen] = useState(false)
+  const [open, setOpen] = useState<number | null>(null)
 
   return (
     <View style={styles.container}>
-      <MapView style={styles.map} region={state} onRegionChange={onRegionChange} onPress={() => setOpen(false)}> 
-        <Marker coordinate={{ latitude: 42.39674910914364, longitude: -72.52415362726558 }} title='North B' pinColor='red' description='This is where Felix lives' onPress={ (e) => { e.stopPropagation(); setOpen(true); } }/>
+      <MapView style={styles.map} region={state} onRegionChange={onRegionChange} onPress={() => setOpen(null)}> 
+        {
+          markers.map((m) => (
+            <Marker
+              key={m.id}
+              coordinate={m.coordinate}
+              pinColor={m.pinColor}
+              onPress={m.onPress}
+            />
+          ))
+        }
       </MapView>
 
       {open && (
         <View style={styles.markerExpanded}>
-          <Text>North B</Text>
-          <Pressable style={styles.markerExitButton} onPress={() => setOpen(false)}>
-            <Text>X</Text>
+          <Text>{markers[open - 1].title}</Text>
+          <Text>{markers[open - 1].description}</Text>
+          <Pressable style={styles.markerExitButton} onPress={() => setOpen(null)}>
+            <Text style={styles.markerExitText}>X</Text>
           </Pressable>
         </View>
       )}
@@ -49,7 +87,7 @@ const styles = StyleSheet.create({
     height: '100%',
   },
   markerExpanded: {
-    position:'absolute',
+    position: 'absolute',
     height: '50%',
     width: '100%',
     backgroundColor: 'white',
@@ -65,8 +103,17 @@ const styles = StyleSheet.create({
     padding: 5,
     alignContent: 'center',
     justifyContent: 'center',
+    textAlign: 'center',
     width: 30,
     height: 30,
-    borderRadius: 20
+    borderRadius: 20,
+    position: 'absolute',
+    right: 10,
+    top: 10,
+  }, 
+  markerExitText: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    textAlign: 'center'
   }
 });
