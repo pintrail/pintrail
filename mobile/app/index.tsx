@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import MapView, { Marker, Region } from 'react-native-maps';
 import { StyleSheet, View, Text, Pressable } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function HomeScreen() {
 
@@ -23,6 +24,8 @@ export default function HomeScreen() {
     title: string,
     pinColor: string,
     description: string,
+    tag: string,
+    details: { address: string, relatedArtifacts: string[], qrcode: string}
     onPress: (e: any) => void
   }
 
@@ -33,6 +36,8 @@ export default function HomeScreen() {
       title: 'North B',
       pinColor: 'red',
       description: 'This is where Felix lives',
+      tag: 'Residential Building',
+      details: { address: '58 EastMan Ln.', relatedArtifacts: ['dddd', 'aaaa'], qrcode: 'FEDCBA'},
       onPress: (e) => { e.stopPropagation(); setOpen(1); }
     },
     {
@@ -40,7 +45,9 @@ export default function HomeScreen() {
       id: 2,
       title: 'Hasbrouck',
       pinColor: 'red',
-      description: 'I am currently coding this while in my Physics lab',
+      description: 'Hasbrouck Laboratory, built in 1950, was the first major building placed in the campus center near North Pleasant Street, between Stockbridge Road and Ellis (Olmsted) Drive and adjacent to the Goessmann Lab precinct. Its siting marked a shift from preserving the central lowlands as pastoral open space to developing them, likely to showcase the university’s growing emphasis on scientific advancement.',
+      tag: 'Academic Building',
+      details: { address: '666 N Pleasant St.', relatedArtifacts: ['blah' , 'swdcfwf', 'dddd'], qrcode: 'ABCDEF'},
       onPress: (e) => { e.stopPropagation(); setOpen(2); }
     }
   ];
@@ -65,13 +72,25 @@ export default function HomeScreen() {
       </MapView>
 
       {open && (
-        <View style={styles.markerExpanded}>
-          <Text>{markers[open - 1].title}</Text>
-          <Text>{markers[open - 1].description}</Text>
-          <Pressable style={styles.markerExitButton} onPress={() => setOpen(null)}>
-            <Text style={styles.markerExitText}>X</Text>
-          </Pressable>
-        </View>
+        <SafeAreaView style={styles.markerExpandedContainer}>
+          <View style={styles.markerExpandedTitleAndExitContainer}>
+            <Text style={styles.markerExpandedTitle}>{markers[open - 1].title}</Text>
+            <Pressable style={styles.markerExpandedExitButton} onPress={() => setOpen(null)}>
+              <Text style={styles.markerExpandedExitButtonText}>X</Text>
+            </Pressable>
+          </View>
+          
+          <Text style={styles.markerExpandedTag}>{markers[open - 1].tag}</Text>
+          <Text style={styles.markerExpandedDescription}>{markers[open - 1].description}</Text>
+          
+          <View style={styles.markerExpandedDetailsContainer}>
+            <Text style={styles.markerExpandedDetailsTitle}>Details</Text>
+            <Text style={styles.markerExpandedDetailsText}>- {markers[open - 1].details.address}</Text>
+            <Text style={styles.markerExpandedDetailsText}>- {markers[open - 1].details.relatedArtifacts.length} related artifacts</Text>
+            <Text style={styles.markerExpandedDetailsText}>- QR Code: {markers[open - 1].details.qrcode}</Text>
+          </View>
+          
+        </SafeAreaView>
       )}
       
     </View>
@@ -86,9 +105,9 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
   },
-  markerExpanded: {
+  markerExpandedContainer: {
     position: 'absolute',
-    height: '50%',
+    height: '100%',
     width: '100%',
     backgroundColor: 'white',
     bottom: 0,
@@ -96,9 +115,22 @@ const styles = StyleSheet.create({
     right: 0,
     padding: 10,
     borderTopLeftRadius: 20,
-    borderTopRightRadius: 20
+    borderTopRightRadius: 20,
+    display: 'flex',
+    flexDirection: 'column',
   },
-  markerExitButton: {
+  markerExpandedTitleAndExitContainer: {
+    width: '100%',
+    height: 'auto',
+    display: 'flex',
+    flexDirection: 'row',
+    position: 'relative',
+  },
+  markerExpandedTitle: {
+    fontWeight: 600,
+    fontSize: 25,
+  },
+  markerExpandedExitButton: {
     backgroundColor: 'grey',
     padding: 5,
     alignContent: 'center',
@@ -108,12 +140,31 @@ const styles = StyleSheet.create({
     height: 30,
     borderRadius: 20,
     position: 'absolute',
-    right: 10,
-    top: 10,
+    right: 3,
   }, 
-  markerExitText: {
+  markerExpandedExitButtonText: {
     alignItems: 'center',
     justifyContent: 'center',
     textAlign: 'center'
-  }
+  },
+  markerExpandedTag: {
+    marginTop: 5,
+    fontWeight: 600,
+    color: 'grey',
+  },
+  markerExpandedDescription: {
+    marginTop: 5,
+  },
+  markerExpandedDetailsContainer: {
+    marginTop: 10,
+  },
+  markerExpandedDetailsTitle: {
+    fontSize: 20,
+    fontWeight: 600,
+  },
+  markerExpandedDetailsText: {
+      marginTop: 5,
+      fontWeight: 400,
+    }
+
 });
