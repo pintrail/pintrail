@@ -1,0 +1,101 @@
+#
+# DEVELOPMENT COMPOSE FILE
+# - This is not production ready.
+#
+x-env: &default-env
+  POSTGRES_DB: ${POSTGRES_DB}
+  POSTGRES_USER: ${POSTGRES_USER}
+  POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+
+x-traefik-labels: &traefik-common
+  - "traefik.enable=true"
+  # stickiness off by default; Traefik will round-robin
+  - "traefik.http.services.${COMPOSE_PROJECT_NAME}-@name.loadbalancer.passhostheader=true"
+
+networks:
+  edge:
+  internal:
+
+volumes:
+  pg_data:
+  redis_data:
+
+services:
+  gateway:
+    image: traefik:v3.5
+    command:
+      - --log.level=DEBUG
+      - --api.dashboard=true                # exposes dashboard on :8080
+      - --api.insecure=true                 # exposes dashboard on :8080
+      - --entrypoints.web.address=:80       # defines an HTTP listening port
+      - --entrypoints.traefik.address=:8080 # defines an HTTP listening port
+      - --providers.docker=true
+      - --providers.docker.exposedbydefault=false
+    ports:
+      - "80:80"
+      - "8080:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks: [edge, internal]
+
+  postgres:
+    image: postgres:18-alpine
+    environment: *default-env
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+      - ../services/db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    networks: [internal]
+
+  redis:
+    image: redis:8.2.2-alpine
+    command: ["redis-server", "--save", "60", "1", "--loglevel", "warning"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    volumes:
+      - redis_data:/data
+    networks: [internal]
+
+  # example Python microservice (duplicate this for more services)
+  user:
+    build:
+      context: ..
+      dockerfile: services/user/Dockerfile
+    environment:
+      SERVICE_NAME: user
+      DATABASE_URL: postgresql+psycopg://$POSTGRES_USER:$POSTGRES_PASSWORD@postgres:5432/$POSTGRES_DB
+      REDIS_URL: redis://redis:6379/0
+      UVICORN_HOST: 0.0.0.0
+      UVICORN_PORT: 8000
+      PYTHONPATH: /app:/app/libs
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    deploy:
+      replicas: 2  # simple load balancing via Traefik
+    labels:
+      - traefik.enable=true
+
+      # Users API at /api/users
+      - traefik.http.routers.user.entrypoints=web
+      - traefik.http.routers.user.rule=PathPrefix(`/api/users`)
+      - traefik.http.services.user.loadbalancer.server.port=8000
+
+      # Health at /healthz/*
+      - traefik.http.routers.user-health.entrypoints=web
+      - traefik.http.routers.user-health.rule=PathPrefix(`/healthz`)
+      - traefik.http.routers.user-health.service=user
+
+    networks: [internal]
+
+  # expose services via gateway on the edge network
+  # Note: only gateway is on edge; services talk on internal

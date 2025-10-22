@@ -1,0 +1,18 @@
+[project]
+name = "user"
+version = "0.1.0"
+requires-python = ">=3.13"
+dependencies = [
+  "fastapi==0.119",
+  "uvicorn==0.38",
+  "pydantic==2.12",
+  "sqlmodel==0.0.27",
+  "psycopg[binary]==3.2.11",
+  "redis==6.4",
+  "pydantic-settings==2.11",
+]
+
+[tool.uvicorn]
+reload = false
+host = "0.0.0.0"
+port = 8000
