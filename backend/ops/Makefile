@@ -19,6 +19,19 @@ pss:
 restart:
 	docker compose --env-file .env restart
 
+pg-attach:
+	docker compose exec postgres psql -U pintrails -d pintrails
+
+pg-users:
+	@docker compose exec postgres \
+  	psql -U pintrails -d pintrails \
+  	-c "SELECT * FROM public.users ORDER BY id;"
+
+pg-users-csv:
+	@docker compose exec postgres \
+  	psql -q -U pintrails -d pintrails \
+  	-c "\pset format csv" -c "SELECT * FROM public.users ORDER BY id;"
+
 recreate:
 	docker compose --env-file .env down -v
 	docker compose --env-file .env up -d --build
