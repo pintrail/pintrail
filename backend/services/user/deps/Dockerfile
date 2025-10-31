@@ -12,7 +12,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential curl ca-certificates && \
     rm -rf /var/lib/apt/lists/*
 
-COPY services/user/pyproject.toml /app/
+COPY services/user/deps/pyproject.toml /app/
 
 # install in a venv to keep it tidy
 RUN python -m venv /venv && . /venv/bin/activate && \
@@ -28,4 +28,4 @@ EXPOSE 8000
 ENV PATH="/venv/bin:$PATH"
 ENV PYTHONPATH="/app:/app/libs"
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "app.user_module:app", "--host", "0.0.0.0", "--port", "8000"]

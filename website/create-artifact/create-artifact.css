@@ -1,0 +1,75 @@
+@import "https://cdn.jsdelivr.net/npm/bulma@1.0.4/css/bulma.min.css";
+
+:host {
+  display: flex;
+  height: 100vh;
+  width: 100vw;
+  align-items: center;
+  justify-content: center;
+}
+
+.create-artifact-container {
+    height: 95%;
+    width: 95%;
+    background-color: aqua;
+    border-radius: 20px;
+    padding: 15px;
+}
+
+.create-artifact-top-bar {
+    width: 100%;
+    height: 40px;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    position: relative;
+}
+
+.create-artifact-title {
+    font-size: 20px;
+    position: absolute;
+    left: 0;
+    top: 0;
+    display: block;
+}
+
+.create-artifact-exit-button {
+    height: fit-content;
+    width: 30px;
+    border-radius: 100%;
+    position: absolute;
+    right: 0;
+    top: 0;
+    padding: 5px;
+    border: 2px solid black;
+}
+
+.create-artifact-media-upload {
+    margin-top: 2vh;
+    height: 50%;
+    width: 100%;
+    background-color: lightgray;
+    border: 2px solid black;
+    border-radius: 20px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+.create-artifact-media-upload-placeholder-image {
+    background-color: brown;
+    width: 250px;
+    height: 100px;
+}
+
+.create-artifact-media-upload-input {
+    margin-top: 2vh;
+    width: fit-content;
+}
+
+.create-artifact-data-fields {
+    height: fit-content;
+    width: 100%;
+    display: flex;
+}

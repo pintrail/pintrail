@@ -67,7 +67,7 @@ services:
   user:
     build:
       context: ..
-      dockerfile: services/user/Dockerfile
+      dockerfile: services/user/deps/Dockerfile
     environment:
       SERVICE_NAME: user
       DATABASE_URL: postgresql+psycopg://$POSTGRES_USER:$POSTGRES_PASSWORD@postgres:5432/$POSTGRES_DB

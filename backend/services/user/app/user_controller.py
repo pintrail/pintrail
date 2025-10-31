@@ -1,28 +1,28 @@
 from typing import List
-from fastapi import FastAPI, Depends
+from fastapi import FastAPI, Depends, APIRouter
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
-from .models import User
-from .deps import get_session, init_db, redis_client
-from .dto.users import UserCreate, UserRead
+from .user_orm import User
+from .user_db import get_session, init_db, redis_client
+from .dto.user_schema import UserCreate, UserRead
 from fastapi import HTTPException, Response, status
 from sqlalchemy.exc import IntegrityError
 
-app = FastAPI(title="user-service", version="0.1.0")
+router = APIRouter(tags=["users"])
 
 
-@app.on_event("startup")
+@router.on_event("startup")
 async def on_startup():
     await init_db()
     await redis_client.ping() # type: ignore
 
 
-@app.get("/healthz/liveness")
+@router.get("/healthz/liveness")
 async def liveness():
     return {"ok": True}
 
 
-@app.get("/healthz/readiness")
+@router.get("/healthz/readiness")
 async def readiness():
     try:
         await redis_client.ping() # type: ignore
@@ -37,14 +37,14 @@ async def readiness():
 #     return result.scalars().all()
 
 
-@app.get("/api/users", response_model=list[UserRead])
+@router.get("/api/users", response_model=list[UserRead])
 async def list_users(session: AsyncSession = Depends(get_session)):
     result = await session.exec(select(User).order_by(User.id))
     users = result.all()          # ScalarResult → list[User]
     return users
 
 # Dangerous route - no checking.
-@app.post("/api/users")
+@router.post("/api/users")
 async def create_user(user: User, session: AsyncSession = Depends(get_session)):
     session.add(user)
     await session.commit()
@@ -52,7 +52,7 @@ async def create_user(user: User, session: AsyncSession = Depends(get_session)):
     return user
 
 
-@app.post("/api/users/create", response_model=UserRead, status_code=status.HTTP_201_CREATED)
+@router.post("/api/users/create", response_model=UserRead, status_code=status.HTTP_201_CREATED)
 async def api_create_user(payload: UserCreate, response: Response, session: AsyncSession = Depends(get_session)) -> UserRead:
     # Normalize inputs
     username = payload.username.strip()

@@ -4,7 +4,7 @@ from sqlmodel import SQLModel, Field
 from uuid import uuid4
 
 
-class Users(SQLModel, table=True):
+class User(SQLModel, table=True):
     __tablename__ = "users"
 
     id: Optional[int] = Field(default=None, primary_key=True)  # internal PK

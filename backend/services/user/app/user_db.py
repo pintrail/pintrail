@@ -16,8 +16,9 @@ SessionLocal = async_sessionmaker(engine, expire_on_commit=False, class_=AsyncSe
 
 
 async def init_db() -> None:
-    async with engine.begin() as conn:
-        await conn.run_sync(SQLModel.metadata.create_all)
+    async with redis_client.lock("init_db_lock", timeout=60):
+        async with engine.begin() as conn:
+            await conn.run_sync(SQLModel.metadata.create_all)
 
 
 # Redis connection (async)
