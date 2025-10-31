@@ -1,0 +1,12 @@
+### CREATE A USER
+# This will create a new fake user in the system.
+POST http://localhost/api/users/create
+
+{
+  "username": "john",
+  "email": "doe@umass.edu" 
+}
+
+### GET USER
+# This route gets all of the users.
+GET http://localhost/api/users
