@@ -1,6 +1,5 @@
 from datetime import datetime
 from typing import Annotated
-
 from pydantic import BaseModel, ConfigDict, EmailStr, StringConstraints, constr
 
 # Input DTO: what clients are allowed to send

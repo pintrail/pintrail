@@ -3,6 +3,7 @@ from sqlmodel import SQLModel
 from sqlmodel.ext.asyncio.session import AsyncSession
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 from libs.python.common.settings import settings
+from db import User, Artifacts  # noqa: F401
 
 # Async DB engine for SQLModel
 # Psycopg3 async driver: postgresql+psycopg -> add '+asyncpg' or async flag?

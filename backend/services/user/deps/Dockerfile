@@ -24,6 +24,8 @@ COPY services/user/app /app/app
 # copy shared libs
 COPY libs /app/libs
 
+COPY services/db /app/db
+
 EXPOSE 8000
 ENV PATH="/venv/bin:$PATH"
 ENV PYTHONPATH="/app:/app/libs"

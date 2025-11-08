@@ -3,13 +3,9 @@
 # - This is not production ready.
 #
 x-env: &default-env
-  USER_POSTGRES_DB: ${USER_POSTGRES_DB}
-  USER_POSTGRES_USER: ${USER_POSTGRES_USER}
-  USER_POSTGRES_PASSWORD: ${USER_POSTGRES_PASSWORD}
-
-  ARTIFACT_POSTGRES_DB: ${ARTIFACT_POSTGRES_DB}
-  ARTIFACT_POSTGRES_USER: ${ARTIFACT_POSTGRES_USER}
-  ARTIFACT_POSTGRES_PASSWORD: ${ARTIFACT_POSTGRES_PASSWORD}
+  POSTGRES_DB: ${POSTGRES_DB}
+  POSTGRES_USER: ${POSTGRES_USER}
+  POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
 
 x-traefik-labels: &traefik-common
   - "traefik.enable=true"
@@ -21,8 +17,7 @@ networks:
   internal:
 
 volumes:
-  user_pg_data:
-  artifact_pg_data:
+  pg_data:
   redis_data:
 
 services:
@@ -43,30 +38,16 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock:ro
     networks: [edge, internal]
 
-  user_postgres:
+  postgres:
     image: postgres:18-alpine
     environment: *default-env
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $$USER_POSTGRES_USER -d $$USER_POSTGRES_DB"]
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
       interval: 5s
       timeout: 3s
       retries: 20
     volumes:
-      - user_pg_data:/var/lib/postgresql/data
-      - ../services/db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
-    networks: [internal]
-
-
-  artifact_postgres:
-    image: postgres:18-alpine
-    environment: *default-env
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $$ARTIFACT_POSTGRES_USER -d $$ARTIFACT_POSTGRES_DB"]
-      interval: 5s
-      timeout: 3s
-      retries: 20
-    volumes:
-      - artifact_pg_data:/var/lib/postgresql/data
+      - pg_data:/var/lib/postgresql/data
       - ../services/db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     networks: [internal]
 
@@ -89,13 +70,13 @@ services:
       dockerfile: services/user/deps/Dockerfile
     environment:
       SERVICE_NAME: user
-      DATABASE_URL: postgresql+psycopg://$USER_POSTGRES_USER:$USER_POSTGRES_PASSWORD@user_postgres:5432/$USER_POSTGRES_DB
+      DATABASE_URL: postgresql+psycopg://$POSTGRES_USER:$POSTGRES_PASSWORD@postgres:5432/$POSTGRES_DB
       REDIS_URL: redis://redis:6379/0
       UVICORN_HOST: 0.0.0.0
       UVICORN_PORT: 8000
       PYTHONPATH: /app:/app/libs
     depends_on:
-      user_postgres:
+      postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
@@ -122,13 +103,13 @@ services:
       dockerfile: services/artifact/deps/Dockerfile
     environment:
       SERVICE_NAME: artifact
-      DATABASE_URL: postgresql+psycopg://$ARTIFACT_POSTGRES_USER:$ARTIFACT_POSTGRES_PASSWORD@artifact_postgres:5432/$ARTIFACT_POSTGRES_DB
+      DATABASE_URL: postgresql+psycopg://$POSTGRES_USER:$POSTGRES_PASSWORD@postgres:5432/$POSTGRES_DB
       # REDIS_URL: redis://redis:6379/0
       UVICORN_HOST: 0.0.0.0
       UVICORN_PORT: 8001
       PYTHONPATH: /app:/app/libs
     depends_on:
-      artifact_postgres:
+      postgres:
         condition: service_healthy
       # redis:
       #   condition: service_healthy

@@ -3,14 +3,10 @@ from typing import List
 from fastapi import FastAPI, Depends, APIRouter
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
-from .artifact_orm import Artifacts
+from db import Artifacts
 from .artifact_db import get_session, init_db, redis_client
-from .dto.user_schema import UserCreate, UserRead
-from fastapi import HTTPException, Response, status
-from sqlalchemy.exc import IntegrityError
 
 router = APIRouter(tags=["artifacts"])
-
 
 @router.on_event("startup")
 async def on_startup():
@@ -18,6 +14,10 @@ async def on_startup():
     await redis_client.ping() # type: ignore
 
 
-@router.get("/healthz/liveness")
+@router.get("/health")
 async def liveness():
     return {"ok": True}
+
+@router.post("/create")
+async def create_artifact_controller():
+    return 
