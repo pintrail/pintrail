@@ -1,9 +1,7 @@
 from datetime import datetime, timezone
 from typing import Optional, List
-from sqlmodel import SQLModel, Field, Relationship, Column, String
+from sqlmodel import SQLModel, Field, Relationship, Column, String, ARRAY
 from uuid import uuid4, UUID
-from sqlalchemy.dialects.postgresql import ARRAY
-from sqlalchemy.ext.mutable import MutableList
 
 def gen_uuid():
     return uuid4()
@@ -36,10 +34,10 @@ class Artifacts(SQLModel, table=True):
     lat: float
     lon: float
     alt: Optional[float] = None
-    tags: Optional[List[str]] = Field(default_factory=list, sa_column=Column(MutableList.as_mutable(ARRAY(String)))) # There can probably be some relationship defined between tags for easier filtering
+    tags: Optional[List[str]] = Field(default_factory=list, sa_column=Column(ARRAY(String))) # There can probably be some relationship defined between tags for easier filtering
 
     # Related Ids
-    owner_id: int = Field(foreign_key="users.id") 
+    owner_id: Optional[int] = Field(foreign_key="users.id", default=None)
     parent_id: Optional[UUID] = Field(default= None, foreign_key="artifacts.id")
     
     # Relationships 
@@ -49,5 +47,5 @@ class Artifacts(SQLModel, table=True):
 
     # Time stamps
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-    updated_at: datetime = Field(default=None, nullable=True)
+    updated_at: Optional[datetime] = Field(default=None, nullable=True)
 

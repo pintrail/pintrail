@@ -1,2 +1,3 @@
-from .orm_models import User, Artifacts  # noqa: F401
+from .orm_models import User, Artifacts
+
 

@@ -37,14 +37,14 @@ async def readiness():
 #     return result.scalars().all()
 
 
-@router.get("/api/users", response_model=list[UserRead])
+@router.get("/", response_model=list[UserRead])
 async def list_users(session: AsyncSession = Depends(get_session)):
     result = await session.exec(select(User).order_by(User.id))
     users = result.all()          # ScalarResult → list[User]
     return users
 
 # Dangerous route - no checking.
-@router.post("/api/users")
+@router.post("/")
 async def create_user(user: User, session: AsyncSession = Depends(get_session)):
     session.add(user)
     await session.commit()
@@ -52,7 +52,7 @@ async def create_user(user: User, session: AsyncSession = Depends(get_session)):
     return user
 
 
-@router.post("/api/users/create", response_model=UserRead, status_code=status.HTTP_201_CREATED)
+@router.post("/create", response_model=UserRead, status_code=status.HTTP_201_CREATED)
 async def api_create_user(payload: UserCreate, response: Response, session: AsyncSession = Depends(get_session)) -> UserRead:
     # Normalize inputs
     username = payload.username.strip()

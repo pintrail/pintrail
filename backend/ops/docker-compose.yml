@@ -125,7 +125,7 @@ services:
 
       # Health at /healthz/*
       - traefik.http.routers.artifact-health.entrypoints=web
-      - traefik.http.routers.artifact-health.rule=PathPrefix(`/healthz`)
+      - traefik.http.routers.artifact-health.rule=PathPrefix(`/health`)
       - traefik.http.routers.artifact-health.service=artifact
 
     networks: [internal]

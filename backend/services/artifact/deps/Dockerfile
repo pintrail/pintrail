@@ -19,7 +19,7 @@ RUN python -m venv /venv && . /venv/bin/activate && \
     pip install --upgrade pip && \
     pip install --no-cache-dir -e .
 
-COPY services/artifact/app /app/app
+COPY services/artifact/app /app
 
 # copy shared libs
 COPY libs /app/libs
@@ -30,4 +30,4 @@ EXPOSE 8000
 ENV PATH="/venv/bin:$PATH"
 ENV PYTHONPATH="/app:/app/libs"
 
-CMD ["uvicorn", "app.artifact_module:app", "--host", "0.0.0.0", "--port", "8001"]
+CMD ["uvicorn", "artifact_module:app", "--host", "0.0.0.0", "--port", "8001"]
