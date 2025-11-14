@@ -1,7 +1,8 @@
 from datetime import datetime, timezone
 from typing import Optional, List
-from sqlmodel import SQLModel, Field, Relationship, Column, String, ARRAY
+from sqlmodel import SQLModel, Field, Relationship, Column, String
 from uuid import uuid4, UUID
+from sqlalchemy.dialects.postgresql import ARRAY
 
 def gen_uuid():
     return uuid4()
