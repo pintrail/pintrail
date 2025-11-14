@@ -11,6 +11,7 @@ class ArtifactCreate(BaseModel):
     alt: Optional[float] = None
     tags: Optional[List[str]] = None
     owner_id: int
+    parent_id: Optional[UUID] =  None
 
 class ArtifactResponse(BaseModel):
     id: UUID
@@ -29,5 +30,3 @@ class ArtifactResponse(BaseModel):
     updated_at: Optional[datetime]
 
     model_config = ConfigDict(from_attributes=True)
-
-

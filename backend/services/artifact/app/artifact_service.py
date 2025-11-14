@@ -12,7 +12,8 @@ async def create_artifact_service(artifact_data: ArtifactCreate, db: AsyncSessio
         lon = artifact_data.lon,
         alt = artifact_data.alt,
         tags = artifact_data.tags,
-        owner_id = artifact_data.owner_id
+        owner_id = artifact_data.owner_id,
+        parent_id= artifact_data.parent_id
     )
 
     db.add(new_artifact)
