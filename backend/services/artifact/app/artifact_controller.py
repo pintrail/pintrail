@@ -45,15 +45,26 @@ async def get_artifact_by_id_controller(id: str, db: AsyncSession = Depends(get_
 async def create_artifact_controller(artifact_data: ArtifactCreate, db: AsyncSession = Depends(get_session)):
     return await create_artifact_service(artifact_data, db)
 
-# Children should inherit tags from parents, need to figure out how to do that, probably somewhere in service
-# like if parent_id then do this ...
-
-
 # Research how to conceptually block all incoming requests that do not come in from the app 
 # that this will be connected to, can traefik be used to filter out things based on a value 
 # from an http header, SSO, SSL, authetication? HTTP headers?
 
-# How to store images? Image repositories? Try to keep lowcost and simple. 
+# Can use these bottom two lines to filter requests through custom header tokens with traefik
+# - "traefik.http.routers.api.middlewares=auth-header"
+# - "traefik.http.middlewares.auth-header.headers.customrequestheaders.X-App-Key=your-secret-key"
+
+# How to store images? Image repositories? Try to keep lowcost and simple.
+# Cloudfare R2 $0.015GB / Month per image stored, 
+# Step 1: Sign up for service, get acc details
+# Step 2: Upload to service, get return URL
+# Step 3: URL will be propogated and used throughout App
+# Barebones option would be local storage, but includes much more coding overhead that would be easily provided by a third party service.
+
+# 
+# Starting point has a displacement im sure, can you calibrate that displacement to
+# get a better idea of their location, like oh you just made it to the room, we've
+# calibrated the displacement and now in this room you can get accurate location 
+# abilities, APPLE FIND AIRPODS, point to coordinates
 
 # Update artifacts endpoint
 # Delete artifacts endpoint

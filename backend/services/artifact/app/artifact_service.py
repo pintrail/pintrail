@@ -5,6 +5,10 @@ from sqlmodel import select
 from typing import List
 
 async def create_artifact_service(artifact_data: ArtifactCreate, db: AsyncSession):
+    if artifact_data.parent_id:
+        parent: Artifacts = await get_artifact_by_id_service(artifact_data.parent_id, db)
+        artifact_data.tags = list(set(artifact_data.tags + parent.tags))
+    
     new_artifact = Artifacts(
         name = artifact_data.name,
         description = artifact_data.description,
@@ -24,8 +28,8 @@ async def create_artifact_service(artifact_data: ArtifactCreate, db: AsyncSessio
 async def get_all_artifacts_service(db: AsyncSession):
     return (await db.exec(select(Artifacts))).all()
 
-async def get_artifact_by_id_service(id: str, db: AsyncSession):
-    return (await db.exec(select(Artifacts).where(Artifacts.id == id))).all()
+async def get_artifact_by_id_service(id: str, db: AsyncSession) -> Artifacts:
+    return (await db.exec(select(Artifacts).where(Artifacts.id == id))).first()
 
 async def get_all_artifacts_by_tag_service(tag: str, db: AsyncSession):
     return (await db.exec(select(Artifacts).where(Artifacts.tags.any(tag)))).all()
