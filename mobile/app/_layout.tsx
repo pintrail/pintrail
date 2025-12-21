@@ -1,6 +1,7 @@
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import 'react-native-reanimated';
+import "../global.css";
 
 export default function RootLayout() {
   return (
@@ -37,3 +38,4 @@ export default function RootLayout() {
     </Tabs>
   );
 }
+
