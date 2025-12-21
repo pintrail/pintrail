@@ -35,6 +35,15 @@ export default function RootLayout() {
           ),
         }}
       />
+      <Tabs.Screen
+        name="playground"
+        options={{
+          title: 'Playground',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="code-outline" size={size} color={color} />
+          ),
+        }}
+      />
     </Tabs>
   );
 }
