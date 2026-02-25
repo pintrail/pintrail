@@ -100,6 +100,50 @@ export class ArtifactsService {
     return this.artifactRepository.save(updated);
   }
 
+  async addAsset(
+    artifactId: string,
+    assetDto: CreateArtifactAssetDto,
+  ): Promise<ArtifactEntity> {
+    const artifact = await this.findOne(artifactId);
+    const nextAssets = [
+      ...(artifact.assets ?? []),
+      this.toAssetEntity(assetDto),
+    ];
+
+    return this.artifactRepository.save({
+      ...artifact,
+      assets: nextAssets,
+    });
+  }
+
+  async setParent(
+    artifactId: string,
+    parentArtifactId: string | null,
+  ): Promise<ArtifactEntity> {
+    const artifact = await this.findOne(artifactId);
+
+    if (parentArtifactId === artifactId) {
+      throw new BadRequestException('artifact cannot be its own parent');
+    }
+
+    if (parentArtifactId) {
+      await this.findOne(parentArtifactId);
+    }
+
+    return this.artifactRepository.save({
+      ...artifact,
+      parentArtifactId,
+    });
+  }
+
+  async addChild(
+    artifactId: string,
+    childArtifactId: string,
+  ): Promise<ArtifactEntity> {
+    await this.setParent(childArtifactId, artifactId);
+    return this.findOne(artifactId);
+  }
+
   async remove(id: string): Promise<void> {
     const deleted = await this.artifactRepository.deleteById(id);
     if (!deleted) {
