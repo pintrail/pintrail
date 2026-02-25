@@ -35,11 +35,16 @@ describe('ArtifactsController', () => {
       name: 'Artifact One',
     });
 
-    const result = await controller.create({ name: 'Artifact One' });
+    const createDto = {
+      name: 'Artifact One',
+      geolocation: {
+        latitude: 40,
+        longitude: -73,
+      },
+    };
+    const result = await controller.create(createDto);
 
-    expect(serviceMock.create.mock.calls[0]).toEqual([
-      { name: 'Artifact One' },
-    ]);
+    expect(serviceMock.create.mock.calls[0]).toEqual([createDto]);
     expect(result).toEqual({ id: 'artifact-1', name: 'Artifact One' });
   });
 

@@ -1,7 +1,13 @@
-import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Inject,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import {
   ArtifactAssetEntity,
   ArtifactEntity,
+  ArtifactGeolocation,
   ArtifactKind,
 } from './entities/artifact.entity';
 import {
@@ -27,6 +33,7 @@ export class ArtifactsService {
     artifact.description = createArtifactDto.description ?? null;
     artifact.tags = createArtifactDto.tags ?? [];
     artifact.location = { ...(createArtifactDto.location ?? {}) };
+    artifact.geolocation = this.toGeolocation(createArtifactDto.geolocation);
     artifact.parentArtifactId = createArtifactDto.parentArtifactId ?? null;
     artifact.assets = (createArtifactDto.assets ?? []).map((assetDto) =>
       this.toAssetEntity(assetDto),
@@ -69,6 +76,10 @@ export class ArtifactsService {
         updateArtifactDto.location === undefined
           ? existing.location
           : { ...updateArtifactDto.location },
+      geolocation:
+        updateArtifactDto.geolocation === undefined
+          ? existing.geolocation
+          : this.toGeolocation(updateArtifactDto.geolocation),
       parentArtifactId:
         updateArtifactDto.parentArtifactId === undefined
           ? existing.parentArtifactId
@@ -114,5 +125,40 @@ export class ArtifactsService {
     asset.relationship = assetDto.relationship ?? null;
     asset.metadata = assetDto.metadata ?? null;
     return asset;
+  }
+
+  private toGeolocation(
+    geolocationDto:
+      | UpdateArtifactDto['geolocation']
+      | CreateArtifactDto['geolocation'],
+  ): ArtifactGeolocation {
+    if (!geolocationDto) {
+      throw new BadRequestException('geolocation is required');
+    }
+
+    const { latitude, longitude } = geolocationDto;
+    if (!Number.isFinite(latitude) || latitude < -90 || latitude > 90) {
+      throw new BadRequestException(
+        'geolocation.latitude must be between -90 and 90',
+      );
+    }
+    if (!Number.isFinite(longitude) || longitude < -180 || longitude > 180) {
+      throw new BadRequestException(
+        'geolocation.longitude must be between -180 and 180',
+      );
+    }
+
+    const radius = geolocationDto.proximityRadiusMeters ?? 25;
+    if (!Number.isFinite(radius) || radius <= 0) {
+      throw new BadRequestException(
+        'geolocation.proximityRadiusMeters must be greater than 0',
+      );
+    }
+
+    const geolocation = new ArtifactGeolocation();
+    geolocation.latitude = latitude;
+    geolocation.longitude = longitude;
+    geolocation.proximityRadiusMeters = Math.round(radius);
+    return geolocation;
   }
 }

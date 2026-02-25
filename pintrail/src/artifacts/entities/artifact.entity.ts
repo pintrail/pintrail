@@ -76,26 +76,34 @@ export class ArtifactLocation {
   @Column({ name: 'shelf', type: 'varchar', length: 120, nullable: true })
   shelf?: string | null;
 
+  @Column({ name: 'notes', type: 'text', nullable: true })
+  notes?: string | null;
+}
+
+// Dedicated geolocation used for mobile proximity detection.
+export class ArtifactGeolocation {
   @Column({
     name: 'latitude',
     type: 'decimal',
     precision: 10,
     scale: 7,
-    nullable: true,
   })
-  latitude?: number | null;
+  latitude: number;
 
   @Column({
     name: 'longitude',
     type: 'decimal',
     precision: 10,
     scale: 7,
-    nullable: true,
   })
-  longitude?: number | null;
+  longitude: number;
 
-  @Column({ name: 'notes', type: 'text', nullable: true })
-  notes?: string | null;
+  @Column({
+    name: 'proximity_radius_meters',
+    type: 'int',
+    default: 25,
+  })
+  proximityRadiusMeters: number;
 }
 
 @Entity({ name: 'artifacts' })
@@ -122,6 +130,9 @@ export class ArtifactEntity {
 
   @Column(() => ArtifactLocation, { prefix: 'location' })
   location: ArtifactLocation;
+
+  @Column(() => ArtifactGeolocation, { prefix: 'geo' })
+  geolocation: ArtifactGeolocation;
 
   @ManyToOne(() => ArtifactEntity, (artifact) => artifact.children, {
     nullable: true,

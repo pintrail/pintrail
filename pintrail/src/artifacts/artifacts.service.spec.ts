@@ -1,4 +1,4 @@
-import { NotFoundException } from '@nestjs/common';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { ArtifactsService } from './artifacts.service';
 import { ArtifactAssetType, ArtifactKind } from './entities/artifact.entity';
@@ -52,6 +52,11 @@ describe('ArtifactsService', () => {
         floor: '1',
         room: 'North Gallery',
       },
+      geolocation: {
+        latitude: 40.779437,
+        longitude: -73.963244,
+        proximityRadiusMeters: 30,
+      },
       assets: [
         {
           type: ArtifactAssetType.TEXT,
@@ -64,7 +69,18 @@ describe('ArtifactsService', () => {
     expect(repositoryMock.save.mock.calls).toHaveLength(1);
     expect(created.id).toBe('artifact-1');
     expect(created.name).toBe('North Gallery');
+    expect(created.geolocation.latitude).toBe(40.779437);
     expect(created.assets[0]?.type).toBe(ArtifactAssetType.TEXT);
+  });
+
+  it('requires geolocation when creating an artifact', async () => {
+    await expect(
+      service.create({
+        name: 'Missing Coordinates',
+      } as never),
+    ).rejects.toBeInstanceOf(BadRequestException);
+
+    expect(repositoryMock.save.mock.calls).toHaveLength(0);
   });
 
   it('returns all artifacts', async () => {
@@ -76,6 +92,11 @@ describe('ArtifactsService', () => {
         description: null,
         tags: [],
         location: {},
+        geolocation: {
+          latitude: 40.779437,
+          longitude: -73.963244,
+          proximityRadiusMeters: 25,
+        },
         children: [],
         assets: [],
         isActive: true,
@@ -107,6 +128,11 @@ describe('ArtifactsService', () => {
       description: null,
       tags: ['old'],
       location: {},
+      geolocation: {
+        latitude: 40.779437,
+        longitude: -73.963244,
+        proximityRadiusMeters: 25,
+      },
       parentArtifactId: null,
       children: [],
       assets: [],
@@ -122,10 +148,16 @@ describe('ArtifactsService', () => {
     const updated = await service.update('artifact-1', {
       name: 'New Name',
       tags: ['updated'],
+      geolocation: {
+        latitude: 40.7795,
+        longitude: -73.9632,
+        proximityRadiusMeters: 20,
+      },
     });
 
     expect(updated.name).toBe('New Name');
     expect(updated.tags).toEqual(['updated']);
+    expect(updated.geolocation.proximityRadiusMeters).toBe(20);
     expect(repositoryMock.save.mock.calls).toHaveLength(1);
   });
 

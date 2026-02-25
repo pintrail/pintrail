@@ -25,6 +25,7 @@ export class InMemoryArtifactRepository implements ArtifactRepository {
       id,
       tags: artifact.tags ?? [],
       location: artifact.location ?? {},
+      geolocation: { ...artifact.geolocation },
       assets: nextAssets,
       children: existing?.children ?? artifact.children ?? [],
       createdAt: existing?.createdAt ?? artifact.createdAt ?? now,
@@ -72,6 +73,7 @@ export class InMemoryArtifactRepository implements ArtifactRepository {
       ...artifact,
       tags: [...(artifact.tags ?? [])],
       location: artifact.location ? { ...artifact.location } : {},
+      geolocation: { ...artifact.geolocation },
       assets: (artifact.assets ?? []).map((asset) => ({ ...asset })),
       children: [...(artifact.children ?? [])],
       metadata: artifact.metadata

@@ -12,9 +12,13 @@ export class ArtifactLocationDto {
   floor?: string;
   room?: string;
   shelf?: string;
-  latitude?: number;
-  longitude?: number;
   notes?: string;
+}
+
+export class ArtifactGeolocationDto {
+  latitude: number;
+  longitude: number;
+  proximityRadiusMeters?: number;
 }
 
 export class CreateArtifactAssetDto {
@@ -41,6 +45,7 @@ export class CreateArtifactDto {
   description?: string;
   tags?: string[];
   location?: ArtifactLocationDto;
+  geolocation: ArtifactGeolocationDto;
   parentArtifactId?: string | null;
   assets?: CreateArtifactAssetDto[];
   isActive?: boolean;
