@@ -1,5 +1,5 @@
 // In-Memory implementation of the artifact repository.
-import { Ok, Err, Some, None } from '#utility/utility.js'
+import { Ok, Err, Some, None } from '#root/src/utility/utility.js'
 import { ArtifactValidationError } from './errors.js'
 import { ArtifactSchema } from './schema.js'
 

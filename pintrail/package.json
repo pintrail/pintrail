@@ -14,8 +14,8 @@
   "license": "ISC",
   "type": "module",
   "imports": {
-    "#root/*": "./*",
-    "#utility/*": "./utility/*"
+    "#root/*": "./src/*",
+    "#utility/*": "./src/utility/*"
   },
   "dependencies": {
     "express": "^5.2.1"

@@ -1,4 +1,4 @@
-import { InMemoryArtifactRepository } from '#root/artifacts/repository/in-memory-repository.js'
+import { InMemoryArtifactRepository } from '#root/src/artifacts/repository/in-memory-repository.js'
 
 const repo = InMemoryArtifactRepository()
 
