@@ -1,6 +1,8 @@
-import { InMemoryArtifactRepository } from '#root/src/artifacts/repository/in-memory-repository.js'
+import { InMemoryArtifactRepository } from '#artifacts/repository/mem-repo.js'
+import { Logger } from '#utility/logger.js'
 
-const repo = InMemoryArtifactRepository()
+const log = Logger()
+const repo = InMemoryArtifactRepository(log)
 
 const art = {
   name: 'Site Survey Photo',
@@ -31,3 +33,5 @@ console.log(no_res)
 
 const x = repo.get(res.v.id)
 console.log(x.getOrElse(`Could not find artifact with id ${res.v.id}`))
+
+log.info('This is just a message')

@@ -7,18 +7,23 @@ import { ArtifactSchema } from './schema.js'
 
 const uuid = () => crypto.randomUUID()
 
-export const InMemoryArtifactRepository = () => {
+export const InMemoryArtifactRepository = logger => {
+  console.assert(logger !== undefined)
+  const log = logger.child({ module: 'InMemoryArtifactRepository' })
   const repo = {}
 
   return {
     add: artifact => {
+      log.info('Adding artifact to repository')
       const id = uuid()
       const res = ArtifactSchema.safeParse(artifact)
       if (res.success) {
         const art = { id, ...res.data }
         repo[id] = art
+        log.info(`Artifact ${id} added`)
         return Ok(art)
       }
+      log.error(`Failed to create artifact: ${res.error.message}`)
       return Err(ArtifactValidationError(res.error.message, artifact))
     },
 

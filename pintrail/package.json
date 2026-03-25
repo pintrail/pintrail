@@ -12,10 +12,12 @@
   "type": "module",
   "imports": {
     "#root/*": "./src/*",
-    "#utility/*": "./src/utility/*"
+    "#utility/*": "./src/utility/*",
+    "#artifacts/*": "./src/artifacts/*"
   },
   "dependencies": {
-    "express": "^5.2.1"
+    "express": "^5.2.1",
+    "pino": "^9.7.0"
   },
   "devDependencies": {
     "zod": "^4.3.6"
