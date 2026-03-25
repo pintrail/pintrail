@@ -4,10 +4,7 @@
   "description": "Pintrail Express app",
   "main": "main/server.js",
   "scripts": {
-    "start": "node main/server.js",
-    "db:generate": "drizzle-kit generate",
-    "db:migrate": "drizzle-kit migrate",
-    "db:studio": "drizzle-kit studio"
+    "start": "node src/main/server.js"
   },
   "keywords": [],
   "author": "",
