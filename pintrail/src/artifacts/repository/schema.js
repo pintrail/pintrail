@@ -1,3 +1,5 @@
+'use strict'
+
 // Defines the schema and data transfer objects (dto) for the repository layer
 import { z } from 'zod'
 
