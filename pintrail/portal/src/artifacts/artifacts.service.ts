@@ -3,54 +3,59 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { randomUUID } from 'crypto';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { ArtifactEntity } from './artifact.entity';
 import { Artifact, ArtifactDetail, GeoCoordinates } from './artifact.types';
 import { CreateArtifactDto } from './dto/create-artifact.dto';
 import { UpdateArtifactDto } from './dto/update-artifact.dto';
 
 @Injectable()
 export class ArtifactsService {
-  private readonly artifacts = new Map<string, Artifact>();
+  constructor(
+    @InjectRepository(ArtifactEntity)
+    private readonly artifactsRepository: Repository<ArtifactEntity>,
+  ) {}
 
-  create(dto: CreateArtifactDto): Artifact {
+  async create(dto: CreateArtifactDto): Promise<Artifact> {
     const parentId = dto.parentId?.trim() || null;
-    const parentArtifact = parentId ? this.artifacts.get(parentId) : null;
+    const parentArtifact = parentId ? await this.requireArtifactEntity(parentId) : null;
 
-    if (parentId && !parentArtifact) {
-      throw new BadRequestException(`Parent artifact ${parentId} does not exist.`);
-    }
-
-    const now = new Date().toISOString();
-    const artifact: Artifact = {
-      id: randomUUID(),
+    const artifact = this.artifactsRepository.create({
       name: '',
       desc: '',
-      loc: parentArtifact?.loc ? { ...parentArtifact.loc } : null,
+      lat: parentArtifact?.lat ?? null,
+      lng: parentArtifact?.lng ?? null,
       parentId,
-      createdAt: now,
-      updatedAt: now,
-    };
-
-    this.artifacts.set(artifact.id, artifact);
-    return artifact;
-  }
-
-  findAll(): Artifact[] {
-    return [...this.artifacts.values()].sort((left, right) => {
-      return left.createdAt.localeCompare(right.createdAt);
     });
+
+    const savedArtifact = await this.artifactsRepository.save(artifact);
+    return this.toArtifact(savedArtifact);
   }
 
-  findOne(id: string): ArtifactDetail {
-    const artifact = this.requireArtifact(id);
+  async findAll(): Promise<Artifact[]> {
+    const artifacts = await this.artifactsRepository.find({
+      order: { createdAt: 'ASC' },
+    });
+
+    return artifacts.map(artifact => this.toArtifact(artifact));
+  }
+
+  async findOne(id: string): Promise<ArtifactDetail> {
+    const artifact = await this.requireArtifactEntity(id);
+    const children = await this.artifactsRepository.find({
+      where: { parentId: id },
+      order: { createdAt: 'ASC' },
+    });
+
     return {
-      ...artifact,
-      children: this.findChildren(id),
+      ...this.toArtifact(artifact),
+      children: children.map(child => this.toArtifact(child)),
     };
   }
 
-  update(id: string, dto: UpdateArtifactDto): ArtifactDetail {
-    const artifact = this.requireArtifact(id);
+  async update(id: string, dto: UpdateArtifactDto): Promise<ArtifactDetail> {
+    const artifact = await this.requireArtifactEntity(id);
 
     if (dto.parentId !== undefined) {
       const nextParentId = dto.parentId?.trim() || null;
@@ -59,11 +64,11 @@ export class ArtifactsService {
         throw new BadRequestException('An artifact cannot be its own parent.');
       }
 
-      if (nextParentId && !this.artifacts.has(nextParentId)) {
-        throw new BadRequestException(`Parent artifact ${nextParentId} does not exist.`);
+      if (nextParentId) {
+        await this.requireArtifactEntity(nextParentId);
       }
 
-      if (nextParentId && this.isDescendant(nextParentId, id)) {
+      if (nextParentId && (await this.isDescendant(nextParentId, id))) {
         throw new BadRequestException(
           'An artifact cannot be moved underneath one of its descendants.',
         );
@@ -81,32 +86,42 @@ export class ArtifactsService {
     }
 
     if (dto.clearLocation) {
-      artifact.loc = null;
+      artifact.lat = null;
+      artifact.lng = null;
     } else if (dto.lat !== undefined || dto.lng !== undefined) {
-      artifact.loc = this.normalizeCoordinates(dto.lat, dto.lng);
+      const coordinates = this.normalizeCoordinates(dto.lat, dto.lng);
+      artifact.lat = coordinates?.lat ?? null;
+      artifact.lng = coordinates?.lng ?? null;
     }
 
-    artifact.updatedAt = new Date().toISOString();
-    this.artifacts.set(id, artifact);
+    await this.artifactsRepository.save(artifact);
 
     return this.findOne(id);
   }
 
-  remove(id: string): { deletedIds: string[] } {
-    this.requireArtifact(id);
+  async remove(id: string): Promise<{ deletedIds: string[] }> {
+    await this.requireArtifactEntity(id);
 
+    const artifacts = await this.artifactsRepository.find({
+      select: {
+        id: true,
+        parentId: true,
+      },
+    });
     const deletedIds: string[] = [];
-    this.collectDescendantsForDeletion(id, deletedIds);
+    this.collectDescendantsForDeletion(
+      id,
+      new Map(artifacts.map(artifact => [artifact.id, artifact.parentId])),
+      deletedIds,
+    );
 
-    for (const artifactId of deletedIds) {
-      this.artifacts.delete(artifactId);
-    }
+    await this.artifactsRepository.delete(id);
 
     return { deletedIds };
   }
 
-  private requireArtifact(id: string): Artifact {
-    const artifact = this.artifacts.get(id);
+  private async requireArtifactEntity(id: string): Promise<ArtifactEntity> {
+    const artifact = await this.artifactsRepository.findOneBy({ id });
     if (!artifact) {
       throw new NotFoundException(`Artifact ${id} was not found.`);
     }
@@ -114,11 +129,17 @@ export class ArtifactsService {
     return artifact;
   }
 
-  private findChildren(parentId: string): Artifact[] {
-    return this.findAll().filter(artifact => artifact.parentId === parentId);
-  }
-
-  private isDescendant(candidateId: string, ancestorId: string): boolean {
+  private async isDescendant(
+    candidateId: string,
+    ancestorId: string,
+  ): Promise<boolean> {
+    const artifacts = await this.artifactsRepository.find({
+      select: {
+        id: true,
+        parentId: true,
+      },
+    });
+    const parentById = new Map(artifacts.map(artifact => [artifact.id, artifact.parentId]));
     let currentId: string | null | undefined = candidateId;
 
     while (currentId) {
@@ -126,17 +147,23 @@ export class ArtifactsService {
         return true;
       }
 
-      currentId = this.artifacts.get(currentId)?.parentId;
+      currentId = parentById.get(currentId);
     }
 
     return false;
   }
 
-  private collectDescendantsForDeletion(id: string, deletedIds: string[]) {
-    const childIds = this.findChildren(id).map(artifact => artifact.id);
+  private collectDescendantsForDeletion(
+    id: string,
+    parentById: Map<string, string | null>,
+    deletedIds: string[],
+  ) {
+    const childIds = [...parentById.entries()]
+      .filter(([, parentId]) => parentId === id)
+      .map(([artifactId]) => artifactId);
 
     for (const childId of childIds) {
-      this.collectDescendantsForDeletion(childId, deletedIds);
+      this.collectDescendantsForDeletion(childId, parentById, deletedIds);
     }
 
     deletedIds.push(id);
@@ -157,5 +184,20 @@ export class ArtifactsService {
     }
 
     return { lat, lng };
+  }
+
+  private toArtifact(entity: ArtifactEntity): Artifact {
+    return {
+      id: entity.id,
+      name: entity.name,
+      desc: entity.desc,
+      loc:
+        entity.lat === null || entity.lng === null
+          ? null
+          : { lat: entity.lat, lng: entity.lng },
+      parentId: entity.parentId,
+      createdAt: entity.createdAt.toISOString(),
+      updatedAt: entity.updatedAt.toISOString(),
+    };
   }
 }

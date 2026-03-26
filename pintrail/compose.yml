@@ -1,0 +1,40 @@
+#
+# DEVELOPMENT COMPOSE FILE
+# - This is not production ready.
+#
+services:
+  postgres:
+    image: postgres:16-alpine
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-pintrail}
+      POSTGRES_USER: ${POSTGRES_USER:-pintrail}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-pintrail}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  portal:
+    build:
+      context: ./portal
+      dockerfile: Dockerfile
+    ports:
+      - "${PORT:-3000}:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PORT: 3000
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${POSTGRES_DB:-pintrail}
+      DB_USER: ${POSTGRES_USER:-pintrail}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-pintrail}
+
+volumes:
+  postgres-data:
