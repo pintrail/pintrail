@@ -1,0 +1,95 @@
+services:
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on:
+      portal:
+        condition: service_started
+    environment:
+      PINTRAIL_DOMAIN: ${PINTRAIL_DOMAIN:?set PINTRAIL_DOMAIN}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:?set POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER:?set POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    volumes:
+      - redis-data:/data
+
+  portal:
+    build:
+      context: ./portal
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${POSTGRES_DB:?set POSTGRES_DB}
+      DB_USER: ${POSTGRES_USER:?set POSTGRES_USER}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+      AUTH_ADMIN_EMAIL: ${AUTH_ADMIN_EMAIL:?set AUTH_ADMIN_EMAIL}
+      AUTH_ADMIN_PASSWORD: ${AUTH_ADMIN_PASSWORD:?set AUTH_ADMIN_PASSWORD}
+      AUTH_SESSION_TTL_HOURS: ${AUTH_SESSION_TTL_HOURS:-24}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      IMAGE_STORAGE_ROOT: /data/images
+      IMAGE_QUEUE_NAME: artifact-image-processing
+    volumes:
+      - artifact-images:/data/images
+
+  worker:
+    build:
+      context: ./worker
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${POSTGRES_DB:?set POSTGRES_DB}
+      DB_USER: ${POSTGRES_USER:?set POSTGRES_USER}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      IMAGE_STORAGE_ROOT: /data/images
+      IMAGE_QUEUE_NAME: artifact-image-processing
+    volumes:
+      - artifact-images:/data/images
+
+volumes:
+  artifact-images:
+  caddy-config:
+  caddy-data:
+  postgres-data:
+  redis-data:
