@@ -2,20 +2,43 @@ import {
   BadRequestException,
   Injectable,
   NotFoundException,
+  OnModuleDestroy,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { mkdir, rm, writeFile } from 'fs/promises';
+import { extname, join } from 'path';
+import { Queue } from 'bullmq';
+import { In, Repository } from 'typeorm';
+import { ArtifactImageEntity } from './artifact-image.entity';
 import { ArtifactEntity } from './artifact.entity';
-import { Artifact, ArtifactDetail, GeoCoordinates } from './artifact.types';
+import { Artifact, ArtifactDetail, ArtifactImage, GeoCoordinates } from './artifact.types';
 import { CreateArtifactDto } from './dto/create-artifact.dto';
 import { UpdateArtifactDto } from './dto/update-artifact.dto';
 
 @Injectable()
-export class ArtifactsService {
+export class ArtifactsService implements OnModuleDestroy {
+  private readonly queueName = process.env.IMAGE_QUEUE_NAME ?? 'artifact-image-processing';
+  private readonly imageRoot =
+    process.env.IMAGE_STORAGE_ROOT ?? join(process.cwd(), 'data', 'images');
+  private readonly originalsDir = join(this.imageRoot, 'originals');
+  private readonly processedDir = join(this.imageRoot, 'processed');
+  private readonly imageQueue = new Queue(this.queueName, {
+    connection: {
+      host: process.env.REDIS_HOST ?? 'localhost',
+      port: Number(process.env.REDIS_PORT ?? 6379),
+    },
+  });
+
   constructor(
     @InjectRepository(ArtifactEntity)
     private readonly artifactsRepository: Repository<ArtifactEntity>,
+    @InjectRepository(ArtifactImageEntity)
+    private readonly artifactImagesRepository: Repository<ArtifactImageEntity>,
   ) {}
+
+  async onModuleDestroy() {
+    await this.imageQueue.close();
+  }
 
   async create(dto: CreateArtifactDto): Promise<Artifact> {
     const parentId = dto.parentId?.trim() || null;
@@ -43,15 +66,82 @@ export class ArtifactsService {
 
   async findOne(id: string): Promise<ArtifactDetail> {
     const artifact = await this.requireArtifactEntity(id);
-    const children = await this.artifactsRepository.find({
-      where: { parentId: id },
-      order: { createdAt: 'ASC' },
-    });
+    const [children, images] = await Promise.all([
+      this.artifactsRepository.find({
+        where: { parentId: id },
+        order: { createdAt: 'ASC' },
+      }),
+      this.findImageEntities(id),
+    ]);
 
     return {
       ...this.toArtifact(artifact),
       children: children.map(child => this.toArtifact(child)),
+      images: images.map(image => this.toArtifactImage(image)),
     };
+  }
+
+  async findImages(id: string): Promise<{ images: ArtifactImage[] }> {
+    await this.requireArtifactEntity(id);
+    const images = await this.findImageEntities(id);
+    return { images: images.map(image => this.toArtifactImage(image)) };
+  }
+
+  async addImages(
+    artifactId: string,
+    files: Express.Multer.File[],
+  ): Promise<{ images: ArtifactImage[] }> {
+    await this.requireArtifactEntity(artifactId);
+
+    if (!files.length) {
+      throw new BadRequestException('At least one image file is required.');
+    }
+
+    await this.ensureStorageDirectories();
+
+    const images = await Promise.all(
+      files.map(async file => {
+        if (!file.mimetype.startsWith('image/')) {
+          throw new BadRequestException(`"${file.originalname}" is not an image.`);
+        }
+
+        const image = this.artifactImagesRepository.create({
+          artifactId,
+          originalFilename: file.originalname,
+          originalMimeType: file.mimetype,
+          originalStoragePath: '',
+          status: 'queued',
+        });
+        const savedImage = await this.artifactImagesRepository.save(image);
+        const extension = this.normalizeExtension(file.originalname);
+        const originalRelativePath = join('originals', `${savedImage.id}${extension}`);
+        const originalAbsolutePath = join(this.imageRoot, originalRelativePath);
+
+        await writeFile(originalAbsolutePath, file.buffer);
+
+        savedImage.originalStoragePath = originalRelativePath;
+        const updatedImage = await this.artifactImagesRepository.save(savedImage);
+
+        await this.imageQueue.add(
+          'normalize-image',
+          {
+            imageId: updatedImage.id,
+            originalPath: originalRelativePath,
+          },
+          {
+            attempts: 3,
+            backoff: {
+              type: 'exponential',
+              delay: 1000,
+            },
+          },
+        );
+
+        return this.toArtifactImage(updatedImage);
+      }),
+    );
+
+    return { images };
   }
 
   async update(id: string, dto: UpdateArtifactDto): Promise<ArtifactDetail> {
@@ -115,7 +205,21 @@ export class ArtifactsService {
       deletedIds,
     );
 
+    const images = await this.artifactImagesRepository.find({
+      where: { artifactId: In(deletedIds) },
+    });
+
     await this.artifactsRepository.delete(id);
+    await Promise.all(
+      images.flatMap(image => {
+        const paths = [image.originalStoragePath, image.processedFilename].filter(
+          (storagePath): storagePath is string => Boolean(storagePath),
+        );
+        return paths.map(storagePath =>
+          rm(join(this.imageRoot, storagePath), { force: true }),
+        );
+      }),
+    );
 
     return { deletedIds };
   }
@@ -199,5 +303,43 @@ export class ArtifactsService {
       createdAt: entity.createdAt.toISOString(),
       updatedAt: entity.updatedAt.toISOString(),
     };
+  }
+
+  private toArtifactImage(entity: ArtifactImageEntity): ArtifactImage {
+    return {
+      id: entity.id,
+      artifactId: entity.artifactId,
+      originalFilename: entity.originalFilename,
+      status: entity.status,
+      url: entity.processedFilename ? this.toMediaUrl(entity.processedFilename) : null,
+      width: entity.width,
+      height: entity.height,
+      errorMessage: entity.errorMessage,
+      createdAt: entity.createdAt.toISOString(),
+      updatedAt: entity.updatedAt.toISOString(),
+    };
+  }
+
+  private findImageEntities(artifactId: string): Promise<ArtifactImageEntity[]> {
+    return this.artifactImagesRepository.find({
+      where: { artifactId },
+      order: { createdAt: 'ASC' },
+    });
+  }
+
+  private async ensureStorageDirectories() {
+    await Promise.all([
+      mkdir(this.originalsDir, { recursive: true }),
+      mkdir(this.processedDir, { recursive: true }),
+    ]);
+  }
+
+  private normalizeExtension(filename: string): string {
+    const extension = extname(filename).toLowerCase();
+    return extension || '.bin';
+  }
+
+  private toMediaUrl(storagePath: string): string {
+    return `/media/${storagePath.split('\\').join('/')}`;
   }
 }

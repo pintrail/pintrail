@@ -6,7 +6,10 @@ import {
   Param,
   Patch,
   Post,
+  UploadedFiles,
+  UseInterceptors,
 } from '@nestjs/common';
+import { FilesInterceptor } from '@nestjs/platform-express';
 import { ArtifactsService } from './artifacts.service';
 import { CreateArtifactDto } from './dto/create-artifact.dto';
 import { UpdateArtifactDto } from './dto/update-artifact.dto';
@@ -25,9 +28,23 @@ export class ArtifactsController {
     return this.artifactsService.findOne(id);
   }
 
+  @Get(':id/images')
+  findImages(@Param('id') id: string) {
+    return this.artifactsService.findImages(id);
+  }
+
   @Post()
   create(@Body() dto: CreateArtifactDto) {
     return this.artifactsService.create(dto);
+  }
+
+  @Post(':id/images')
+  @UseInterceptors(FilesInterceptor('images'))
+  uploadImages(
+    @Param('id') id: string,
+    @UploadedFiles() files: Express.Multer.File[],
+  ) {
+    return this.artifactsService.addImages(id, files ?? []);
   }
 
   @Patch(':id')

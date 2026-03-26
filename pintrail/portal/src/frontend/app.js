@@ -2,7 +2,9 @@ const state = {
   artifacts: [],
   currentArtifact: null,
   saveTimer: null,
+  imagePollTimer: null,
   isLoadingForm: false,
+  isDraggingImages: false,
 };
 
 const elements = {
@@ -22,14 +24,22 @@ const elements = {
   desc: document.getElementById('desc'),
   lat: document.getElementById('lat'),
   lng: document.getElementById('lng'),
+  imageDropzone: document.getElementById('image-dropzone'),
+  imageInput: document.getElementById('image-input'),
+  imageGallery: document.getElementById('image-gallery'),
 };
 
 async function api(path, options = {}) {
+  const headers = new Headers(options.headers || {});
+  const isFormData = options.body instanceof FormData;
+
+  if (!isFormData && !headers.has('Content-Type')) {
+    headers.set('Content-Type', 'application/json');
+  }
+
   const response = await fetch(path, {
-    headers: {
-      'Content-Type': 'application/json',
-    },
     ...options,
+    headers,
   });
 
   if (!response.ok) {
@@ -135,6 +145,7 @@ function renderForm() {
     elements.form.reset();
     elements.artifactId.value = '';
     elements.parentId.value = '';
+    renderImageSection();
     state.isLoadingForm = false;
     renderChildren();
     return;
@@ -152,8 +163,89 @@ function renderForm() {
   elements.desc.value = artifact.desc;
   elements.lat.value = artifact.loc?.lat ?? '';
   elements.lng.value = artifact.loc?.lng ?? '';
+  renderImageSection();
   state.isLoadingForm = false;
   renderChildren();
+}
+
+function renderImageSection() {
+  const artifact = state.currentArtifact;
+  const hasArtifact = Boolean(artifact);
+
+  elements.imageDropzone.classList.toggle('disabled', !hasArtifact);
+  elements.imageDropzone.classList.toggle('dragging', state.isDraggingImages && hasArtifact);
+  elements.imageDropzone.setAttribute('aria-disabled', hasArtifact ? 'false' : 'true');
+
+  if (!artifact) {
+    elements.imageDropzone.innerHTML = `
+      <p class="dropzone-title">Attach images</p>
+      <p class="dropzone-copy">Select an artifact first, then drop images here.</p>
+    `;
+    elements.imageGallery.innerHTML =
+      '<div class="empty-state">Processed images will appear here once an artifact is selected.</div>';
+    stopImagePolling();
+    return;
+  }
+
+  elements.imageDropzone.innerHTML = `
+    <p class="dropzone-title">Drop images here</p>
+    <p class="dropzone-copy">Drag and drop one or more images, or click to browse.</p>
+  `;
+
+  if (!artifact.images.length) {
+    elements.imageGallery.innerHTML =
+      '<div class="empty-state">No images attached yet. Drop files here to start a gallery.</div>';
+  } else {
+    elements.imageGallery.innerHTML = artifact.images
+      .map(image => renderImageCard(image))
+      .join('');
+  }
+
+  startImagePollingIfNeeded();
+}
+
+function renderImageCard(image) {
+  if (image.status === 'processed' && image.url) {
+    return `
+      <article class="image-card">
+        <div class="image-frame">
+          <img src="${escapeAttribute(image.url)}" alt="${escapeAttribute(image.originalFilename)}" />
+        </div>
+        <div class="image-meta">
+          <span class="image-name">${escapeHtml(image.originalFilename)}</span>
+          <span class="image-state">Ready${image.width && image.height ? ` · ${image.width}×${image.height}` : ''}</span>
+        </div>
+      </article>
+    `;
+  }
+
+  if (image.status === 'failed') {
+    return `
+      <article class="image-card pending">
+        <div class="image-frame loading-frame failed-frame">
+          <div class="image-spinner failed-spinner"></div>
+          <span class="loading-label">Processing failed</span>
+        </div>
+        <div class="image-meta">
+          <span class="image-name">${escapeHtml(image.originalFilename)}</span>
+          <span class="image-state">${escapeHtml(image.errorMessage || 'Please try uploading this image again.')}</span>
+        </div>
+      </article>
+    `;
+  }
+
+  return `
+    <article class="image-card pending">
+      <div class="image-frame loading-frame">
+        <div class="image-spinner"></div>
+        <span class="loading-label">Optimizing image…</span>
+      </div>
+      <div class="image-meta">
+        <span class="image-name">${escapeHtml(image.originalFilename)}</span>
+        <span class="image-state">${image.status === 'processing' ? 'Normalizing to WebP' : 'Queued for worker'}</span>
+      </div>
+    </article>
+  `;
 }
 
 async function refreshArtifacts(selectedId) {
@@ -238,6 +330,101 @@ async function saveCurrentArtifact() {
   }
 }
 
+async function uploadImages(fileList) {
+  if (!state.currentArtifact) {
+    return;
+  }
+
+  const files = [...fileList].filter(file => file.type.startsWith('image/'));
+  if (!files.length) {
+    setStatus('Please drop image files.');
+    return;
+  }
+
+  const artifactId = state.currentArtifact.id;
+  const formData = new FormData();
+  for (const file of files) {
+    formData.append('images', file);
+  }
+
+  setStatus(`Uploading ${files.length} image${files.length === 1 ? '' : 's'}...`);
+
+  try {
+    const response = await api(`/api/artifacts/${artifactId}/images`, {
+      method: 'POST',
+      body: formData,
+    });
+
+    if (state.currentArtifact?.id === artifactId) {
+      state.currentArtifact.images = [
+        ...(state.currentArtifact.images || []),
+        ...response.images,
+      ];
+      renderImageSection();
+      startImagePollingIfNeeded();
+    }
+
+    setStatus('Images queued for processing');
+  } catch (error) {
+    setStatus(error.message);
+  }
+}
+
+async function syncArtifactImages() {
+  if (!state.currentArtifact) {
+    stopImagePolling();
+    return;
+  }
+
+  try {
+    const response = await api(`/api/artifacts/${state.currentArtifact.id}/images`);
+    if (!state.currentArtifact) {
+      return;
+    }
+
+    state.currentArtifact.images = response.images;
+    renderImageSection();
+  } catch (error) {
+    stopImagePolling();
+    setStatus(error.message);
+  }
+}
+
+function startImagePollingIfNeeded() {
+  if (!hasPendingImages()) {
+    stopImagePolling();
+    return;
+  }
+
+  if (state.imagePollTimer) {
+    return;
+  }
+
+  state.imagePollTimer = window.setInterval(() => {
+    void syncArtifactImages();
+  }, 2000);
+}
+
+function stopImagePolling() {
+  if (state.imagePollTimer) {
+    window.clearInterval(state.imagePollTimer);
+    state.imagePollTimer = null;
+  }
+}
+
+function hasPendingImages() {
+  return Boolean(
+    state.currentArtifact?.images?.some(
+      image => image.status === 'queued' || image.status === 'processing',
+    ),
+  );
+}
+
+function setDragState(isDragging) {
+  state.isDraggingImages = isDragging;
+  renderImageSection();
+}
+
 function escapeHtml(value) {
   return value
     .replaceAll('&', '&amp;')
@@ -245,6 +432,10 @@ function escapeHtml(value) {
     .replaceAll('>', '&gt;')
     .replaceAll('"', '&quot;')
     .replaceAll("'", '&#39;');
+}
+
+function escapeAttribute(value) {
+  return escapeHtml(value);
 }
 
 elements.newRootButton.addEventListener('click', () => {
@@ -284,6 +475,53 @@ for (const control of [elements.name, elements.desc, elements.lat, elements.lng]
   control.addEventListener('input', scheduleSave);
 }
 
+elements.imageDropzone.addEventListener('click', () => {
+  if (!state.currentArtifact) {
+    return;
+  }
+
+  elements.imageInput.click();
+});
+
+elements.imageInput.addEventListener('change', event => {
+  const files = event.target.files;
+  if (files?.length) {
+    void uploadImages(files);
+  }
+
+  event.target.value = '';
+});
+
+for (const eventName of ['dragenter', 'dragover']) {
+  elements.imageDropzone.addEventListener(eventName, event => {
+    event.preventDefault();
+    if (state.currentArtifact) {
+      setDragState(true);
+    }
+  });
+}
+
+for (const eventName of ['dragleave', 'dragend']) {
+  elements.imageDropzone.addEventListener(eventName, event => {
+    event.preventDefault();
+    setDragState(false);
+  });
+}
+
+elements.imageDropzone.addEventListener('drop', event => {
+  event.preventDefault();
+  setDragState(false);
+
+  if (!state.currentArtifact) {
+    return;
+  }
+
+  const files = event.dataTransfer?.files;
+  if (files?.length) {
+    void uploadImages(files);
+  }
+});
+
 void refreshArtifacts().then(() => {
   renderForm();
   setStatus('Ready');
@@ -297,6 +535,7 @@ async function deleteArtifact(id) {
       method: 'DELETE',
     });
     state.currentArtifact = null;
+    stopImagePolling();
     await refreshArtifacts();
     renderForm();
     setStatus('Deleted');

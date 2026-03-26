@@ -9,6 +9,7 @@ import {
   Relation,
   UpdateDateColumn,
 } from 'typeorm';
+import { ArtifactImageEntity } from './artifact-image.entity';
 
 @Entity({ name: 'artifacts' })
 export class ArtifactEntity {
@@ -39,6 +40,9 @@ export class ArtifactEntity {
 
   @OneToMany(() => ArtifactEntity, artifact => artifact.parent)
   children!: Relation<ArtifactEntity[]>;
+
+  @OneToMany(() => ArtifactImageEntity, image => image.artifact)
+  images!: Relation<ArtifactImageEntity[]>;
 
   @CreateDateColumn({ type: 'timestamptz' })
   createdAt!: Date;

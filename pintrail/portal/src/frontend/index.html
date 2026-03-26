@@ -90,6 +90,22 @@
               Select an artifact to see its nested artifacts.
             </div>
           </article>
+
+          <article class="panel media-panel">
+            <div class="panel-header">
+              <h2>Artifact Images</h2>
+            </div>
+            <input id="image-input" type="file" accept="image/*" multiple hidden />
+            <button id="image-dropzone" class="image-dropzone" type="button">
+              <p class="dropzone-title">Attach images</p>
+              <p class="dropzone-copy">Select an artifact first, then drop images here.</p>
+            </button>
+            <div id="image-gallery" class="image-gallery">
+              <div class="empty-state">
+                Processed images will appear here once an artifact is selected.
+              </div>
+            </div>
+          </article>
         </section>
       </main>
     </div>

@@ -19,6 +19,13 @@ services:
       timeout: 5s
       retries: 10
 
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis-data:/data
+
   portal:
     build:
       context: ./portal
@@ -28,6 +35,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      redis:
+        condition: service_started
     environment:
       PORT: 3000
       DB_HOST: postgres
@@ -35,6 +44,36 @@ services:
       DB_NAME: ${POSTGRES_DB:-pintrail}
       DB_USER: ${POSTGRES_USER:-pintrail}
       DB_PASSWORD: ${POSTGRES_PASSWORD:-pintrail}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      IMAGE_STORAGE_ROOT: /data/images
+      IMAGE_QUEUE_NAME: artifact-image-processing
+    volumes:
+      - artifact-images:/data/images
+
+  worker:
+    build:
+      context: ./worker
+      dockerfile: Dockerfile
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${POSTGRES_DB:-pintrail}
+      DB_USER: ${POSTGRES_USER:-pintrail}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-pintrail}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      IMAGE_STORAGE_ROOT: /data/images
+      IMAGE_QUEUE_NAME: artifact-image-processing
+    volumes:
+      - artifact-images:/data/images
 
 volumes:
   postgres-data:
+  redis-data:
+  artifact-images:

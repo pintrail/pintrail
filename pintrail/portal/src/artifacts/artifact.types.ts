@@ -3,6 +3,19 @@ export interface GeoCoordinates {
   lng: number;
 }
 
+export interface ArtifactImage {
+  id: string;
+  artifactId: string;
+  originalFilename: string;
+  status: 'queued' | 'processing' | 'processed' | 'failed';
+  url: string | null;
+  width: number | null;
+  height: number | null;
+  errorMessage: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface Artifact {
   id: string;
   name: string;
@@ -15,4 +28,5 @@ export interface Artifact {
 
 export interface ArtifactDetail extends Artifact {
   children: Artifact[];
+  images: ArtifactImage[];
 }
