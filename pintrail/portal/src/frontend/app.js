@@ -5,6 +5,11 @@ const state = {
   imagePollTimer: null,
   isLoadingForm: false,
   isDraggingImages: false,
+  imageModal: {
+    isOpen: false,
+    isFullscreen: false,
+    image: null,
+  },
 };
 
 const elements = {
@@ -27,6 +32,13 @@ const elements = {
   imageDropzone: document.getElementById('image-dropzone'),
   imageInput: document.getElementById('image-input'),
   imageGallery: document.getElementById('image-gallery'),
+  imageModal: document.getElementById('image-modal'),
+  imageModalBackdrop: document.getElementById('image-modal-backdrop'),
+  imageModalDialog: document.getElementById('image-modal-dialog'),
+  imageModalPreview: document.getElementById('image-modal-preview'),
+  imageModalTitle: document.getElementById('image-modal-title'),
+  imageModalExpand: document.getElementById('image-modal-expand'),
+  imageModalClose: document.getElementById('image-modal-close'),
 };
 
 async function api(path, options = {}) {
@@ -202,13 +214,14 @@ function renderImageSection() {
   }
 
   startImagePollingIfNeeded();
+  bindImagePreviewButtons();
 }
 
 function renderImageCard(image) {
   if (image.status === 'processed' && image.url) {
     return `
       <article class="image-card">
-        <div class="image-frame">
+        <div class="image-frame clickable" data-image-id="${escapeAttribute(image.id)}">
           <img src="${escapeAttribute(image.url)}" alt="${escapeAttribute(image.originalFilename)}" />
         </div>
         <div class="image-meta">
@@ -412,6 +425,22 @@ function stopImagePolling() {
   }
 }
 
+function bindImagePreviewButtons() {
+  for (const frame of elements.imageGallery.querySelectorAll('[data-image-id]')) {
+    frame.addEventListener('click', () => {
+      const image = state.currentArtifact?.images?.find(
+        candidate => candidate.id === frame.dataset.imageId,
+      );
+
+      if (!image?.url) {
+        return;
+      }
+
+      openImageModal(image);
+    });
+  }
+}
+
 function hasPendingImages() {
   return Boolean(
     state.currentArtifact?.images?.some(
@@ -423,6 +452,49 @@ function hasPendingImages() {
 function setDragState(isDragging) {
   state.isDraggingImages = isDragging;
   renderImageSection();
+}
+
+function openImageModal(image) {
+  state.imageModal.isOpen = true;
+  state.imageModal.isFullscreen = false;
+  state.imageModal.image = image;
+  renderImageModal();
+}
+
+function closeImageModal() {
+  state.imageModal.isOpen = false;
+  state.imageModal.isFullscreen = false;
+  state.imageModal.image = null;
+  renderImageModal();
+}
+
+function toggleImageModalSize() {
+  if (!state.imageModal.isOpen) {
+    return;
+  }
+
+  state.imageModal.isFullscreen = !state.imageModal.isFullscreen;
+  renderImageModal();
+}
+
+function renderImageModal() {
+  const { isOpen, isFullscreen, image } = state.imageModal;
+
+  elements.imageModal.classList.toggle('hidden', !isOpen);
+  elements.imageModal.setAttribute('aria-hidden', isOpen ? 'false' : 'true');
+  elements.imageModalDialog.classList.toggle('fullscreen', isFullscreen);
+  elements.imageModalExpand.textContent = isFullscreen ? 'Medium Size' : 'Expand';
+
+  if (!isOpen || !image?.url) {
+    elements.imageModalPreview.src = '';
+    elements.imageModalPreview.alt = '';
+    elements.imageModalTitle.textContent = 'Image preview';
+    return;
+  }
+
+  elements.imageModalPreview.src = image.url;
+  elements.imageModalPreview.alt = image.originalFilename;
+  elements.imageModalTitle.textContent = image.originalFilename;
 }
 
 function escapeHtml(value) {
@@ -519,6 +591,20 @@ elements.imageDropzone.addEventListener('drop', event => {
   const files = event.dataTransfer?.files;
   if (files?.length) {
     void uploadImages(files);
+  }
+});
+
+elements.imageModalClose.addEventListener('click', closeImageModal);
+elements.imageModalExpand.addEventListener('click', toggleImageModalSize);
+elements.imageModalBackdrop.addEventListener('click', closeImageModal);
+
+document.addEventListener('keydown', event => {
+  if (!state.imageModal.isOpen) {
+    return;
+  }
+
+  if (event.key === 'Escape') {
+    closeImageModal();
   }
 });
 

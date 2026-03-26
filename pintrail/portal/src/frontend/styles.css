@@ -352,6 +352,10 @@ textarea {
   display: block;
 }
 
+.image-frame.clickable {
+  cursor: zoom-in;
+}
+
 .loading-frame {
   display: grid;
   place-items: center;
@@ -398,6 +402,88 @@ textarea {
   color: var(--muted);
   font-size: 0.92rem;
   line-height: 1.4;
+}
+
+.image-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+
+.image-modal.hidden {
+  display: none;
+}
+
+.image-modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(35, 24, 21, 0.6);
+  backdrop-filter: blur(10px);
+}
+
+.image-modal-dialog {
+  position: relative;
+  z-index: 1;
+  width: min(900px, calc(100vw - 48px));
+  max-height: calc(100vh - 48px);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px;
+  border-radius: 28px;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  background: rgba(255, 250, 240, 0.96);
+  box-shadow: 0 30px 80px rgba(18, 8, 5, 0.35);
+}
+
+.image-modal-dialog.fullscreen {
+  width: calc(100vw - 32px);
+  height: calc(100vh - 32px);
+  max-height: none;
+}
+
+.image-modal-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.image-modal-title {
+  font-weight: 600;
+  word-break: break-word;
+}
+
+.image-modal-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.image-modal-content {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 22px;
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.86), rgba(239, 228, 208, 0.72)),
+    radial-gradient(circle at top, rgba(159, 61, 36, 0.1), transparent 60%);
+}
+
+.image-modal-content img {
+  max-width: 100%;
+  max-height: calc(100vh - 220px);
+  object-fit: contain;
+  display: block;
+}
+
+.image-modal-dialog.fullscreen .image-modal-content img {
+  max-height: calc(100vh - 150px);
 }
 
 @keyframes spin {

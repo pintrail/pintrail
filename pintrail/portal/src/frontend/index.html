@@ -110,6 +110,22 @@
       </main>
     </div>
 
+    <div id="image-modal" class="image-modal hidden" aria-hidden="true">
+      <div id="image-modal-backdrop" class="image-modal-backdrop"></div>
+      <div id="image-modal-dialog" class="image-modal-dialog" role="dialog" aria-modal="true">
+        <div class="image-modal-toolbar">
+          <span id="image-modal-title" class="image-modal-title">Image preview</span>
+          <div class="image-modal-actions">
+            <button id="image-modal-expand" class="ghost-button" type="button">Expand</button>
+            <button id="image-modal-close" class="danger-button" type="button">Close</button>
+          </div>
+        </div>
+        <div class="image-modal-content">
+          <img id="image-modal-preview" src="" alt="" />
+        </div>
+      </div>
+    </div>
+
     <script src="/app.js" defer></script>
   </body>
   </html>
