@@ -1,25 +1,26 @@
 {
   "name": "pintrail",
-  "version": "1.0.0",
-  "description": "Pintrail Express app",
-  "main": "main/server.js",
+  "version": "2.0.0",
+  "description": "Pintrail NestJS artifact editor",
+  "private": true,
   "scripts": {
-    "start": "node src/main/server.js"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "type": "module",
-  "imports": {
-    "#root/*": "./src/*",
-    "#utility/*": "./src/utility/*",
-    "#artifacts/*": "./src/artifacts/*"
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/main.js",
+    "start:dev": "ts-node --project tsconfig.json src/main.ts"
   },
   "dependencies": {
-    "express": "^5.2.1",
-    "pino": "^9.7.0"
+    "@nestjs/common": "^11.1.8",
+    "@nestjs/core": "^11.1.8",
+    "@nestjs/platform-express": "^11.1.8",
+    "class-transformer": "^0.5.1",
+    "class-validator": "^0.14.2",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.2"
   },
   "devDependencies": {
-    "zod": "^4.3.6"
+    "@types/express": "^5.0.3",
+    "@types/node": "^24.5.2",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.2"
   }
 }

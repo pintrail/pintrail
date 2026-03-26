@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Pintrail Artifact Studio</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="page-shell">
+      <aside class="sidebar">
+        <div class="brand-block">
+          <p class="eyebrow">Pintrail</p>
+          <h1>Artifact Studio</h1>
+          <p class="lede">
+            Create root artifacts, branch child artifacts, and autosave every detail as
+            you work.
+          </p>
+          <button id="new-root-button" class="primary-button">New Root Artifact</button>
+        </div>
+        <section class="panel">
+          <div class="panel-header">
+            <h2>Artifacts</h2>
+            <button id="refresh-button" class="ghost-button">Refresh</button>
+          </div>
+          <div id="artifact-list" class="artifact-list"></div>
+        </section>
+      </aside>
+
+      <main class="editor-shell">
+        <section class="hero-card">
+          <p class="eyebrow">Editor</p>
+          <h2 id="editor-title">Create or select an artifact</h2>
+          <p id="editor-subtitle" class="lede">
+            New artifacts start empty with a unique ID, then fill in details here.
+          </p>
+          <div class="status-row">
+            <span id="save-status" class="status-pill">Idle</span>
+            <div class="action-row">
+              <button id="delete-artifact-button" class="danger-button" disabled>
+                Delete Artifact
+              </button>
+              <button id="new-child-button" class="secondary-button" disabled>
+                Add Child Artifact
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <section class="editor-grid">
+          <article class="panel">
+            <div class="panel-header">
+              <h2>Artifact Details</h2>
+            </div>
+            <form id="artifact-form" class="artifact-form">
+              <label>
+                <span>Artifact ID</span>
+                <input id="artifact-id" type="text" readonly />
+              </label>
+              <label>
+                <span>Parent ID</span>
+                <input id="parent-id" type="text" readonly />
+              </label>
+              <label>
+                <span>Name</span>
+                <input id="name" type="text" placeholder="Artifact name" />
+              </label>
+              <label>
+                <span>Description</span>
+                <textarea id="desc" rows="6" placeholder="What is this artifact?"></textarea>
+              </label>
+              <div class="coordinate-row">
+                <label>
+                  <span>Latitude</span>
+                  <input id="lat" type="number" step="any" placeholder="40.7128" />
+                </label>
+                <label>
+                  <span>Longitude</span>
+                  <input id="lng" type="number" step="any" placeholder="-74.0060" />
+                </label>
+              </div>
+            </form>
+          </article>
+
+          <article class="panel">
+            <div class="panel-header">
+              <h2>Nested Artifacts</h2>
+            </div>
+            <div id="child-list" class="child-list empty-state">
+              Select an artifact to see its nested artifacts.
+            </div>
+          </article>
+        </section>
+      </main>
+    </div>
+
+    <script src="/app.js" defer></script>
+  </body>
+  </html>
