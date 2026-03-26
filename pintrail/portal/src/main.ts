@@ -1,9 +1,11 @@
 import 'reflect-metadata';
 import { mkdirSync } from 'fs';
 import { join } from 'path';
+import { parse as parseCookie } from 'cookie';
 import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
+import { NextFunction, Request, Response } from 'express';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
@@ -12,8 +14,11 @@ async function bootstrap() {
 
   mkdirSync(imageRoot, { recursive: true });
 
+  app.use((request: Request, _response: Response, next: NextFunction) => {
+    request.cookies = parseCookie(request.headers.cookie ?? '');
+    next();
+  });
   app.useStaticAssets(join(process.cwd(), 'src', 'frontend'));
-  app.useStaticAssets(imageRoot, { prefix: '/media/' });
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,

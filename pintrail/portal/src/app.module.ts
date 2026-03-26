@@ -1,7 +1,9 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { AuthModule } from './auth/auth.module';
 import { ArtifactsModule } from './artifacts/artifacts.module';
 import { FrontendController } from './frontend/frontend.controller';
+import { MediaController } from './media/media.controller';
 
 @Module({
   imports: [
@@ -15,8 +17,9 @@ import { FrontendController } from './frontend/frontend.controller';
       autoLoadEntities: true,
       synchronize: true,
     }),
+    AuthModule,
     ArtifactsModule,
   ],
-  controllers: [FrontendController],
+  controllers: [FrontendController, MediaController],
 })
 export class AppModule {}

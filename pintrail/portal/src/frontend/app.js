@@ -1,4 +1,5 @@
 const state = {
+  authUser: null,
   artifacts: [],
   currentArtifact: null,
   saveTimer: null,
@@ -13,6 +14,14 @@ const state = {
 };
 
 const elements = {
+  authScreen: document.getElementById('auth-screen'),
+  portalShell: document.getElementById('portal-shell'),
+  roleBanner: document.getElementById('role-banner'),
+  loginForm: document.getElementById('login-form'),
+  loginEmail: document.getElementById('login-email'),
+  loginPassword: document.getElementById('login-password'),
+  loginStatus: document.getElementById('login-status'),
+  logoutButton: document.getElementById('logout-button'),
   artifactList: document.getElementById('artifact-list'),
   childList: document.getElementById('child-list'),
   editorTitle: document.getElementById('editor-title'),
@@ -37,6 +46,7 @@ const elements = {
   imageModalDialog: document.getElementById('image-modal-dialog'),
   imageModalPreview: document.getElementById('image-modal-preview'),
   imageModalTitle: document.getElementById('image-modal-title'),
+  imageModalDelete: document.getElementById('image-modal-delete'),
   imageModalExpand: document.getElementById('image-modal-expand'),
   imageModalClose: document.getElementById('image-modal-close'),
 };
@@ -56,6 +66,9 @@ async function api(path, options = {}) {
 
   if (!response.ok) {
     const payload = await response.json().catch(() => ({}));
+    if (response.status === 401) {
+      handleSignedOutState();
+    }
     throw new Error(payload.message || 'Request failed.');
   }
 
@@ -66,8 +79,55 @@ function setStatus(message) {
   elements.saveStatus.textContent = message;
 }
 
+function setLoginStatus(message) {
+  elements.loginStatus.textContent = message;
+}
+
 function displayName(artifact) {
   return artifact.name.trim() || 'Untitled Artifact';
+}
+
+function isEditor() {
+  return state.authUser?.role === 'admin' || state.authUser?.role === 'editor';
+}
+
+function renderAuthState() {
+  const isAuthenticated = Boolean(state.authUser);
+
+  elements.authScreen.classList.toggle('hidden', isAuthenticated);
+  elements.portalShell.classList.toggle('hidden', !isAuthenticated);
+  elements.roleBanner.classList.toggle('hidden', !isAuthenticated || isEditor());
+
+  if (state.authUser && !isEditor()) {
+    elements.roleBanner.textContent =
+      'Signed in with read-only access. You can browse artifacts and images, but editing is disabled.';
+  }
+
+  const editingDisabled = !isEditor();
+  elements.newRootButton.disabled = editingDisabled;
+  elements.newChildButton.disabled = editingDisabled || !state.currentArtifact;
+  elements.deleteArtifactButton.disabled = editingDisabled || !state.currentArtifact;
+
+  for (const field of [elements.name, elements.desc, elements.lat, elements.lng]) {
+    field.disabled = editingDisabled;
+  }
+
+  if (!isEditor()) {
+    elements.imageDropzone.classList.add('disabled');
+    elements.imageDropzone.setAttribute('aria-disabled', 'true');
+  }
+}
+
+function handleSignedOutState() {
+  state.authUser = null;
+  state.artifacts = [];
+  state.currentArtifact = null;
+  stopImagePolling();
+  closeImageModal();
+  renderAuthState();
+  renderArtifactList();
+  renderForm();
+  setLoginStatus('Sign in with an authorized account to continue.');
 }
 
 function renderArtifactList() {
@@ -152,14 +212,13 @@ function renderForm() {
     elements.editorTitle.textContent = 'Create or select an artifact';
     elements.editorSubtitle.textContent =
       'New artifacts start empty with a unique ID, then fill in details here.';
-    elements.newChildButton.disabled = true;
-    elements.deleteArtifactButton.disabled = true;
     elements.form.reset();
     elements.artifactId.value = '';
     elements.parentId.value = '';
     renderImageSection();
     state.isLoadingForm = false;
     renderChildren();
+    renderAuthState();
     return;
   }
 
@@ -167,8 +226,6 @@ function renderForm() {
   elements.editorSubtitle.textContent = artifact.parentId
     ? `Child artifact linked to parent ${artifact.parentId}.`
     : 'Root artifact with no parent.';
-  elements.newChildButton.disabled = false;
-  elements.deleteArtifactButton.disabled = false;
   elements.artifactId.value = artifact.id;
   elements.parentId.value = artifact.parentId ?? '';
   elements.name.value = artifact.name;
@@ -178,15 +235,20 @@ function renderForm() {
   renderImageSection();
   state.isLoadingForm = false;
   renderChildren();
+  renderAuthState();
 }
 
 function renderImageSection() {
   const artifact = state.currentArtifact;
   const hasArtifact = Boolean(artifact);
+  const canEdit = isEditor();
 
-  elements.imageDropzone.classList.toggle('disabled', !hasArtifact);
-  elements.imageDropzone.classList.toggle('dragging', state.isDraggingImages && hasArtifact);
-  elements.imageDropzone.setAttribute('aria-disabled', hasArtifact ? 'false' : 'true');
+  elements.imageDropzone.classList.toggle('disabled', !hasArtifact || !canEdit);
+  elements.imageDropzone.classList.toggle('dragging', state.isDraggingImages && hasArtifact && canEdit);
+  elements.imageDropzone.setAttribute(
+    'aria-disabled',
+    hasArtifact && canEdit ? 'false' : 'true',
+  );
 
   if (!artifact) {
     elements.imageDropzone.innerHTML = `
@@ -199,10 +261,15 @@ function renderImageSection() {
     return;
   }
 
-  elements.imageDropzone.innerHTML = `
-    <p class="dropzone-title">Drop images here</p>
-    <p class="dropzone-copy">Drag and drop one or more images, or click to browse.</p>
-  `;
+  elements.imageDropzone.innerHTML = canEdit
+    ? `
+      <p class="dropzone-title">Drop images here</p>
+      <p class="dropzone-copy">Drag and drop one or more images, or click to browse.</p>
+    `
+    : `
+      <p class="dropzone-title">Artifact images</p>
+      <p class="dropzone-copy">You have read-only access. Image uploads are disabled.</p>
+    `;
 
   if (!artifact.images.length) {
     elements.imageGallery.innerHTML =
@@ -228,6 +295,7 @@ function renderImageCard(image) {
           <span class="image-name">${escapeHtml(image.originalFilename)}</span>
           <span class="image-state">Ready${image.width && image.height ? ` · ${image.width}×${image.height}` : ''}</span>
         </div>
+        ${renderDeleteButton(image.id)}
       </article>
     `;
   }
@@ -243,6 +311,7 @@ function renderImageCard(image) {
           <span class="image-name">${escapeHtml(image.originalFilename)}</span>
           <span class="image-state">${escapeHtml(image.errorMessage || 'Please try uploading this image again.')}</span>
         </div>
+        ${renderDeleteButton(image.id)}
       </article>
     `;
   }
@@ -257,8 +326,17 @@ function renderImageCard(image) {
         <span class="image-name">${escapeHtml(image.originalFilename)}</span>
         <span class="image-state">${image.status === 'processing' ? 'Normalizing to WebP' : 'Queued for worker'}</span>
       </div>
+      ${renderDeleteButton(image.id)}
     </article>
   `;
+}
+
+function renderDeleteButton(imageId) {
+  if (!isEditor()) {
+    return '';
+  }
+
+  return `<button class="ghost-button image-delete-button" type="button" data-delete-image-id="${escapeAttribute(imageId)}">Delete Image</button>`;
 }
 
 async function refreshArtifacts(selectedId) {
@@ -282,6 +360,10 @@ async function loadArtifact(id, refreshList = true) {
 }
 
 async function createArtifact(parentId = null) {
+  if (!isEditor()) {
+    return;
+  }
+
   setStatus('Creating...');
   const artifact = await api('/api/artifacts', {
     method: 'POST',
@@ -293,7 +375,7 @@ async function createArtifact(parentId = null) {
 }
 
 function scheduleSave() {
-  if (state.isLoadingForm || !state.currentArtifact) {
+  if (state.isLoadingForm || !state.currentArtifact || !isEditor()) {
     return;
   }
 
@@ -305,7 +387,7 @@ function scheduleSave() {
 }
 
 async function saveCurrentArtifact() {
-  if (!state.currentArtifact) {
+  if (!state.currentArtifact || !isEditor()) {
     return;
   }
 
@@ -344,7 +426,7 @@ async function saveCurrentArtifact() {
 }
 
 async function uploadImages(fileList) {
-  if (!state.currentArtifact) {
+  if (!state.currentArtifact || !isEditor()) {
     return;
   }
 
@@ -439,6 +521,13 @@ function bindImagePreviewButtons() {
       openImageModal(image);
     });
   }
+
+  for (const button of elements.imageGallery.querySelectorAll('[data-delete-image-id]')) {
+    button.addEventListener('click', event => {
+      event.stopPropagation();
+      void deleteImage(button.dataset.deleteImageId);
+    });
+  }
 }
 
 function hasPendingImages() {
@@ -483,6 +572,7 @@ function renderImageModal() {
   elements.imageModal.classList.toggle('hidden', !isOpen);
   elements.imageModal.setAttribute('aria-hidden', isOpen ? 'false' : 'true');
   elements.imageModalDialog.classList.toggle('fullscreen', isFullscreen);
+  elements.imageModalDelete.disabled = !isOpen || !image || !isEditor();
   elements.imageModalExpand.textContent = isFullscreen ? 'Medium Size' : 'Expand';
 
   if (!isOpen || !image?.url) {
@@ -495,6 +585,42 @@ function renderImageModal() {
   elements.imageModalPreview.src = image.url;
   elements.imageModalPreview.alt = image.originalFilename;
   elements.imageModalTitle.textContent = image.originalFilename;
+}
+
+async function deleteImage(imageId) {
+  if (!state.currentArtifact || !imageId || !isEditor()) {
+    return;
+  }
+
+  const image = state.currentArtifact.images?.find(candidate => candidate.id === imageId);
+  const confirmed = window.confirm(
+    `Delete "${image?.originalFilename || 'this image'}" from the artifact?`,
+  );
+
+  if (!confirmed) {
+    return;
+  }
+
+  setStatus('Deleting image...');
+
+  try {
+    await api(`/api/artifacts/${state.currentArtifact.id}/images/${imageId}`, {
+      method: 'DELETE',
+    });
+
+    state.currentArtifact.images = state.currentArtifact.images.filter(
+      candidate => candidate.id !== imageId,
+    );
+
+    if (state.imageModal.image?.id === imageId) {
+      closeImageModal();
+    }
+
+    renderImageSection();
+    setStatus('Image deleted');
+  } catch (error) {
+    setStatus(error.message);
+  }
 }
 
 function escapeHtml(value) {
@@ -519,7 +645,7 @@ elements.refreshButton.addEventListener('click', () => {
 });
 
 elements.newChildButton.addEventListener('click', () => {
-  if (!state.currentArtifact) {
+  if (!state.currentArtifact || !isEditor()) {
     return;
   }
 
@@ -527,7 +653,7 @@ elements.newChildButton.addEventListener('click', () => {
 });
 
 elements.deleteArtifactButton.addEventListener('click', () => {
-  if (!state.currentArtifact) {
+  if (!state.currentArtifact || !isEditor()) {
     return;
   }
 
@@ -548,7 +674,7 @@ for (const control of [elements.name, elements.desc, elements.lat, elements.lng]
 }
 
 elements.imageDropzone.addEventListener('click', () => {
-  if (!state.currentArtifact) {
+  if (!state.currentArtifact || !isEditor()) {
     return;
   }
 
@@ -567,7 +693,7 @@ elements.imageInput.addEventListener('change', event => {
 for (const eventName of ['dragenter', 'dragover']) {
   elements.imageDropzone.addEventListener(eventName, event => {
     event.preventDefault();
-    if (state.currentArtifact) {
+    if (state.currentArtifact && isEditor()) {
       setDragState(true);
     }
   });
@@ -584,7 +710,7 @@ elements.imageDropzone.addEventListener('drop', event => {
   event.preventDefault();
   setDragState(false);
 
-  if (!state.currentArtifact) {
+  if (!state.currentArtifact || !isEditor()) {
     return;
   }
 
@@ -595,6 +721,9 @@ elements.imageDropzone.addEventListener('drop', event => {
 });
 
 elements.imageModalClose.addEventListener('click', closeImageModal);
+elements.imageModalDelete.addEventListener('click', () => {
+  void deleteImage(state.imageModal.image?.id);
+});
 elements.imageModalExpand.addEventListener('click', toggleImageModalSize);
 elements.imageModalBackdrop.addEventListener('click', closeImageModal);
 
@@ -608,10 +737,16 @@ document.addEventListener('keydown', event => {
   }
 });
 
-void refreshArtifacts().then(() => {
-  renderForm();
-  setStatus('Ready');
+elements.loginForm.addEventListener('submit', event => {
+  event.preventDefault();
+  void login();
 });
+
+elements.logoutButton.addEventListener('click', () => {
+  void logout();
+});
+
+void bootstrap();
 
 async function deleteArtifact(id) {
   setStatus('Deleting...');
@@ -628,4 +763,59 @@ async function deleteArtifact(id) {
   } catch (error) {
     setStatus(error.message);
   }
+}
+
+async function login() {
+  setLoginStatus('Signing in...');
+
+  try {
+    const response = await api('/api/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({
+        email: elements.loginEmail.value,
+        password: elements.loginPassword.value,
+      }),
+    });
+
+    state.authUser = response.user;
+    elements.loginPassword.value = '';
+    renderAuthState();
+    await refreshArtifacts();
+    renderForm();
+    setStatus('Ready');
+  } catch (error) {
+    setLoginStatus(error.message);
+  }
+}
+
+async function logout() {
+  try {
+    await api('/api/auth/logout', {
+      method: 'POST',
+    });
+  } finally {
+    handleSignedOutState();
+  }
+}
+
+async function bootstrap() {
+  renderAuthState();
+
+  try {
+    const response = await api('/api/auth/me');
+    state.authUser = response.user;
+  } catch (_error) {
+    state.authUser = null;
+  }
+
+  renderAuthState();
+
+  if (!state.authUser) {
+    renderForm();
+    return;
+  }
+
+  await refreshArtifacts();
+  renderForm();
+  setStatus('Ready');
 }

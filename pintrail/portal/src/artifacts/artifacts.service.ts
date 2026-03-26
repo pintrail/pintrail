@@ -189,6 +189,33 @@ export class ArtifactsService implements OnModuleDestroy {
     return this.findOne(id);
   }
 
+  async removeImage(
+    artifactId: string,
+    imageId: string,
+  ): Promise<{ deletedImageId: string }> {
+    await this.requireArtifactEntity(artifactId);
+
+    const image = await this.artifactImagesRepository.findOneBy({
+      id: imageId,
+      artifactId,
+    });
+
+    if (!image) {
+      throw new NotFoundException(`Artifact image ${imageId} was not found.`);
+    }
+
+    await this.artifactImagesRepository.delete(imageId);
+
+    const storagePaths = [image.originalStoragePath, image.processedFilename].filter(
+      (storagePath): storagePath is string => Boolean(storagePath),
+    );
+    await Promise.all(
+      storagePaths.map(storagePath => rm(join(this.imageRoot, storagePath), { force: true })),
+    );
+
+    return { deletedImageId: imageId };
+  }
+
   async remove(id: string): Promise<{ deletedIds: string[] }> {
     await this.requireArtifactEntity(id);
 

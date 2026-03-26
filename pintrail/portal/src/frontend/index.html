@@ -7,7 +7,29 @@
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
-    <div class="page-shell">
+    <div id="auth-screen" class="auth-screen">
+      <section class="auth-card">
+        <p class="eyebrow">Pintrail</p>
+        <h1>Secure Portal Access</h1>
+        <p class="lede">
+          Sign in with an authorized account to open the artifact portal.
+        </p>
+        <form id="login-form" class="auth-form">
+          <label>
+            <span>Email</span>
+            <input id="login-email" type="email" autocomplete="username" required />
+          </label>
+          <label>
+            <span>Password</span>
+            <input id="login-password" type="password" autocomplete="current-password" required />
+          </label>
+          <button id="login-button" class="primary-button" type="submit">Sign In</button>
+          <p id="login-status" class="auth-status">Use an authorized account to continue.</p>
+        </form>
+      </section>
+    </div>
+
+    <div id="portal-shell" class="page-shell hidden">
       <aside class="sidebar">
         <div class="brand-block">
           <p class="eyebrow">Pintrail</p>
@@ -37,6 +59,7 @@
           <div class="status-row">
             <span id="save-status" class="status-pill">Idle</span>
             <div class="action-row">
+              <button id="logout-button" class="ghost-button">Log Out</button>
               <button id="delete-artifact-button" class="danger-button" disabled>
                 Delete Artifact
               </button>
@@ -110,12 +133,15 @@
       </main>
     </div>
 
+    <div id="role-banner" class="role-banner hidden"></div>
+
     <div id="image-modal" class="image-modal hidden" aria-hidden="true">
       <div id="image-modal-backdrop" class="image-modal-backdrop"></div>
       <div id="image-modal-dialog" class="image-modal-dialog" role="dialog" aria-modal="true">
         <div class="image-modal-toolbar">
           <span id="image-modal-title" class="image-modal-title">Image preview</span>
           <div class="image-modal-actions">
+            <button id="image-modal-delete" class="ghost-button" type="button">Delete</button>
             <button id="image-modal-expand" class="ghost-button" type="button">Expand</button>
             <button id="image-modal-close" class="danger-button" type="button">Close</button>
           </div>
