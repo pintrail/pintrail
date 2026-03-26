@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Injectable,
   OnModuleInit,
   UnauthorizedException,
@@ -7,7 +8,9 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { randomBytes, scrypt as scryptCallback, timingSafeEqual, createHash } from 'crypto';
 import { promisify } from 'util';
 import { Repository } from 'typeorm';
-import { AuthUser, UserRole } from './auth.types';
+import { AuthUser, ManagedUser, UserRole } from './auth.types';
+import { CreateUserDto } from './dto/create-user.dto';
+import { UpdateUserDto } from './dto/update-user.dto';
 import { UserSessionEntity } from './user-session.entity';
 import { UserEntity } from './user.entity';
 
@@ -33,7 +36,7 @@ export class AuthService implements OnModuleInit {
     email: string,
     password: string,
   ): Promise<{ token: string; user: AuthUser; expiresAt: Date }> {
-    const normalizedEmail = email.trim().toLowerCase();
+    const normalizedEmail = this.normalizeEmail(email);
     const user = await this.usersRepository.findOneBy({ email: normalizedEmail });
 
     if (!user || !user.isActive) {
@@ -94,19 +97,70 @@ export class AuthService implements OnModuleInit {
     return this.toAuthUser(session.user);
   }
 
-  async requireAuthorizedUser(
-    sessionToken: string | null | undefined,
-  ): Promise<AuthUser> {
-    const user = await this.authenticate(sessionToken);
-    if (!user) {
-      throw new UnauthorizedException('Authentication is required.');
+  async findAllUsers(): Promise<ManagedUser[]> {
+    const users = await this.usersRepository.find({
+      order: { createdAt: 'ASC' },
+    });
+
+    return users.map(user => this.toManagedUser(user));
+  }
+
+  async createUser(dto: CreateUserDto): Promise<ManagedUser> {
+    const email = this.normalizeEmail(dto.email);
+    const existingUser = await this.usersRepository.findOneBy({ email });
+    if (existingUser) {
+      throw new BadRequestException(`A user with email ${email} already exists.`);
     }
 
-    return user;
+    const user = this.usersRepository.create({
+      email,
+      passwordHash: await this.hashPassword(dto.password),
+      role: dto.role ?? 'viewer',
+      isActive: true,
+    });
+
+    const savedUser = await this.usersRepository.save(user);
+    return this.toManagedUser(savedUser);
+  }
+
+  async updateUser(id: string, dto: UpdateUserDto): Promise<ManagedUser> {
+    const user = await this.usersRepository.findOneBy({ id });
+    if (!user) {
+      throw new BadRequestException(`User ${id} was not found.`);
+    }
+
+    if (dto.email !== undefined) {
+      const normalizedEmail = this.normalizeEmail(dto.email);
+      const existingUser = await this.usersRepository.findOneBy({ email: normalizedEmail });
+      if (existingUser && existingUser.id !== id) {
+        throw new BadRequestException(`A user with email ${normalizedEmail} already exists.`);
+      }
+      user.email = normalizedEmail;
+    }
+
+    if (dto.password !== undefined) {
+      user.passwordHash = await this.hashPassword(dto.password);
+    }
+
+    if (dto.role !== undefined) {
+      user.role = dto.role;
+    }
+
+    if (dto.isActive !== undefined) {
+      user.isActive = dto.isActive;
+      if (!dto.isActive) {
+        await this.sessionsRepository.delete({ userId: id });
+      }
+    }
+
+    const savedUser = await this.usersRepository.save(user);
+    return this.toManagedUser(savedUser);
   }
 
   private async ensureAdminUser() {
-    const adminEmail = process.env.AUTH_ADMIN_EMAIL?.trim().toLowerCase();
+    const adminEmail = process.env.AUTH_ADMIN_EMAIL
+      ? this.normalizeEmail(process.env.AUTH_ADMIN_EMAIL)
+      : undefined;
     const adminPassword = process.env.AUTH_ADMIN_PASSWORD?.trim();
 
     if (!adminEmail || !adminPassword) {
@@ -157,11 +211,24 @@ export class AuthService implements OnModuleInit {
     return createHash('sha256').update(token).digest('hex');
   }
 
+  private normalizeEmail(email: string): string {
+    return email.trim().toLowerCase();
+  }
+
   private toAuthUser(user: UserEntity): AuthUser {
     return {
       id: user.id,
       email: user.email,
       role: user.role as UserRole,
+    };
+  }
+
+  private toManagedUser(user: UserEntity): ManagedUser {
+    return {
+      ...this.toAuthUser(user),
+      isActive: user.isActive,
+      createdAt: user.createdAt.toISOString(),
+      updatedAt: user.updatedAt.toISOString(),
     };
   }
 }

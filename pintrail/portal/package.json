@@ -6,7 +6,8 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "start": "node dist/main.js",
-    "start:dev": "ts-node --project tsconfig.json src/main.ts"
+    "start:dev": "ts-node --project tsconfig.json src/main.ts",
+    "user:create": "node scripts/create-user.js"
   },
   "dependencies": {
     "@nestjs/common": "^11.1.8",

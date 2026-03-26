@@ -129,6 +129,38 @@
               </div>
             </div>
           </article>
+
+          <article id="admin-panel" class="panel media-panel hidden">
+            <div class="panel-header">
+              <h2>User Management</h2>
+            </div>
+            <p class="lede">
+              Admins can create users, change roles, reset passwords, and deactivate access.
+            </p>
+            <form id="user-create-form" class="user-form">
+              <label>
+                <span>Email</span>
+                <input id="user-email" type="email" placeholder="new.user@example.com" />
+              </label>
+              <label>
+                <span>Password</span>
+                <input id="user-password" type="password" placeholder="At least 8 characters" />
+              </label>
+              <label>
+                <span>Role</span>
+                <select id="user-role">
+                  <option value="viewer">Viewer</option>
+                  <option value="editor">Editor</option>
+                  <option value="admin">Admin</option>
+                </select>
+              </label>
+              <button class="primary-button" type="submit">Create User</button>
+            </form>
+            <p id="user-status" class="auth-status">Create and manage portal users here.</p>
+            <div id="user-list" class="user-list">
+              <div class="empty-state">Admin users will appear here after sign-in.</div>
+            </div>
+          </article>
         </section>
       </main>
     </div>

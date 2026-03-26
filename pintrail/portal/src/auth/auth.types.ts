@@ -5,3 +5,9 @@ export interface AuthUser {
   email: string;
   role: UserRole;
 }
+
+export interface ManagedUser extends AuthUser {
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}

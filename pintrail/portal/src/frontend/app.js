@@ -1,5 +1,6 @@
 const state = {
   authUser: null,
+  users: [],
   artifacts: [],
   currentArtifact: null,
   saveTimer: null,
@@ -22,6 +23,13 @@ const elements = {
   loginPassword: document.getElementById('login-password'),
   loginStatus: document.getElementById('login-status'),
   logoutButton: document.getElementById('logout-button'),
+  adminPanel: document.getElementById('admin-panel'),
+  userCreateForm: document.getElementById('user-create-form'),
+  userEmail: document.getElementById('user-email'),
+  userPassword: document.getElementById('user-password'),
+  userRole: document.getElementById('user-role'),
+  userStatus: document.getElementById('user-status'),
+  userList: document.getElementById('user-list'),
   artifactList: document.getElementById('artifact-list'),
   childList: document.getElementById('child-list'),
   editorTitle: document.getElementById('editor-title'),
@@ -83,6 +91,10 @@ function setLoginStatus(message) {
   elements.loginStatus.textContent = message;
 }
 
+function setUserStatus(message) {
+  elements.userStatus.textContent = message;
+}
+
 function displayName(artifact) {
   return artifact.name.trim() || 'Untitled Artifact';
 }
@@ -91,12 +103,17 @@ function isEditor() {
   return state.authUser?.role === 'admin' || state.authUser?.role === 'editor';
 }
 
+function isAdmin() {
+  return state.authUser?.role === 'admin';
+}
+
 function renderAuthState() {
   const isAuthenticated = Boolean(state.authUser);
 
   elements.authScreen.classList.toggle('hidden', isAuthenticated);
   elements.portalShell.classList.toggle('hidden', !isAuthenticated);
   elements.roleBanner.classList.toggle('hidden', !isAuthenticated || isEditor());
+  elements.adminPanel.classList.toggle('hidden', !isAdmin());
 
   if (state.authUser && !isEditor()) {
     elements.roleBanner.textContent =
@@ -120,14 +137,163 @@ function renderAuthState() {
 
 function handleSignedOutState() {
   state.authUser = null;
+  state.users = [];
   state.artifacts = [];
   state.currentArtifact = null;
   stopImagePolling();
   closeImageModal();
   renderAuthState();
+  renderUserList();
   renderArtifactList();
   renderForm();
   setLoginStatus('Sign in with an authorized account to continue.');
+}
+
+function renderUserList() {
+  if (!isAdmin()) {
+    elements.userList.innerHTML =
+      '<div class="empty-state">Sign in as an admin to manage users.</div>';
+    return;
+  }
+
+  if (!state.users.length) {
+    elements.userList.innerHTML =
+      '<div class="empty-state">No users found yet. Create one above.</div>';
+    return;
+  }
+
+  elements.userList.innerHTML = state.users
+    .map(
+      user => `
+        <article class="user-card">
+          <div class="user-card-header">
+            <div>
+              <div class="user-email">${escapeHtml(user.email)}</div>
+              <div class="user-meta">Role: ${escapeHtml(user.role)} · ${user.isActive ? 'Active' : 'Inactive'}</div>
+            </div>
+            <div class="user-meta">Created ${new Date(user.createdAt).toLocaleString()}</div>
+          </div>
+          <form class="user-controls" data-user-id="${escapeAttribute(user.id)}">
+            <label>
+              <span>Email</span>
+              <input type="email" name="email" value="${escapeAttribute(user.email)}" />
+            </label>
+            <label>
+              <span>Role</span>
+              <select name="role">
+                ${renderRoleOptions(user.role)}
+              </select>
+            </label>
+            <label>
+              <span>Reset Password</span>
+              <input type="password" name="password" placeholder="Leave blank to keep current password" />
+            </label>
+            <button class="primary-button" type="submit">Save User</button>
+            <label class="checkbox-label">
+              <input type="checkbox" name="isActive" ${user.isActive ? 'checked' : ''} />
+              <span>Active</span>
+            </label>
+          </form>
+        </article>
+      `,
+    )
+    .join('');
+
+  for (const form of elements.userList.querySelectorAll('[data-user-id]')) {
+    form.addEventListener('submit', event => {
+      event.preventDefault();
+      void updateUser(form.dataset.userId, new FormData(form));
+    });
+  }
+}
+
+function renderRoleOptions(selectedRole) {
+  return ['viewer', 'editor', 'admin']
+    .map(
+      role =>
+        `<option value="${role}" ${role === selectedRole ? 'selected' : ''}>${role[0].toUpperCase()}${role.slice(1)}</option>`,
+    )
+    .join('');
+}
+
+async function loadUsers() {
+  if (!isAdmin()) {
+    state.users = [];
+    renderUserList();
+    return;
+  }
+
+  const response = await api('/api/auth/users');
+  state.users = response.users;
+  renderUserList();
+}
+
+async function createUser(event) {
+  event.preventDefault();
+  if (!isAdmin()) {
+    return;
+  }
+
+  setUserStatus('Creating user...');
+
+  try {
+    const response = await api('/api/auth/users', {
+      method: 'POST',
+      body: JSON.stringify({
+        email: elements.userEmail.value,
+        password: elements.userPassword.value,
+        role: elements.userRole.value,
+      }),
+    });
+
+    state.users.push(response.user);
+    elements.userCreateForm.reset();
+    elements.userRole.value = 'viewer';
+    renderUserList();
+    setUserStatus(`Created ${response.user.email}.`);
+  } catch (error) {
+    setUserStatus(error.message);
+  }
+}
+
+async function updateUser(userId, formData) {
+  if (!isAdmin() || !userId) {
+    return;
+  }
+
+  const payload = {
+    email: String(formData.get('email') ?? ''),
+    role: String(formData.get('role') ?? 'viewer'),
+    isActive: formData.get('isActive') === 'on',
+  };
+  const password = String(formData.get('password') ?? '').trim();
+  if (password) {
+    payload.password = password;
+  }
+
+  setUserStatus('Updating user...');
+
+  try {
+    const response = await api(`/api/auth/users/${userId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+    });
+
+    state.users = state.users.map(user => (user.id === userId ? response.user : user));
+    renderUserList();
+    setUserStatus(`Updated ${response.user.email}.`);
+
+    if (state.authUser?.id === userId) {
+      state.authUser = {
+        id: response.user.id,
+        email: response.user.email,
+        role: response.user.role,
+      };
+      renderAuthState();
+    }
+  } catch (error) {
+    setUserStatus(error.message);
+  }
 }
 
 function renderArtifactList() {
@@ -244,7 +410,10 @@ function renderImageSection() {
   const canEdit = isEditor();
 
   elements.imageDropzone.classList.toggle('disabled', !hasArtifact || !canEdit);
-  elements.imageDropzone.classList.toggle('dragging', state.isDraggingImages && hasArtifact && canEdit);
+  elements.imageDropzone.classList.toggle(
+    'dragging',
+    state.isDraggingImages && hasArtifact && canEdit,
+  );
   elements.imageDropzone.setAttribute(
     'aria-disabled',
     hasArtifact && canEdit ? 'false' : 'true',
@@ -381,7 +550,7 @@ function scheduleSave() {
 
   clearTimeout(state.saveTimer);
   setStatus('Saving soon...');
-  state.saveTimer = setTimeout(() => {
+  state.saveTimer = window.setTimeout(() => {
     void saveCurrentArtifact();
   }, 350);
 }
@@ -746,6 +915,10 @@ elements.logoutButton.addEventListener('click', () => {
   void logout();
 });
 
+elements.userCreateForm.addEventListener('submit', event => {
+  void createUser(event);
+});
+
 void bootstrap();
 
 async function deleteArtifact(id) {
@@ -780,9 +953,10 @@ async function login() {
     state.authUser = response.user;
     elements.loginPassword.value = '';
     renderAuthState();
-    await refreshArtifacts();
+    await Promise.all([refreshArtifacts(), loadUsers()]);
     renderForm();
     setStatus('Ready');
+    setLoginStatus('Signed in.');
   } catch (error) {
     setLoginStatus(error.message);
   }
@@ -800,6 +974,7 @@ async function logout() {
 
 async function bootstrap() {
   renderAuthState();
+  renderUserList();
 
   try {
     const response = await api('/api/auth/me');
@@ -815,7 +990,7 @@ async function bootstrap() {
     return;
   }
 
-  await refreshArtifacts();
+  await Promise.all([refreshArtifacts(), loadUsers()]);
   renderForm();
   setStatus('Ready');
 }

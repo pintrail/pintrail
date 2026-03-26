@@ -3,6 +3,8 @@ import {
   Controller,
   Get,
   HttpCode,
+  Param,
+  Patch,
   Post,
   Req,
   Res,
@@ -10,8 +12,11 @@ import {
 import { Request, Response } from 'express';
 import { AuthService } from './auth.service';
 import { CurrentUser } from './current-user.decorator';
+import { CreateUserDto } from './dto/create-user.dto';
 import { LoginDto } from './dto/login.dto';
+import { UpdateUserDto } from './dto/update-user.dto';
 import { Public } from './public.decorator';
+import { Roles } from './roles.decorator';
 import { AuthUser } from './auth.types';
 
 @Controller('api/auth')
@@ -38,6 +43,24 @@ export class AuthController {
   @Get('me')
   me(@CurrentUser() user: AuthUser | undefined) {
     return { user: user ?? null };
+  }
+
+  @Get('users')
+  @Roles('admin')
+  async findUsers() {
+    return { users: await this.authService.findAllUsers() };
+  }
+
+  @Post('users')
+  @Roles('admin')
+  async createUser(@Body() dto: CreateUserDto) {
+    return { user: await this.authService.createUser(dto) };
+  }
+
+  @Patch('users/:id')
+  @Roles('admin')
+  async updateUser(@Param('id') id: string, @Body() dto: UpdateUserDto) {
+    return { user: await this.authService.updateUser(id, dto) };
   }
 
   @HttpCode(200)
