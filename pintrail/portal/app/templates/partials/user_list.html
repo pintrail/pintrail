@@ -1,0 +1,72 @@
+<div class="admin-panel">
+  <h2 class="section-title">User Management</h2>
+
+  {% if error %}
+  <div class="form-error">{{ error }}</div>
+  {% endif %}
+
+  <!-- Create user form -->
+  <form class="user-create-form"
+        hx-post="/auth/users"
+        hx-target=".admin-panel"
+        hx-swap="outerHTML">
+    <h3>Add User</h3>
+    <div class="form-row form-row--three">
+      <label>
+        Email
+        <input type="email" name="email" required placeholder="user@example.com" />
+      </label>
+      <label>
+        Password
+        <input type="password" name="password" required placeholder="Password" />
+      </label>
+      <label>
+        Role
+        <select name="role">
+          <option value="viewer">Viewer</option>
+          <option value="editor">Editor</option>
+          <option value="admin">Admin</option>
+        </select>
+      </label>
+    </div>
+    <button type="submit" class="btn btn-primary btn-sm">Add User</button>
+  </form>
+
+  <!-- User list -->
+  <div class="user-list">
+    <div class="user-list-header">
+      <span>Email</span>
+      <span>Role</span>
+      <span>Active</span>
+      <span>Since</span>
+    </div>
+    {% for u in users %}
+    <div class="user-list-row {% if not u.is_active %}user-row--inactive{% endif %}">
+      <span class="user-email-cell">{{ u.email }}</span>
+
+      <!-- Role selector – each change sends PATCH with just the role field -->
+      <select name="role"
+              hx-patch="/auth/users/{{ u.id }}"
+              hx-trigger="change"
+              hx-target=".admin-panel"
+              hx-swap="outerHTML">
+        <option value="viewer" {% if u.role.value == 'viewer' %}selected{% endif %}>Viewer</option>
+        <option value="editor" {% if u.role.value == 'editor' %}selected{% endif %}>Editor</option>
+        <option value="admin"  {% if u.role.value == 'admin'  %}selected{% endif %}>Admin</option>
+      </select>
+
+      <!-- Active toggle – uses hx-vals with JS expression for the checkbox state -->
+      <input type="checkbox"
+             class="toggle-active"
+             {% if u.is_active %}checked{% endif %}
+             hx-patch="/auth/users/{{ u.id }}"
+             hx-trigger="change"
+             hx-target=".admin-panel"
+             hx-swap="outerHTML"
+             hx-vals='js:{is_active: event.target.checked}' />
+
+      <span class="user-created">{{ u.created_at.strftime('%Y-%m-%d') }}</span>
+    </div>
+    {% endfor %}
+  </div>
+</div>

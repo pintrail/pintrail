@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% block body %}
+
+<div id="portal-shell" class="portal-shell">
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <span class="logo">📍 Pintrail</span>
+      <div class="sidebar-actions">
+        {% if user.role.value in ('editor', 'admin') %}
+        <button class="btn btn-primary btn-sm"
+                hx-post="/artifacts"
+                hx-target="#artifact-tree"
+                hx-swap="innerHTML">
+          + New
+        </button>
+        {% endif %}
+        {% if user.role.value == 'admin' %}
+        <button class="btn btn-ghost btn-sm"
+                hx-get="/partials/admin"
+                hx-target="#main-content"
+                hx-swap="innerHTML">
+          Admin
+        </button>
+        {% endif %}
+      </div>
+    </div>
+
+    {% if user.role.value == 'viewer' %}
+    <div class="role-banner">Read-only access</div>
+    {% endif %}
+
+    <nav id="artifact-tree"
+         hx-get="/artifacts/tree"
+         hx-trigger="load"
+         hx-swap="innerHTML">
+      <div class="loading">Loading…</div>
+    </nav>
+  </aside>
+
+  <!-- Main Content -->
+  <main id="main-content" class="main-content">
+    <p class="empty-state">Select an artifact from the sidebar.</p>
+  </main>
+
+  <!-- User bar -->
+  <div class="user-bar">
+    <span class="user-email">{{ user.email }}</span>
+    <span class="user-role role-{{ user.role.value }}">{{ user.role.value }}</span>
+    <form action="/auth/logout" method="post" style="display:inline">
+      <button class="btn btn-ghost btn-xs">Logout</button>
+    </form>
+  </div>
+
+</div>
+
+<!-- Image modal -->
+<div id="image-modal" class="modal-overlay" style="display:none" onclick="closeModal(event)">
+  <div class="modal-content">
+    <button class="modal-close" onclick="document.getElementById('image-modal').style.display='none'">✕</button>
+    <div id="modal-body"></div>
+  </div>
+</div>
+
+<script>
+function openImageModal(src, imageId, artifactId, canDelete) {
+  const modal = document.getElementById('image-modal');
+  const body = document.getElementById('modal-body');
+  body.innerHTML = `
+    <img src="${src}" class="modal-img" />
+    ${canDelete ? `<button class="btn btn-danger btn-sm modal-delete"
+      hx-delete="/artifacts/${artifactId}/images/${imageId}"
+      hx-target="#image-gallery"
+      hx-swap="outerHTML"
+      hx-confirm="Delete this image?"
+      onclick="document.getElementById('image-modal').style.display='none'">
+      Delete
+    </button>` : ''}
+  `;
+  htmx.process(body);
+  modal.style.display = 'flex';
+}
+function closeModal(e) {
+  if (e.target === e.currentTarget) {
+    e.currentTarget.style.display = 'none';
+  }
+}
+</script>
+
+{% endblock %}

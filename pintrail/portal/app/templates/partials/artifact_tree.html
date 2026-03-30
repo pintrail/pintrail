@@ -1,0 +1,24 @@
+{% macro render_node(node, selected_id) %}
+{% set a = node.artifact %}
+<div class="tree-item {% if a.id == selected_id %}tree-item--active{% endif %}"
+     hx-get="/artifacts/{{ a.id }}"
+     hx-target="#main-content"
+     hx-swap="innerHTML">
+  <span class="tree-item-name">{{ a.name or '(unnamed)' }}</span>
+</div>
+{% if node.children %}
+<div class="tree-children">
+  {% for child in node.children %}
+    {{ render_node(child, selected_id) }}
+  {% endfor %}
+</div>
+{% endif %}
+{% endmacro %}
+
+{% if tree %}
+{% for node in tree %}
+  {{ render_node(node, selected_id) }}
+{% endfor %}
+{% else %}
+<div class="empty-tree">No artifacts yet.</div>
+{% endif %}

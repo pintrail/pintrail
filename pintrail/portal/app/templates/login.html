@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block body %}
+<div class="auth-screen">
+  <div class="auth-card">
+    <h1 class="auth-title">📍 Pintrail</h1>
+    {% if error %}
+    <div class="auth-error">{{ error }}</div>
+    {% endif %}
+    <form class="auth-form" method="post" action="/auth/login">
+      <label>
+        Email
+        <input type="email" name="email" required autofocus placeholder="you@example.com" />
+      </label>
+      <label>
+        Password
+        <input type="password" name="password" required placeholder="••••••••" />
+      </label>
+      <button type="submit" class="btn btn-primary btn-full">Sign In</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

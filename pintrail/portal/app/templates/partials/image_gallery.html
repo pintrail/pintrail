@@ -1,0 +1,88 @@
+{% set pending = images | selectattr('status', 'in', ['queued', 'processing']) | list %}
+{% set can_edit = user.role.value in ('editor', 'admin') %}
+
+<div id="image-gallery"
+     class="image-gallery"
+     {% if pending %}
+     hx-get="/artifacts/{{ artifact_id }}/images"
+     hx-trigger="every 2s"
+     hx-swap="outerHTML"
+     {% endif %}>
+
+  <h3 class="section-title">Images ({{ images|length }})</h3>
+
+  {% if can_edit %}
+  <!-- Upload dropzone -->
+  <form id="upload-form-{{ artifact_id }}"
+        hx-post="/artifacts/{{ artifact_id }}/images"
+        hx-target="#image-gallery"
+        hx-swap="outerHTML"
+        hx-encoding="multipart/form-data">
+    <div class="dropzone"
+         id="dropzone-{{ artifact_id }}"
+         ondragover="event.preventDefault(); this.classList.add('dropzone--over')"
+         ondragleave="this.classList.remove('dropzone--over')"
+         ondrop="handleDrop(event, '{{ artifact_id }}')">
+      <span>Drop images here or</span>
+      <label class="btn btn-ghost btn-sm">
+        Browse
+        <input type="file"
+               name="files"
+               multiple
+               accept="image/*"
+               style="display:none"
+               onchange="submitUpload('{{ artifact_id }}')" />
+      </label>
+    </div>
+  </form>
+  {% endif %}
+
+  <!-- Gallery grid -->
+  {% if images %}
+  <div class="gallery-grid">
+    {% for img in images %}
+    <div class="gallery-item gallery-item--{{ img.status.value }}">
+      {% if img.status.value == 'processed' and img.processed_filename %}
+      <img class="gallery-thumb"
+           src="/media/{{ img.artifact_id }}/{{ img.processed_filename }}"
+           alt="{{ img.original_filename }}"
+           onclick="openImageModal('/media/{{ img.artifact_id }}/{{ img.processed_filename }}', '{{ img.id }}', '{{ img.artifact_id }}', {{ 'true' if can_edit else 'false' }})" />
+      {% elif img.status.value == 'failed' %}
+      <div class="gallery-error">
+        <span>⚠</span>
+        <small>{{ img.error_message or 'Processing failed' }}</small>
+      </div>
+      {% else %}
+      <div class="gallery-processing">
+        <div class="spinner"></div>
+        <small>{{ img.status.value }}</small>
+      </div>
+      {% endif %}
+      <div class="gallery-item-name">{{ img.original_filename }}</div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p class="empty-gallery">No images yet.</p>
+  {% endif %}
+
+</div>
+
+<script>
+function handleDrop(e, artifactId) {
+  e.preventDefault();
+  e.currentTarget.classList.remove('dropzone--over');
+  const files = e.dataTransfer.files;
+  if (!files.length) return;
+  const form = document.getElementById('upload-form-' + artifactId);
+  const input = form.querySelector('input[type=file]');
+  const dt = new DataTransfer();
+  for (const f of files) dt.items.add(f);
+  input.files = dt.files;
+  htmx.trigger(form, 'submit');
+}
+function submitUpload(artifactId) {
+  const form = document.getElementById('upload-form-' + artifactId);
+  htmx.trigger(form, 'submit');
+}
+</script>

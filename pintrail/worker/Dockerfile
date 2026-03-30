@@ -1,12 +1,16 @@
-FROM node:22-alpine
+# ── wk2 image-processing worker ──────────────────────────────────────────────
+FROM python:3.12-slim
 
-WORKDIR /app
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /usr/local/bin/
 
-COPY package*.json ./
-RUN npm ci
+WORKDIR /srv/wk2
 
-COPY index.js ./
+COPY pyproject.toml uv.lock ./
+RUN uv sync --frozen --no-dev --no-install-project
 
-ENV IMAGE_STORAGE_ROOT=/data/images
+COPY config.py models.py main.py ./
 
-CMD ["node", "index.js"]
+# Storage directory — mount the same volume as the web service
+RUN mkdir -p ./data/images
+
+CMD ["uv", "run", "--no-dev", "arq", "main.WorkerSettings"]

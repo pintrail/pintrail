@@ -47,8 +47,8 @@ services:
       redis:
         condition: service_started
     environment:
-      NODE_ENV: production
-      PORT: 3000
+      ENV: production
+      PORT: 8000
       DB_HOST: postgres
       DB_PORT: 5432
       DB_NAME: ${POSTGRES_DB:?set POSTGRES_DB}

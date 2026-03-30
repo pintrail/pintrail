@@ -1,0 +1,131 @@
+{% set can_edit = user.role.value in ('editor', 'admin') %}
+
+<div class="artifact-detail">
+
+  <!-- Header with delete -->
+  <div class="detail-header">
+    <h2 class="detail-title">{{ artifact.name or '(unnamed)' }}</h2>
+    <div class="detail-actions">
+      {% if can_edit %}
+      <button class="btn btn-danger btn-sm"
+              hx-delete="/artifacts/{{ artifact.id }}"
+              hx-target="#artifact-tree"
+              hx-swap="innerHTML"
+              hx-confirm="Delete this artifact and all its children?">
+        Delete
+      </button>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Save status -->
+  <span id="save-status" class="save-status"></span>
+
+  <!-- Edit form -->
+  <form id="artifact-form" class="artifact-form">
+    <div class="form-row">
+      <label>
+        Name
+        <input type="text" name="name" value="{{ artifact.name }}"
+               {% if not can_edit %}readonly{% endif %}
+               hx-patch="/artifacts/{{ artifact.id }}"
+               hx-include="closest form"
+               hx-trigger="input changed delay:350ms"
+               hx-target="#save-status"
+               hx-swap="innerHTML" />
+      </label>
+    </div>
+    <div class="form-row">
+      <label>
+        Description
+        <textarea name="desc" rows="3"
+                  {% if not can_edit %}readonly{% endif %}
+                  hx-patch="/artifacts/{{ artifact.id }}"
+                  hx-include="closest form"
+                  hx-trigger="input changed delay:350ms"
+                  hx-target="#save-status"
+                  hx-swap="innerHTML">{{ artifact.desc }}</textarea>
+      </label>
+    </div>
+    <div class="form-row form-row--half">
+      <label>
+        Latitude
+        <input type="number" name="lat" step="any"
+               value="{{ artifact.lat if artifact.lat is not none else '' }}"
+               {% if not can_edit %}readonly{% endif %}
+               hx-patch="/artifacts/{{ artifact.id }}"
+               hx-include="closest form"
+               hx-trigger="input changed delay:350ms"
+               hx-target="#save-status"
+               hx-swap="innerHTML" />
+      </label>
+      <label>
+        Longitude
+        <input type="number" name="lng" step="any"
+               value="{{ artifact.lng if artifact.lng is not none else '' }}"
+               {% if not can_edit %}readonly{% endif %}
+               hx-patch="/artifacts/{{ artifact.id }}"
+               hx-include="closest form"
+               hx-trigger="input changed delay:350ms"
+               hx-target="#save-status"
+               hx-swap="innerHTML" />
+      </label>
+    </div>
+    <div class="form-row">
+      <label class="label-readonly">
+        ID
+        <input type="text" value="{{ artifact.id }}" readonly />
+      </label>
+    </div>
+    {% if artifact.parent_id %}
+    <div class="form-row">
+      <label class="label-readonly">
+        Parent ID
+        <input type="text" value="{{ artifact.parent_id }}" readonly />
+      </label>
+    </div>
+    {% endif %}
+  </form>
+
+  <!-- Children -->
+  {% if children %}
+  <div class="children-section">
+    <h3 class="section-title">Children ({{ children|length }})</h3>
+    <div class="children-list">
+      {% for child in children %}
+      <div class="child-item"
+           hx-get="/artifacts/{{ child.id }}"
+           hx-target="#main-content"
+           hx-swap="innerHTML">
+        {{ child.name or '(unnamed)' }}
+      </div>
+      {% endfor %}
+    </div>
+    {% if can_edit %}
+    <button class="btn btn-ghost btn-sm"
+            hx-post="/artifacts"
+            hx-vals='{"parent_id": "{{ artifact.id }}"}'
+            hx-target="#artifact-tree"
+            hx-swap="innerHTML">
+      + Add Child
+    </button>
+    {% endif %}
+  </div>
+  {% else %}
+  {% if can_edit %}
+  <div class="children-section">
+    <button class="btn btn-ghost btn-sm"
+            hx-post="/artifacts"
+            hx-vals='{"parent_id": "{{ artifact.id }}"}'
+            hx-target="#artifact-tree"
+            hx-swap="innerHTML">
+      + Add Child
+    </button>
+  </div>
+  {% endif %}
+  {% endif %}
+
+  <!-- Image Gallery -->
+  {% include "partials/image_gallery.html" %}
+
+</div>

@@ -31,14 +31,14 @@ services:
       context: ./portal
       dockerfile: Dockerfile
     ports:
-      - "${PORT:-3000}:3000"
+      - "${PORT:-8000}:8000"
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_started
     environment:
-      PORT: 3000
+      PORT: 8000
       DB_HOST: postgres
       DB_PORT: 5432
       DB_NAME: ${POSTGRES_DB:-pintrail}

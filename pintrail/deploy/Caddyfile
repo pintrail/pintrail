@@ -1,5 +1,5 @@
 {$PINTRAIL_DOMAIN} {
   encode zstd gzip
 
-  reverse_proxy portal:3000
+  reverse_proxy portal:8000
 }

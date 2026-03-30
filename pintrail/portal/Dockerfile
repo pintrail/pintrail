@@ -1,28 +1,24 @@
-FROM node:22-alpine AS builder
+# ── pt2 web application ──────────────────────────────────────────────────────
+FROM python:3.12-slim AS base
 
-WORKDIR /app
+# Install uv
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /usr/local/bin/
 
-COPY package*.json ./
-RUN npm ci
+WORKDIR /srv/app
 
-COPY tsconfig.json ./
-COPY src/ ./src/
+# Install dependencies first (layer-cached unless pyproject.toml/uv.lock change)
+COPY pyproject.toml uv.lock ./
+RUN uv sync --frozen --no-dev --no-install-project
 
-RUN npm run build
+# Copy application source
+COPY app/ ./app/
 
-# ---
+# Create the image storage directory
+RUN mkdir -p ./data/images
 
-FROM node:22-alpine AS production
+EXPOSE 8000
 
-WORKDIR /app
+ENV ENV=production
 
-COPY package*.json ./
-RUN npm ci --omit=dev
-
-COPY --from=builder /app/dist ./dist
-COPY src/frontend ./src/frontend
-
-ENV PORT=3000
-EXPOSE 3000
-
-CMD ["node", "dist/main.js"]
+CMD ["uv", "run", "--no-dev", "uvicorn", "app.main:app", \
+     "--host", "0.0.0.0", "--port", "8000", "--no-access-log"]
