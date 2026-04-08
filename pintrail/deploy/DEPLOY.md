@@ -26,16 +26,19 @@ This document covers how to deploy Pintrail to a production Linux server using D
 
 ## Overview
 
-Production runs five Docker containers managed by a single Compose file (`compose.prod.yml`):
+Production runs six Docker containers managed by a single Compose file (`compose.prod.yml`):
 
 ```
 internet
    │  (80, 443)
    ▼
- caddy          — TLS termination, gzip/zstd compression, reverse proxy
+ caddy            — TLS termination, gzip/zstd compression, reverse proxy
    │  (internal)
    ▼
- portal :8000   — FastAPI web application
+ portal :8000     — FastAPI web application (UI + auth)
+   │  (internal HTTP)
+   ▼
+ artifact :8001   — artifact data service (JSON REST API, owns artifact DB tables)
    │
    ├── postgres :5432   — primary data store (internal only)
    ├── redis    :6379   — job queue (internal only)
@@ -86,6 +89,9 @@ POSTGRES_PASSWORD=replace-with-a-strong-db-password
 AUTH_ADMIN_EMAIL=admin@example.com
 AUTH_ADMIN_PASSWORD=replace-with-a-strong-admin-password
 AUTH_SESSION_TTL_HOURS=24
+
+# Shared secret for internal portal → artifact and worker → artifact API calls
+ARTIFACT_API_KEY=replace-with-a-strong-random-secret
 ```
 
 **Never commit this file.** It is in `.gitignore`.
@@ -124,18 +130,30 @@ The portal seeds the admin user on first startup only — changing `AUTH_ADMIN_E
 
 - Built from `./portal/Dockerfile`
 - Runs on internal port 8000 (proxied by Caddy)
-- Waits for `postgres` to pass its health check and `redis` to start
-- Mounts the `artifact-images` volume at `/data/images`
+- Waits for `postgres` to pass its health check and `artifact` to pass its health check
+- Mounts the `artifact-images` volume at `/data/images` (read: serves `/media/` files)
 - `restart: unless-stopped`
 - Sets `ENV=production` — disables Uvicorn auto-reload
+- **No direct artifact DB access** — all artifact data goes through the artifact service
+
+### `artifact`
+
+- Built from `./artifact/Dockerfile`
+- Runs on internal port 8001 (never exposed to the internet)
+- Waits for `postgres` health check and `redis` to start
+- Mounts the `artifact-images` volume at `/data/images` (read/write: owns image files)
+- `restart: unless-stopped`
+- Sole owner of `artifacts` and `artifact_images` database tables
+- Requires `API_KEY` env var — must match `ARTIFACT_API_KEY` in portal and worker
 
 ### `worker`
 
 - Built from `./worker/Dockerfile`
 - No exposed ports
-- Waits for `postgres` health check and `redis` start
-- Mounts the same `artifact-images` volume at `/data/images` as the portal
+- Waits for `redis` to start and `artifact` to pass its health check
+- Mounts the `artifact-images` volume at `/data/images` (writes processed WebP files)
 - `restart: unless-stopped`
+- **No direct database access** — reads image records and writes status via artifact service API
 
 ---
 
@@ -291,13 +309,16 @@ Roles available: `viewer` (read-only), `editor` (create/edit/delete artifacts an
 ## Startup Order & Health Checks
 
 ```
-postgres  ──(healthy)──► portal ──(started)──► caddy
-          └─(healthy)──► worker
-redis     ──(started)──► portal
+postgres  ──(healthy)──► artifact ──(healthy)──► portal ──(started)──► caddy
+                                   └──(healthy)──► worker
+redis     ──(started)──► artifact
           └─(started)──► worker
 ```
 
-Both `portal` and `worker` use `depends_on` with `condition: service_healthy` for postgres, ensuring the database is accepting connections before the application tries to run migrations or queries. Redis uses `condition: service_started` because the ARQ client handles transient Redis unavailability gracefully.
+- `postgres` uses `condition: service_healthy` (pg_isready) before artifact starts.
+- `artifact` uses a curl health check (`GET /health`); portal and worker wait for it with `condition: service_healthy`.
+- `redis` uses `condition: service_started` because ARQ handles transient Redis unavailability gracefully.
+- `caddy` depends on `portal: condition: service_started`.
 
 ---
 
