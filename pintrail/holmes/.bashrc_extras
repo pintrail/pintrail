@@ -1,0 +1,14 @@
+
+# lsd aliases
+alias ll="lsd -la"
+alias l="lsd -l"
+alias lt="lsd --tree"
+
+# bat instead of cat
+alias cat="bat --paging=never"
+
+# quick health check loop
+# usage: healthcheck http://my-service:3000/health
+healthcheck() {
+    watch -n 2 "curl -s $1 | jq ."
+}

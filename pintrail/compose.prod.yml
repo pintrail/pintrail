@@ -1,4 +1,32 @@
 services:
+  # ── Holmes — System Investigation Container ────────────────────────────────
+  # A persistent container with curl, wget, jq, k6, psql, redis-cli, Node,
+  # Python, bat, lsd, fd, ripgrep, Neovim + LazyVim, and more.
+  #
+  # Use it to inspect and test your services from inside the Docker network:
+  #
+  #   docker compose exec holmes bash
+  #   curl http://order-service:3000/health | jq .
+  #   psql postgres://user:pass@postgres:5432/mydb
+  #   redis-cli -h redis ping
+  #   k6 run /workspace/k6/sprint-1.js
+  #
+  # Your repo root is mounted at /workspace, so all k6 scripts and files
+  # are accessible without copying them into the container.
+  #
+  # See holmes/README.md for a full tool reference.
+  holmes:
+    build:
+      context: ./holmes
+      dockerfile: Dockerfile
+    container_name: holmes
+    restart: unless-stopped
+    volumes:
+      - .:/workspace
+    environment:
+      - TERM=xterm-256color
+    # Holmes has no ports — access it via: docker compose exec holmes bash
+
   caddy:
     image: caddy:2-alpine
     restart: unless-stopped
