@@ -8,7 +8,7 @@ WORKDIR /srv/wk2
 COPY pyproject.toml uv.lock ./
 RUN uv sync --frozen --no-dev --no-install-project
 
-COPY config.py models.py main.py ./
+COPY config.py main.py ./
 
 # Storage directory — mount the same volume as the web service
 RUN mkdir -p ./data/images

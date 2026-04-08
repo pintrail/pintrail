@@ -1,14 +1,12 @@
 [Unit]
 Description=Pintrail Application Stack
-Requires=docker.service
 After=docker.service network-online.target
 Wants=network-online.target
 
 [Service]
 Type=oneshot
-WorkingDirectory=/opt/pintrail
+WorkingDirectory=/home/richards/pintrail/pintrail
 RemainAfterExit=yes
-EnvironmentFile=/opt/pintrail/.env
 ExecStart=/usr/bin/docker compose -f compose.prod.yml up -d --build
 ExecStop=/usr/bin/docker compose -f compose.prod.yml down
 ExecReload=/usr/bin/docker compose -f compose.prod.yml up -d --build
