@@ -16,13 +16,10 @@ class Settings(BaseSettings):
     auth_admin_password: str = Field(default="", alias="AUTH_ADMIN_PASSWORD")
     auth_session_ttl_hours: int = Field(default=24, alias="AUTH_SESSION_TTL_HOURS")
 
-    redis_host: str = Field(default="localhost", alias="REDIS_HOST")
-    redis_port: int = Field(default=6379, alias="REDIS_PORT")
-    image_queue_name: str = Field(
-        default="artifact-image-processing", alias="IMAGE_QUEUE_NAME"
+    artifact_service_url: str = Field(
+        default="http://localhost:8001", alias="ARTIFACT_SERVICE_URL"
     )
-
-    image_storage_root: str = Field(default="./data/images", alias="IMAGE_STORAGE_ROOT")
+    artifact_api_key: str = Field(default="dev-api-key", alias="ARTIFACT_API_KEY")
 
     model_config = SettingsConfigDict(
         case_sensitive=False,

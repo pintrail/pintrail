@@ -1,5 +1,6 @@
 from contextlib import asynccontextmanager
 
+import httpx
 import uvicorn
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
@@ -16,7 +17,13 @@ async def lifespan(_app: FastAPI):
     async for db in get_session():
         await create_admin_if_needed(db)
         break
-    yield
+    async with httpx.AsyncClient(
+        base_url=settings.artifact_service_url,
+        headers={"X-API-Key": settings.artifact_api_key},
+        timeout=30.0,
+    ) as client:
+        _app.state.artifact_client = client
+        yield
 
 
 app = FastAPI(title="Pintrail pt2", docs_url=None, redoc_url=None, lifespan=lifespan)

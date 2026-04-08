@@ -44,8 +44,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-      redis:
-        condition: service_started
+      artifact:
+        condition: service_healthy
     environment:
       ENV: production
       PORT: 8000
@@ -57,10 +57,8 @@ services:
       AUTH_ADMIN_EMAIL: ${AUTH_ADMIN_EMAIL:?set AUTH_ADMIN_EMAIL}
       AUTH_ADMIN_PASSWORD: ${AUTH_ADMIN_PASSWORD:?set AUTH_ADMIN_PASSWORD}
       AUTH_SESSION_TTL_HOURS: ${AUTH_SESSION_TTL_HOURS:-24}
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
-      IMAGE_STORAGE_ROOT: /data/images
-      IMAGE_QUEUE_NAME: artifact-image-processing
+      ARTIFACT_SERVICE_URL: http://artifact:8001
+      ARTIFACT_API_KEY: ${ARTIFACT_API_KEY:?set ARTIFACT_API_KEY}
     volumes:
       - artifact-images:/data/images
 
