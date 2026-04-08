@@ -90,20 +90,17 @@ services:
       context: ./worker
       dockerfile: Dockerfile
     depends_on:
-      postgres:
-        condition: service_healthy
       redis:
         condition: service_started
+      artifact:
+        condition: service_healthy
     environment:
-      DB_HOST: postgres
-      DB_PORT: 5432
-      DB_NAME: ${POSTGRES_DB:-pintrail}
-      DB_USER: ${POSTGRES_USER:-pintrail}
-      DB_PASSWORD: ${POSTGRES_PASSWORD:-pintrail}
       REDIS_HOST: redis
       REDIS_PORT: 6379
       IMAGE_STORAGE_ROOT: /data/images
       IMAGE_QUEUE_NAME: artifact-image-processing
+      ARTIFACT_SERVICE_URL: http://artifact:8001
+      ARTIFACT_API_KEY: ${ARTIFACT_API_KEY:-dev-api-key}
     volumes:
       - artifact-images:/data/images
 

@@ -100,20 +100,17 @@ services:
       dockerfile: Dockerfile
     restart: unless-stopped
     depends_on:
-      postgres:
-        condition: service_healthy
       redis:
         condition: service_started
+      artifact:
+        condition: service_healthy
     environment:
-      DB_HOST: postgres
-      DB_PORT: 5432
-      DB_NAME: ${POSTGRES_DB:?set POSTGRES_DB}
-      DB_USER: ${POSTGRES_USER:?set POSTGRES_USER}
-      DB_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
       REDIS_HOST: redis
       REDIS_PORT: 6379
       IMAGE_STORAGE_ROOT: /data/images
       IMAGE_QUEUE_NAME: artifact-image-processing
+      ARTIFACT_SERVICE_URL: http://artifact:8001
+      ARTIFACT_API_KEY: ${ARTIFACT_API_KEY:?set ARTIFACT_API_KEY}
     volumes:
       - artifact-images:/data/images
 
