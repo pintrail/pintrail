@@ -64,6 +64,36 @@ services:
     volumes:
       - artifact-images:/data/images
 
+  artifact:
+    build:
+      context: ./artifact
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    environment:
+      PORT: 8001
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${POSTGRES_DB:?set POSTGRES_DB}
+      DB_USER: ${POSTGRES_USER:?set POSTGRES_USER}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      IMAGE_STORAGE_ROOT: /data/images
+      IMAGE_QUEUE_NAME: artifact-image-processing
+      API_KEY: ${ARTIFACT_API_KEY:?set ARTIFACT_API_KEY}
+    volumes:
+      - artifact-images:/data/images
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8001/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   worker:
     build:
       context: ./worker
