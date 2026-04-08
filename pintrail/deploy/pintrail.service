@@ -1,15 +1,27 @@
 [Unit]
 Description=Pintrail Application Stack
+Requires=docker.service
 After=docker.service network-online.target
 Wants=network-online.target
 
 [Service]
+# Type=oneshot
+# WorkingDirectory=/home/richards/pintrail/pintrail
+# EnvironmentFile=/home/richards/pintrail/pintrail/.env
+# RemainAfterExit=yes
+# ExecStartPre=/bin/sleep 10
+# ExecStart=/usr/bin/docker compose -f compose.prod.yml up -d --build
+# ExecStop=/usr/bin/docker compose -f compose.prod.yml down
+# ExecReload=/usr/bin/docker compose -f compose.prod.yml up -d --build
+# TimeoutStartSec=0
 Type=oneshot
 WorkingDirectory=/home/richards/pintrail/pintrail
 RemainAfterExit=yes
-ExecStart=/usr/bin/docker compose -f compose.prod.yml up -d --build
+ExecStartPre=/bin/bash -lc '/usr/bin/docker compose -f compose.prod.yml down --remove-orphans || true'
+ExecStartPre=/bin/sleep 10
+ExecStart=/bin/bash -lc 'for i in 1 2 3 4 5; do /usr/bin/docker compose -f compose.prod.yml up -d --build && exit 0; sleep 5; done; exit 1'
 ExecStop=/usr/bin/docker compose -f compose.prod.yml down
-ExecReload=/usr/bin/docker compose -f compose.prod.yml up -d --build
+ExecReload=/bin/bash -lc '/usr/bin/docker compose -f compose.prod.yml down --remove-orphans || true; /usr/bin/docker compose -f compose.prod.yml up -d --build'
 TimeoutStartSec=0
 
 [Install]
