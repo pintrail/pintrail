@@ -1,4 +1,5 @@
 {$PINTRAIL_DOMAIN} {
+  tls /certs/pintrail.crt /certs/pintrail.key
   encode zstd gzip
 
   reverse_proxy portal:8000
