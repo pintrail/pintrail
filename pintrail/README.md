@@ -14,10 +14,68 @@ The development stack starts on:
 - **postgres** → localhost:5432
 - **redis** → localhost:6379
 
-Default admin credentials (set in `compose.yml`, override via `.env`):
+Default admin credentials (set in `compose.yml`):
 
 - Email: `admin@example.com`
 - Password: `change-me-now`
+
+## Local Development (without Docker)
+
+To run services locally, you'll need PostgreSQL and Redis running (the easiest way is `docker compose up postgres redis`), then set environment variables for the services.
+
+### Portal
+
+```bash
+cd portal
+
+# Set environment variables (see .env.example for all options)
+export DB_HOST=localhost
+export DB_PORT=5432
+export DB_USER=pintrail
+export DB_PASSWORD=pintrail
+export DB_NAME=pintrail
+export REDIS_HOST=localhost
+export REDIS_PORT=6379
+export AUTH_ADMIN_EMAIL=admin@example.com
+export AUTH_ADMIN_PASSWORD=change-me-now
+
+# Run with hot-reload
+uv run uvicorn app.main:app --reload
+```
+
+### Worker
+
+```bash
+cd worker
+
+# Set the same environment variables as portal
+export DB_HOST=localhost
+export DB_PORT=5432
+# ... etc (see .env.example)
+
+# Run the background job worker
+uv run arq main.WorkerSettings
+```
+
+### Using direnv
+
+Alternatively, create `.envrc` files in `portal/` and `worker/` directories to automatically load environment variables:
+
+```bash
+# portal/.envrc
+export DB_HOST=localhost
+export DB_PORT=5432
+export DB_USER=pintrail
+export DB_PASSWORD=pintrail
+export DB_NAME=pintrail
+export REDIS_HOST=localhost
+export REDIS_PORT=6379
+export AUTH_ADMIN_EMAIL=admin@example.com
+export AUTH_ADMIN_PASSWORD=change-me-now
+```
+
+Then use `direnv allow` to enable the auto-loading.
+
 
 ## Services
 
