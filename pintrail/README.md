@@ -76,15 +76,14 @@ export AUTH_ADMIN_PASSWORD=change-me-now
 
 Then use `direnv allow` to enable the auto-loading.
 
-
 ## Services
 
-| Service | Directory | Description |
-|---|---|---|
-| portal | `portal/` | FastAPI web application and UI |
-| worker | `worker/` | Background image processor (ARQ + Pillow) |
-| postgres | Docker image | Primary database |
-| redis | Docker image | Job queue broker |
+| Service  | Directory    | Description                               |
+| -------- | ------------ | ----------------------------------------- |
+| portal   | `portal/`    | FastAPI web application and UI            |
+| worker   | `worker/`    | Background image processor (ARQ + Pillow) |
+| postgres | Docker image | Primary database                          |
+| redis    | Docker image | Job queue broker                          |
 
 ## Architecture
 

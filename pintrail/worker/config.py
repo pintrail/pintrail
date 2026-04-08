@@ -11,7 +11,9 @@ class Settings(BaseSettings):
 
     redis_host: str = Field(default="localhost", alias="REDIS_HOST")
     redis_port: int = Field(default=6379, alias="REDIS_PORT")
-    image_queue_name: str = Field(default="artifact-image-processing", alias="IMAGE_QUEUE_NAME")
+    image_queue_name: str = Field(
+        default="artifact-image-processing", alias="IMAGE_QUEUE_NAME"
+    )
 
     image_storage_root: str = Field(default="./data/images", alias="IMAGE_STORAGE_ROOT")
 
