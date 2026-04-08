@@ -30,7 +30,7 @@ services:
     environment:
       - TERM=xterm-256color
     # Holmes has no ports — access it via: docker compose exec holmes bash
-    
+
   postgres:
     image: postgres:16-alpine
     ports:
@@ -106,10 +106,17 @@ services:
     volumes:
       - artifact-images:/data/images
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8001/health || exit 1"]
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://localhost:8001/health').read()",
+        ]
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 10s
 
   worker:
     build:
