@@ -20,6 +20,7 @@ class Settings(BaseSettings):
         default="http://localhost:8001", alias="ARTIFACT_SERVICE_URL"
     )
     artifact_api_key: str = Field(default="dev-api-key", alias="ARTIFACT_API_KEY")
+    image_storage_root: str = Field(default="/data/images", alias="IMAGE_STORAGE_ROOT")
 
     model_config = SettingsConfigDict(
         case_sensitive=False,
