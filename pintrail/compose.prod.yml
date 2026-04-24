@@ -40,7 +40,9 @@ services:
       - "443:443"
     volumes:
       - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
-      - ./deploy/certs:/certs:ro
+      # - ./deploy/certs:/certs:ro
+      - /etc/ssl/certs/mapindstudy-fullchain.pem:/certs/mapindstudy.crt:ro
+      - /etc/ssl/private/mapindstudy-mapindstudy.key:/certs/mapindstudy.key:ro
       - caddy-data:/data
       - caddy-config:/config
 

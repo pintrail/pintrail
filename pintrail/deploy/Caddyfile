@@ -1,5 +1,5 @@
-{$PINTRAIL_DOMAIN} {
-  tls /certs/pintrail.crt /certs/pintrail.key
+{$PINTRAIL_DOMAIN} {  
+  tls /certs/mapindstudy.crt /certs/mapindstudy.key
   encode zstd gzip
 
   reverse_proxy portal:8000
