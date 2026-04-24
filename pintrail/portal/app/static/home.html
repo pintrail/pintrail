@@ -1,0 +1,1432 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0" />
+    <title>PinTrail — Explore Sustainability at UMass</title>
+    <link
+      rel="preconnect"
+      href="https://fonts.googleapis.com" />
+    <link
+      rel="preconnect"
+      href="https://fonts.gstatic.com"
+      crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=DM+Sans:wght@300;400;500&family=Space+Mono:wght@400;700&display=swap"
+      rel="stylesheet" />
+    <style>
+      :root {
+        --moss: #3d5a2e;
+        --forest: #2a3d1f;
+        --sage: #7a9b6a;
+        --mint: #b8d4a8;
+        --cream: #f5f0e8;
+        --earth: #8b6f47;
+        --gold: #c8a84b;
+        --off-white: #faf8f3;
+        --dark: #1a2412;
+      }
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
+      body {
+        background: var(--off-white);
+        color: var(--forest);
+        font-family: 'DM Sans', sans-serif;
+        overflow-x: hidden;
+      }
+
+      /* ── GRAIN OVERLAY ── */
+      body::before {
+        content: '';
+        position: fixed;
+        inset: 0;
+        background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+        pointer-events: none;
+        z-index: 999;
+        opacity: 0.6;
+      }
+
+      /* ── GRID LINES (like the poster) ── */
+      body::after {
+        content: '';
+        position: fixed;
+        inset: 0;
+        background-image: linear-gradient(
+            rgba(61, 90, 46, 0.06) 1px,
+            transparent 1px
+          ),
+          linear-gradient(90deg, rgba(61, 90, 46, 0.06) 1px, transparent 1px);
+        background-size: 48px 48px;
+        pointer-events: none;
+        z-index: 0;
+      }
+
+      /* ── NAV ── */
+      nav {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 100;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 20px 48px;
+        backdrop-filter: blur(12px);
+        background: rgba(245, 240, 232, 0.85);
+        border-bottom: 1px solid rgba(61, 90, 46, 0.12);
+      }
+
+      .nav-logo {
+        font-family: 'Space Mono', monospace;
+        font-weight: 700;
+        font-size: 1rem;
+        letter-spacing: 0.15em;
+        color: var(--moss);
+        text-transform: uppercase;
+      }
+
+      .nav-links {
+        display: flex;
+        gap: 36px;
+        list-style: none;
+      }
+
+      .nav-links a {
+        font-size: 0.8rem;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--forest);
+        text-decoration: none;
+        font-weight: 500;
+        opacity: 0.7;
+        transition: opacity 0.2s;
+      }
+
+      .nav-links a:hover {
+        opacity: 1;
+      }
+
+      .nav-cta {
+        font-family: 'Space Mono', monospace;
+        font-size: 0.75rem;
+        font-weight: 700;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--off-white);
+        background: var(--moss);
+        border: none;
+        padding: 10px 22px;
+        cursor: pointer;
+        text-decoration: none;
+        transition: background 0.2s, transform 0.15s;
+      }
+
+      .nav-cta:hover {
+        background: var(--forest);
+        transform: translateY(-1px);
+      }
+
+      /* ── HERO ── */
+      .hero {
+        min-height: 100vh;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        align-items: center;
+        padding: 120px 48px 80px;
+        position: relative;
+        overflow: hidden;
+        gap: 60px;
+      }
+
+      .hero-bg-circle {
+        position: absolute;
+        width: 700px;
+        height: 700px;
+        border-radius: 50%;
+        background: radial-gradient(
+          circle,
+          rgba(184, 212, 168, 0.35) 0%,
+          transparent 70%
+        );
+        right: -100px;
+        top: 50%;
+        transform: translateY(-50%);
+        pointer-events: none;
+      }
+
+      .hero-eyebrow {
+        font-family: 'Space Mono', monospace;
+        font-size: 0.72rem;
+        letter-spacing: 0.22em;
+        text-transform: uppercase;
+        color: var(--sage);
+        margin-bottom: 20px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .hero-eyebrow::before {
+        content: '';
+        display: inline-block;
+        width: 32px;
+        height: 1px;
+        background: var(--sage);
+      }
+
+      h1 {
+        font-family: 'Playfair Display', serif;
+        font-size: clamp(3.2rem, 6vw, 5.5rem);
+        font-weight: 900;
+        line-height: 1;
+        color: var(--forest);
+        margin-bottom: 28px;
+        letter-spacing: -0.02em;
+      }
+
+      h1 em {
+        font-style: italic;
+        color: var(--moss);
+      }
+
+      .hero-sub {
+        font-size: 1.05rem;
+        line-height: 1.7;
+        color: var(--forest);
+        opacity: 0.75;
+        max-width: 420px;
+        margin-bottom: 44px;
+        font-weight: 300;
+      }
+
+      .badge-coming-soon {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        background: var(--forest);
+        color: var(--mint);
+        font-family: 'Space Mono', monospace;
+        font-size: 0.7rem;
+        letter-spacing: 0.15em;
+        text-transform: uppercase;
+        padding: 8px 16px;
+        margin-bottom: 20px;
+      }
+
+      .badge-dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: var(--gold);
+        animation: pulse 2s ease-in-out infinite;
+      }
+
+      @keyframes pulse {
+        0%,
+        100% {
+          opacity: 1;
+          transform: scale(1);
+        }
+        50% {
+          opacity: 0.5;
+          transform: scale(0.8);
+        }
+      }
+
+      .store-buttons {
+        display: flex;
+        gap: 16px;
+        flex-wrap: wrap;
+      }
+
+      .store-btn {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 13px 24px;
+        border: 1.5px solid var(--moss);
+        text-decoration: none;
+        color: var(--forest);
+        transition: all 0.25s;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .store-btn::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: var(--moss);
+        transform: translateY(100%);
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
+      .store-btn:hover::before {
+        transform: translateY(0);
+      }
+      .store-btn:hover .store-btn-text,
+      .store-btn:hover .store-icon {
+        color: var(--cream);
+      }
+
+      .store-icon {
+        font-size: 1.4rem;
+        position: relative;
+        z-index: 1;
+        transition: color 0.25s;
+      }
+
+      .store-btn-text {
+        position: relative;
+        z-index: 1;
+        transition: color 0.25s;
+      }
+
+      .store-btn-text span {
+        display: block;
+        font-size: 0.65rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        opacity: 0.6;
+        font-family: 'Space Mono', monospace;
+      }
+
+      .store-btn-text strong {
+        display: block;
+        font-size: 0.95rem;
+        font-weight: 500;
+        letter-spacing: 0.02em;
+        margin-top: 1px;
+      }
+
+      /* ── PHONE MOCKUP ── */
+      .hero-visual {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        position: relative;
+        z-index: 1;
+      }
+
+      .phone-wrap {
+        position: relative;
+        animation: float 5s ease-in-out infinite;
+      }
+
+      @keyframes float {
+        0%,
+        100% {
+          transform: translateY(0);
+        }
+        50% {
+          transform: translateY(-18px);
+        }
+      }
+
+      .phone {
+        width: 260px;
+        height: 540px;
+        background: var(--forest);
+        border-radius: 40px;
+        padding: 14px;
+        box-shadow: 0 60px 120px rgba(42, 61, 31, 0.4),
+          0 20px 40px rgba(42, 61, 31, 0.2),
+          inset 0 0 0 1px rgba(184, 212, 168, 0.15);
+        position: relative;
+      }
+
+      .phone-notch {
+        width: 80px;
+        height: 22px;
+        background: var(--dark);
+        border-radius: 0 0 16px 16px;
+        margin: 0 auto 10px;
+      }
+
+      .phone-screen {
+        background: var(--cream);
+        border-radius: 28px;
+        height: calc(100% - 36px);
+        overflow: hidden;
+        position: relative;
+      }
+
+      .phone-map-bg {
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(
+          135deg,
+          rgba(122, 155, 106, 0.3) 0%,
+          rgba(184, 212, 168, 0.15) 50%,
+          rgba(61, 90, 46, 0.2) 100%
+        );
+      }
+
+      /* Mini map dots on the phone */
+      .map-pin {
+        position: absolute;
+        width: 12px;
+        height: 12px;
+        border-radius: 50% 50% 50% 0;
+        transform: rotate(-45deg);
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+      }
+
+      .map-pin::after {
+        content: '';
+        position: absolute;
+        width: 5px;
+        height: 5px;
+        background: white;
+        border-radius: 50%;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+      }
+
+      .pin-green {
+        background: var(--moss);
+        top: 30%;
+        left: 40%;
+      }
+      .pin-gold {
+        background: var(--gold);
+        top: 50%;
+        left: 60%;
+        animation: pin-bounce 2s ease-in-out infinite 0.5s;
+      }
+      .pin-earth {
+        background: var(--earth);
+        top: 65%;
+        left: 30%;
+      }
+
+      @keyframes pin-bounce {
+        0%,
+        100% {
+          transform: rotate(-45deg) translateY(0);
+        }
+        50% {
+          transform: rotate(-45deg) translateY(-4px);
+        }
+      }
+
+      .phone-ui-bar {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: rgba(245, 240, 232, 0.96);
+        backdrop-filter: blur(10px);
+        border-top: 1px solid rgba(61, 90, 46, 0.1);
+        padding: 14px 16px;
+      }
+
+      .phone-ui-title {
+        font-family: 'Playfair Display', serif;
+        font-size: 0.9rem;
+        font-weight: 700;
+        color: var(--forest);
+        margin-bottom: 4px;
+      }
+
+      .phone-ui-sub {
+        font-size: 0.6rem;
+        color: var(--sage);
+        font-family: 'Space Mono', monospace;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .phone-ui-pills {
+        display: flex;
+        gap: 6px;
+        margin-top: 10px;
+      }
+
+      .pill {
+        font-size: 0.55rem;
+        font-family: 'Space Mono', monospace;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        padding: 4px 8px;
+        border-radius: 20px;
+      }
+
+      .pill-green {
+        background: rgba(61, 90, 46, 0.12);
+        color: var(--moss);
+      }
+      .pill-gold {
+        background: rgba(200, 168, 75, 0.15);
+        color: var(--earth);
+      }
+
+      /* Floating glow orbs around phone */
+      .orb {
+        position: absolute;
+        border-radius: 50%;
+        filter: blur(20px);
+        pointer-events: none;
+      }
+
+      .orb-1 {
+        width: 140px;
+        height: 140px;
+        background: rgba(184, 212, 168, 0.5);
+        top: -40px;
+        right: -40px;
+      }
+
+      .orb-2 {
+        width: 100px;
+        height: 100px;
+        background: rgba(200, 168, 75, 0.3);
+        bottom: 40px;
+        left: -30px;
+      }
+
+      /* ── SECTION DIVIDER ── */
+      .divider {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+        padding: 0 48px;
+        margin: 20px 0;
+      }
+
+      .divider-line {
+        flex: 1;
+        height: 1px;
+        background: rgba(61, 90, 46, 0.15);
+      }
+
+      .divider-text {
+        font-family: 'Space Mono', monospace;
+        font-size: 0.65rem;
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+        color: var(--sage);
+        white-space: nowrap;
+      }
+
+      /* ── FEATURES ── */
+      .features {
+        padding: 80px 48px 100px;
+        position: relative;
+        z-index: 1;
+      }
+
+      .features-header {
+        text-align: center;
+        margin-bottom: 70px;
+      }
+
+      .features-header h2 {
+        font-family: 'Playfair Display', serif;
+        font-size: clamp(2rem, 4vw, 3.2rem);
+        font-weight: 900;
+        color: var(--forest);
+        margin-bottom: 14px;
+        letter-spacing: -0.02em;
+      }
+
+      .features-header p {
+        color: var(--forest);
+        opacity: 0.6;
+        max-width: 480px;
+        margin: 0 auto;
+        line-height: 1.7;
+        font-size: 1rem;
+      }
+
+      .features-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 2px;
+        max-width: 1100px;
+        margin: 0 auto;
+      }
+
+      .feature-card {
+        background: var(--cream);
+        border: 1px solid rgba(61, 90, 46, 0.1);
+        padding: 44px 36px;
+        position: relative;
+        overflow: hidden;
+        transition: transform 0.3s, box-shadow 0.3s;
+      }
+
+      .feature-card::before {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: var(--moss);
+        transform: scaleX(0);
+        transform-origin: left;
+        transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
+      .feature-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 20px 50px rgba(42, 61, 31, 0.12);
+      }
+
+      .feature-card:hover::before {
+        transform: scaleX(1);
+      }
+
+      .feature-icon {
+        font-size: 2rem;
+        margin-bottom: 20px;
+        display: block;
+      }
+
+      .feature-num {
+        position: absolute;
+        top: 20px;
+        right: 24px;
+        font-family: 'Space Mono', monospace;
+        font-size: 0.65rem;
+        letter-spacing: 0.1em;
+        color: var(--sage);
+        opacity: 0.5;
+      }
+
+      .feature-card h3 {
+        font-family: 'Playfair Display', serif;
+        font-size: 1.3rem;
+        font-weight: 700;
+        color: var(--forest);
+        margin-bottom: 12px;
+        line-height: 1.2;
+      }
+
+      .feature-card p {
+        font-size: 0.9rem;
+        line-height: 1.65;
+        color: var(--forest);
+        opacity: 0.65;
+      }
+
+      /* ── DARK SECTION ── */
+      .dark-section {
+        background: var(--forest);
+        padding: 100px 48px;
+        position: relative;
+        overflow: hidden;
+        z-index: 1;
+      }
+
+      .dark-section::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background-image: linear-gradient(
+            rgba(184, 212, 168, 0.04) 1px,
+            transparent 1px
+          ),
+          linear-gradient(90deg, rgba(184, 212, 168, 0.04) 1px, transparent 1px);
+        background-size: 48px 48px;
+      }
+
+      .dark-section-inner {
+        max-width: 1100px;
+        margin: 0 auto;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 80px;
+        align-items: center;
+        position: relative;
+        z-index: 1;
+      }
+
+      .dark-section h2 {
+        font-family: 'Playfair Display', serif;
+        font-size: clamp(2.2rem, 4vw, 3.4rem);
+        font-weight: 900;
+        color: var(--cream);
+        line-height: 1.05;
+        letter-spacing: -0.02em;
+        margin-bottom: 24px;
+      }
+
+      .dark-section h2 em {
+        font-style: italic;
+        color: var(--mint);
+      }
+
+      .dark-section p {
+        color: var(--cream);
+        opacity: 0.65;
+        line-height: 1.75;
+        font-size: 1rem;
+        margin-bottom: 36px;
+      }
+
+      .github-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        font-family: 'Space Mono', monospace;
+        font-size: 0.75rem;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--mint);
+        text-decoration: none;
+        border: 1px solid rgba(184, 212, 168, 0.3);
+        padding: 12px 22px;
+        transition: all 0.25s;
+      }
+
+      .github-link:hover {
+        background: rgba(184, 212, 168, 0.1);
+        border-color: var(--mint);
+      }
+
+      .stats-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 24px;
+      }
+
+      .stat-card {
+        border: 1px solid rgba(184, 212, 168, 0.15);
+        padding: 28px 24px;
+        position: relative;
+      }
+
+      .stat-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 3px;
+        height: 100%;
+        background: var(--sage);
+      }
+
+      .stat-num {
+        font-family: 'Playfair Display', serif;
+        font-size: 2.4rem;
+        font-weight: 900;
+        color: var(--mint);
+        line-height: 1;
+        margin-bottom: 6px;
+      }
+
+      .stat-label {
+        font-size: 0.8rem;
+        color: var(--cream);
+        opacity: 0.55;
+        font-family: 'Space Mono', monospace;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      /* ── NOTIFY SECTION ── */
+      .notify-section {
+        padding: 100px 48px;
+        text-align: center;
+        position: relative;
+        z-index: 1;
+      }
+
+      .notify-section h2 {
+        font-family: 'Playfair Display', serif;
+        font-size: clamp(2rem, 4vw, 3rem);
+        font-weight: 900;
+        color: var(--forest);
+        margin-bottom: 14px;
+        letter-spacing: -0.02em;
+      }
+
+      .notify-section p {
+        color: var(--forest);
+        opacity: 0.6;
+        margin-bottom: 40px;
+        font-size: 1rem;
+        line-height: 1.7;
+      }
+
+      .notify-form {
+        display: flex;
+        gap: 0;
+        max-width: 480px;
+        margin: 0 auto 30px;
+      }
+
+      .notify-input {
+        flex: 1;
+        padding: 15px 20px;
+        border: 1.5px solid rgba(61, 90, 46, 0.25);
+        border-right: none;
+        background: var(--cream);
+        font-family: 'DM Sans', sans-serif;
+        font-size: 0.9rem;
+        color: var(--forest);
+        outline: none;
+        transition: border-color 0.2s;
+      }
+
+      .notify-input:focus {
+        border-color: var(--moss);
+      }
+      .notify-input::placeholder {
+        opacity: 0.45;
+      }
+
+      .notify-btn {
+        background: var(--moss);
+        color: var(--cream);
+        border: 1.5px solid var(--moss);
+        padding: 15px 28px;
+        font-family: 'Space Mono', monospace;
+        font-size: 0.75rem;
+        font-weight: 700;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        cursor: pointer;
+        transition: background 0.2s;
+        white-space: nowrap;
+      }
+
+      .notify-btn:hover {
+        background: var(--forest);
+        border-color: var(--forest);
+      }
+
+      .notify-note {
+        font-family: 'Space Mono', monospace;
+        font-size: 0.65rem;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--sage);
+        opacity: 0.7;
+      }
+
+      /* ── FOOTER ── */
+      footer {
+        background: var(--dark);
+        padding: 40px 48px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        position: relative;
+        z-index: 1;
+      }
+
+      .footer-logo {
+        font-family: 'Space Mono', monospace;
+        font-weight: 700;
+        font-size: 0.85rem;
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+        color: var(--mint);
+      }
+
+      .footer-links {
+        display: flex;
+        gap: 28px;
+        list-style: none;
+      }
+
+      .footer-links a {
+        font-size: 0.75rem;
+        font-family: 'Space Mono', monospace;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--cream);
+        opacity: 0.4;
+        text-decoration: none;
+        transition: opacity 0.2s;
+      }
+
+      .footer-links a:hover {
+        opacity: 0.9;
+      }
+
+      .footer-copy {
+        font-size: 0.7rem;
+        color: var(--cream);
+        opacity: 0.3;
+        font-family: 'Space Mono', monospace;
+      }
+
+      /* ── ANIMATIONS ── */
+      .reveal {
+        opacity: 0;
+        transform: translateY(24px);
+        transition: opacity 0.7s ease, transform 0.7s ease;
+      }
+
+      .reveal.visible {
+        opacity: 1;
+        transform: translateY(0);
+      }
+
+      .reveal-delay-1 {
+        transition-delay: 0.1s;
+      }
+      .reveal-delay-2 {
+        transition-delay: 0.2s;
+      }
+      .reveal-delay-3 {
+        transition-delay: 0.3s;
+      }
+      .reveal-delay-4 {
+        transition-delay: 0.4s;
+      }
+      .reveal-delay-5 {
+        transition-delay: 0.5s;
+      }
+
+      /* Hero stagger on load */
+      .hero-eyebrow {
+        animation: fadeUp 0.7s ease 0.2s both;
+      }
+      .hero h1 {
+        animation: fadeUp 0.7s ease 0.35s both;
+      }
+      .hero .hero-sub {
+        animation: fadeUp 0.7s ease 0.5s both;
+      }
+      .badge-coming-soon {
+        animation: fadeUp 0.7s ease 0.55s both;
+      }
+      .store-buttons {
+        animation: fadeUp 0.7s ease 0.65s both;
+      }
+      .hero-visual {
+        animation: fadeUp 0.9s ease 0.4s both;
+      }
+
+      @keyframes fadeUp {
+        from {
+          opacity: 0;
+          transform: translateY(28px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      /* ── RESPONSIVE ── */
+      @media (max-width: 900px) {
+        nav {
+          padding: 18px 24px;
+        }
+        .nav-links {
+          display: none;
+        }
+        .hero {
+          grid-template-columns: 1fr;
+          padding: 110px 24px 60px;
+          text-align: center;
+          gap: 50px;
+        }
+        .hero-eyebrow {
+          justify-content: center;
+        }
+        .hero-sub {
+          margin: 0 auto 40px;
+        }
+        .store-buttons {
+          justify-content: center;
+        }
+        .features {
+          padding: 60px 24px;
+        }
+        .features-grid {
+          grid-template-columns: 1fr;
+          gap: 2px;
+        }
+        .dark-section {
+          padding: 70px 24px;
+        }
+        .dark-section-inner {
+          grid-template-columns: 1fr;
+          gap: 50px;
+        }
+        .stats-grid {
+          grid-template-columns: 1fr 1fr;
+        }
+        .notify-section {
+          padding: 70px 24px;
+        }
+        .notify-form {
+          flex-direction: column;
+        }
+        .notify-input {
+          border-right: 1.5px solid rgba(61, 90, 46, 0.25);
+        }
+        footer {
+          flex-direction: column;
+          gap: 16px;
+          text-align: center;
+          padding: 32px 24px;
+        }
+        .footer-links {
+          flex-wrap: wrap;
+          justify-content: center;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- NAV -->
+    <nav>
+      <span class="nav-logo">PinTrail</span>
+      <ul class="nav-links">
+        <li><a href="#features">Features</a></li>
+        <li><a href="#about">About</a></li>
+        <li><a href="#notify">Notify Me</a></li>
+      </ul>
+      <a
+        href="https://github.com/pintrail/pintrail"
+        class="nav-cta"
+        target="_blank"
+        rel="noopener"
+        >GitHub ↗</a
+      >
+    </nav>
+
+    <!-- HERO -->
+    <section class="hero">
+      <div class="hero-bg-circle"></div>
+      <div class="hero-content">
+        <div class="hero-eyebrow">UMass Amherst · Earth Day 2026</div>
+        <h1>Walk the <em>Green</em> Path</h1>
+        <p class="hero-sub">
+          PinTrail is a campus mobile app that guides students through curated
+          sustainability trails — uncovering solar panels, eco-gardens, and
+          green innovations hiding in plain sight.
+        </p>
+        <div class="badge-coming-soon">
+          <span class="badge-dot"></span>
+          Coming Soon to App Stores
+        </div>
+        <div class="store-buttons">
+          <a
+            href="#notify"
+            class="store-btn">
+            <span class="store-icon">🍎</span>
+            <span class="store-btn-text">
+              <span>Download on the</span>
+              <strong>App Store</strong>
+            </span>
+          </a>
+          <a
+            href="#notify"
+            class="store-btn">
+            <span class="store-icon">▶</span>
+            <span class="store-btn-text">
+              <span>Get it on</span>
+              <strong>Google Play</strong>
+            </span>
+          </a>
+        </div>
+      </div>
+
+      <div class="hero-visual">
+        <div class="phone-wrap">
+          <div class="orb orb-1"></div>
+          <div class="orb orb-2"></div>
+          <div class="phone">
+            <div class="phone-notch"></div>
+            <div class="phone-screen">
+              <div class="phone-map-bg"></div>
+              <!-- SVG campus map illustration -->
+              <svg
+                viewBox="0 0 230 320"
+                xmlns="http://www.w3.org/2000/svg"
+                style="
+                  position: absolute;
+                  inset: 0;
+                  width: 100%;
+                  height: 100%;
+                  opacity: 0.35;
+                ">
+                <rect
+                  x="30"
+                  y="50"
+                  width="40"
+                  height="25"
+                  rx="3"
+                  fill="#3d5a2e" />
+                <rect
+                  x="80"
+                  y="40"
+                  width="55"
+                  height="30"
+                  rx="3"
+                  fill="#3d5a2e" />
+                <rect
+                  x="145"
+                  y="55"
+                  width="35"
+                  height="22"
+                  rx="3"
+                  fill="#7a9b6a" />
+                <rect
+                  x="20"
+                  y="95"
+                  width="30"
+                  height="40"
+                  rx="3"
+                  fill="#7a9b6a" />
+                <rect
+                  x="60"
+                  y="90"
+                  width="70"
+                  height="50"
+                  rx="3"
+                  fill="#3d5a2e" />
+                <rect
+                  x="140"
+                  y="88"
+                  width="50"
+                  height="35"
+                  rx="3"
+                  fill="#3d5a2e" />
+                <rect
+                  x="30"
+                  y="155"
+                  width="45"
+                  height="30"
+                  rx="3"
+                  fill="#7a9b6a" />
+                <rect
+                  x="85"
+                  y="150"
+                  width="60"
+                  height="38"
+                  rx="3"
+                  fill="#3d5a2e" />
+                <rect
+                  x="155"
+                  y="155"
+                  width="40"
+                  height="30"
+                  rx="3"
+                  fill="#7a9b6a" />
+                <rect
+                  x="40"
+                  y="205"
+                  width="35"
+                  height="20"
+                  rx="3"
+                  fill="#3d5a2e" />
+                <rect
+                  x="85"
+                  y="200"
+                  width="55"
+                  height="25"
+                  rx="3"
+                  fill="#7a9b6a" />
+                <rect
+                  x="150"
+                  y="205"
+                  width="40"
+                  height="20"
+                  rx="3"
+                  fill="#3d5a2e" />
+                <!-- paths -->
+                <path
+                  d="M10 75 Q115 65 220 80"
+                  stroke="#b8d4a8"
+                  stroke-width="2"
+                  fill="none"
+                  opacity="0.6" />
+                <path
+                  d="M10 140 Q115 130 220 145"
+                  stroke="#b8d4a8"
+                  stroke-width="2"
+                  fill="none"
+                  opacity="0.6" />
+                <path
+                  d="M115 30 Q115 130 115 290"
+                  stroke="#b8d4a8"
+                  stroke-width="2"
+                  fill="none"
+                  opacity="0.6" />
+              </svg>
+
+              <div class="map-pin pin-green"></div>
+              <div class="map-pin pin-gold"></div>
+              <div class="map-pin pin-earth"></div>
+
+              <div class="phone-ui-bar">
+                <div class="phone-ui-title">Solar Array Trail</div>
+                <div class="phone-ui-sub">3 stops nearby · 0.4 mi</div>
+                <div class="phone-ui-pills">
+                  <span class="pill pill-green">🌱 Active</span>
+                  <span class="pill pill-gold">⚡ Energy</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="divider">
+      <div class="divider-line"></div>
+      <div class="divider-text">Features</div>
+      <div class="divider-line"></div>
+    </div>
+
+    <!-- FEATURES -->
+    <section
+      class="features"
+      id="features">
+      <div class="features-header">
+        <h2>
+          Discover Campus,
+          <em style="font-style: italic; color: var(--moss)">Differently</em>
+        </h2>
+        <p>
+          From pin mapping to community art — PinTrail transforms how you
+          experience sustainability at UMass.
+        </p>
+      </div>
+      <div class="features-grid">
+        <div class="feature-card reveal">
+          <span class="feature-num">01</span>
+          <span class="feature-icon">📍</span>
+          <h3>Curated Campus Trails</h3>
+          <p>
+            Follow themed paths that connect sustainability projects across
+            campus — from rooftop gardens to geothermal systems. Each stop tells
+            a story.
+          </p>
+        </div>
+        <div class="feature-card reveal reveal-delay-1">
+          <span class="feature-num">02</span>
+          <span class="feature-icon">🗺️</span>
+          <h3>Interactive Pin Mapping</h3>
+          <p>
+            See every green initiative plotted on a live campus map. Filter by
+            category, find what's near you, and navigate with turn-by-turn
+            guidance.
+          </p>
+        </div>
+        <div class="feature-card reveal reveal-delay-2">
+          <span class="feature-num">03</span>
+          <span class="feature-icon">🎨</span>
+          <h3>Community Collage</h3>
+          <p>
+            Add your voice. Contribute photos, reflections, and discoveries to a
+            living, growing tapestry of campus sustainability stories.
+          </p>
+        </div>
+        <div class="feature-card reveal reveal-delay-3">
+          <span class="feature-num">04</span>
+          <span class="feature-icon">📱</span>
+          <h3>Didactic App Experience</h3>
+          <p>
+            Learn as you walk. Rich context panels, infographics, and data
+            overlays make every stop an educational moment — no lecture
+            required.
+          </p>
+        </div>
+        <div class="feature-card reveal reveal-delay-4">
+          <span class="feature-num">05</span>
+          <span class="feature-icon">🖥️</span>
+          <h3>UI/UX Designed for Students</h3>
+          <p>
+            Clean, intuitive interfaces designed by the UMass community, for the
+            UMass community. Fast, accessible, and built for outdoor use.
+          </p>
+        </div>
+        <div class="feature-card reveal reveal-delay-5">
+          <span class="feature-num">06</span>
+          <span class="feature-icon">🌍</span>
+          <h3>Real Impact, Real Data</h3>
+          <p>
+            Track your eco-footprint, see aggregated campus sustainability
+            stats, and understand how collective action drives measurable
+            change.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- DARK SECTION -->
+    <section
+      class="dark-section"
+      id="about">
+      <div class="dark-section-inner">
+        <div>
+          <h2>Built by students,<br /><em>for a greener</em> future</h2>
+          <p>
+            PinTrail started at UMass Amherst's Earth Day Extravaganza - a
+            student-led project to make campus sustainability visible,
+            accessible, and inspiring for everyone. We believe the path to a
+            greener campus starts with awareness.
+          </p>
+          <a
+            href="https://github.com/pintrail/pintrail"
+            class="github-link"
+            target="_blank"
+            rel="noopener">
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="currentColor">
+              <path
+                d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z" />
+            </svg>
+            View on GitHub — pintrail/pintrail
+          </a>
+        </div>
+        <div class="stats-grid">
+          <div class="stat-card reveal">
+            <div class="stat-num">40+</div>
+            <div class="stat-label">Sustainability Sites</div>
+          </div>
+          <div class="stat-card reveal reveal-delay-1">
+            <div class="stat-num">5</div>
+            <div class="stat-label">Curated Trails</div>
+          </div>
+          <div class="stat-card reveal reveal-delay-2">
+            <div class="stat-num">1</div>
+            <div class="stat-label">Campus. UMass.</div>
+          </div>
+          <div class="stat-card reveal reveal-delay-3">
+            <div class="stat-num">∞</div>
+            <div class="stat-label">Stories to Discover</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- NOTIFY -->
+    <section
+      class="notify-section"
+      id="notify">
+      <div class="reveal">
+        <div
+          style="
+            font-family: 'Space Mono', monospace;
+            font-size: 0.65rem;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            color: var(--sage);
+            margin-bottom: 16px;
+          ">
+          Coming to App Stores
+        </div>
+        <h2>Be First on the Trail</h2>
+        <p>
+          Get notified when PinTrail launches on iOS and Android.<br />No spam.
+          Just one email when it's ready.
+        </p>
+        <div class="notify-form">
+          <input
+            class="notify-input"
+            type="email"
+            placeholder="your@umass.edu" />
+          <button class="notify-btn">Notify Me</button>
+        </div>
+        <div class="notify-note">
+          🔒 We respect your privacy — no data sold, ever.
+        </div>
+      </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer>
+      <span class="footer-logo">PinTrail</span>
+      <ul class="footer-links">
+        <li>
+          <a
+            href="https://github.com/pintrail/pintrail"
+            target="_blank"
+            >GitHub</a
+          >
+        </li>
+        <li><a href="#features">Features</a></li>
+        <li><a href="#notify">Notify Me</a></li>
+      </ul>
+      <span class="footer-copy">© 2026 PinTrail · UMass Amherst</span>
+    </footer>
+
+    <script>
+      // Scroll reveal
+      const reveals = document.querySelectorAll('.reveal')
+      const observer = new IntersectionObserver(
+        entries => {
+          entries.forEach(e => {
+            if (e.isIntersecting) {
+              e.target.classList.add('visible')
+              observer.unobserve(e.target)
+            }
+          })
+        },
+        { threshold: 0.12 }
+      )
+      reveals.forEach(el => observer.observe(el))
+
+      // Notify form
+      const btn = document.querySelector('.notify-btn')
+      const input = document.querySelector('.notify-input')
+      btn.addEventListener('click', async () => {
+        const email = input.value.trim()
+        if (!email.includes('@')) {
+          input.style.borderColor = '#c0392b'
+          input.placeholder = 'Enter a valid email'
+          setTimeout(() => {
+            input.style.borderColor = ''
+            input.placeholder = 'your@umass.edu'
+          }, 2000)
+          return
+        }
+        btn.disabled = true
+        btn.textContent = 'Sending…'
+        try {
+          const params = new URLSearchParams({ email })
+          const res = await fetch(`/notify?${params}`, { method: 'POST' })
+          if (res.ok || res.status === 201 || res.status === 200) {
+            btn.textContent = "✓ You're on the list!"
+            btn.style.background = '#7a9b6a'
+            btn.style.borderColor = '#7a9b6a'
+            input.disabled = true
+          } else {
+            const data = await res.json().catch(() => ({}))
+            btn.textContent = 'Try Again'
+            btn.disabled = false
+            input.style.borderColor = '#c0392b'
+            input.placeholder = data.error || 'Something went wrong'
+            setTimeout(() => {
+              input.style.borderColor = ''
+              input.placeholder = 'your@umass.edu'
+            }, 2000)
+          }
+        } catch {
+          btn.textContent = 'Try Again'
+          btn.disabled = false
+        }
+      })
+    </script>
+  </body>
+</html>

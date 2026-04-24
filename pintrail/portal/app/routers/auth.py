@@ -31,7 +31,7 @@ async def login(
             status_code=status.HTTP_401_UNAUTHORIZED,
         )
 
-    resp = RedirectResponse(url="/", status_code=status.HTTP_303_SEE_OTHER)
+    resp = RedirectResponse(url="/portal", status_code=status.HTTP_303_SEE_OTHER)
     resp.set_cookie(
         key=COOKIE_NAME,
         value=token,

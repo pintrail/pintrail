@@ -7,7 +7,8 @@ from fastapi.staticfiles import StaticFiles
 
 from app.config import settings
 from app.database import create_db_and_tables, get_session
-from app.routers import artifacts, auth, frontend, media
+import app.models  # noqa: F401 — ensures all SQLModel tables are registered
+from app.routers import artifacts, auth, frontend, media, notify
 from app.services.auth import create_admin_if_needed
 
 
@@ -34,6 +35,7 @@ app.include_router(frontend.router)
 app.include_router(auth.router)
 app.include_router(artifacts.router)
 app.include_router(media.router)
+app.include_router(notify.router)
 
 
 def run():

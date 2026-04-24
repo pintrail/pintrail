@@ -22,6 +22,13 @@ class Settings(BaseSettings):
     artifact_api_key: str = Field(default="dev-api-key", alias="ARTIFACT_API_KEY")
     image_storage_root: str = Field(default="/data/images", alias="IMAGE_STORAGE_ROOT")
 
+    smtp_host: str = Field(default="", alias="SMTP_HOST")
+    smtp_port: int = Field(default=587, alias="SMTP_PORT")
+    smtp_user: str = Field(default="", alias="SMTP_USER")
+    smtp_password: str = Field(default="", alias="SMTP_PASSWORD")
+    smtp_from: str = Field(default="noreply@pintrail.app", alias="SMTP_FROM")
+    notify_email_enabled: bool = Field(default=False, alias="NOTIFY_EMAIL_ENABLED")
+
     model_config = SettingsConfigDict(
         case_sensitive=False,
         env_file=None,
