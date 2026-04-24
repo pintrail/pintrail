@@ -874,6 +874,40 @@
         transform: scale(1.1) rotate(2deg);
       }
 
+      /* ── FLOATING INSTAGRAM ── */
+      .instagram-float {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 101;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        background: rgba(245, 240, 232, 0.85);
+        backdrop-filter: blur(12px);
+        border: 1.5px solid rgba(61, 90, 46, 0.2);
+        font-size: 1.4rem;
+        text-decoration: none;
+        color: var(--forest);
+        transition: all 0.25s;
+        animation: fadeUp 0.7s ease 0.3s both, float 5s ease-in-out infinite 0.7s;
+      }
+
+      .instagram-float:hover {
+        transform: scale(1.15) rotate(8deg);
+        background: rgba(245, 240, 232, 0.95);
+        border-color: var(--moss);
+      }
+
+      @media (max-width: 900px) {
+        .instagram-float {
+          display: none;
+        }
+      }
+
       .footer-copy {
         font-size: 0.7rem;
         color: var(--cream);
@@ -1390,6 +1424,16 @@
       </ul>
       <span class="footer-copy">© 2026 PinTrail · UMass Amherst</span>
     </footer>
+
+    <!-- FLOATING INSTAGRAM LINK -->
+    <a
+      href="https://instagram.com/pintrail.umass"
+      target="_blank"
+      rel="noopener"
+      class="instagram-float"
+      title="Follow us on Instagram">
+      📷
+    </a>
 
     <script>
       // Scroll reveal
