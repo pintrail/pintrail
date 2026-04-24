@@ -863,6 +863,17 @@
         opacity: 0.9;
       }
 
+      .instagram-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        transition: transform 0.2s;
+      }
+
+      .instagram-link:hover {
+        transform: scale(1.1) rotate(2deg);
+      }
+
       .footer-copy {
         font-size: 0.7rem;
         color: var(--cream);
@@ -1367,6 +1378,15 @@
         </li>
         <li><a href="#features">Features</a></li>
         <li><a href="#notify">Notify Me</a></li>
+        <li>
+          <a
+            href="https://instagram.com/pintrail.umass"
+            target="_blank"
+            rel="noopener"
+            class="instagram-link"
+            >📷 Instagram</a
+          >
+        </li>
       </ul>
       <span class="footer-copy">© 2026 PinTrail · UMass Amherst</span>
     </footer>
