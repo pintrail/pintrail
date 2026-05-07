@@ -1,4 +1,5 @@
 import shutil
+import math
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
@@ -60,6 +61,77 @@ async def _enqueue_image_processing(image_id: uuid.UUID) -> None:
     except Exception as e:
         print(f"[warn] Could not enqueue image job: {e}")
 
+# ── Distance Ranking Formula ────────────────────────────────────────────────────────────
+
+def _distance_meters(lat1: float, lng1: float, lat2: float, lng2: float) -> float:
+    """Calculate distance between two latitude/longitude points using Haversine."""
+    earth_radius_m = 6371000
+
+    phi1 = math.radians(lat1)
+    phi2 = math.radians(lat2)
+    delta_phi = math.radians(lat2 - lat1)
+    delta_lambda = math.radians(lng2 - lng1)
+
+    a = (
+        math.sin(delta_phi / 2) ** 2
+        + math.cos(phi1) * math.cos(phi2) * math.sin(delta_lambda / 2) ** 2
+    )
+
+    return earth_radius_m * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+
+
+@router.get("/nearby", response_model=list[ArtifactRead])
+async def nearby_artifacts(
+    lat: float,
+    lng: float,
+    radius_meters: float = 1000,
+    distance_weight: float = 0.5,
+    popularity_weight: float = 0.3,
+    recency_weight: float = 0.2,
+    decay_constant: float = 30,
+    db: AsyncSession = Depends(get_session),
+):
+    result = await db.execute(select(Artifact))
+    artifacts = list(result.scalars().all())
+
+    max_popularity = max(
+        getattr(artifact, "popularity_count", 0) for artifact in artifacts
+    ) or 1
+
+    ranked_artifacts = []
+
+    for artifact in artifacts:
+        if artifact.lat is None or artifact.lng is None:
+            continue
+
+        distance = _distance_meters(lat, lng, artifact.lat, artifact.lng)
+
+        if distance > radius_meters:
+            continue
+
+        distance_score = 1 / (1 + distance / radius_meters)
+
+        popularity_count = getattr(artifact, "popularity_count", 0)
+        popularity_score = math.log(1 + popularity_count) / math.log(1 + max_popularity)
+
+        updated_at = artifact.updated_at
+        if updated_at.tzinfo is None:
+            updated_at = updated_at.replace(tzinfo=timezone.utc)
+
+        days_since_update = (datetime.now(timezone.utc) - updated_at).days
+        recency_score = math.exp(-days_since_update / decay_constant)
+
+        final_score = (
+            distance_weight * distance_score
+            + popularity_weight * popularity_score
+            + recency_weight * recency_score
+        )
+
+        ranked_artifacts.append((final_score, artifact))
+
+    ranked_artifacts.sort(key=lambda item: item[0], reverse=True)
+
+    return [artifact for _, artifact in ranked_artifacts]
 
 # ── List Artifacts ────────────────────────────────────────────────────────────
 
