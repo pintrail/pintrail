@@ -95,8 +95,9 @@ async def nearby_artifacts(
     artifacts = list(result.scalars().all())
 
     max_popularity = max(
-        getattr(artifact, "popularity_count", 0) for artifact in artifacts
-    ) or 1
+        (getattr(artifact, "popularity_count", 0) for artifact in artifacts),
+        default=1,
+    )
 
     ranked_artifacts = []
 
