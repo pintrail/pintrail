@@ -57,7 +57,35 @@ async def artifact_tree(
         "partials/artifact_tree.html",
         {"request": request, "tree": tree, "selected_id": selected_id},
     )
+# ── Distance Ranking ───────────────────────────────────────────────────────────
+@router.get("/nearby", response_class=HTMLResponse)
+async def nearby_artifacts(
+    request: Request,
+    lat: float,
+    lng: float,
+    radius_meters: float = 1000,
+    current_user: User = Depends(require_viewer),
+):
+    resp = await _client(request).get(
+        "/artifacts/nearby",
+        params={
+            "lat": lat,
+            "lng": lng,
+            "radius_meters": radius_meters,
+        },
+    )
+    _raise_for_status(resp)
 
+    artifacts = [ArtifactRead.model_validate(a) for a in resp.json()]
+
+    return templates.TemplateResponse(
+        "partials/artifact_list.html",
+        {
+            "request": request,
+            "artifacts": artifacts,
+            "user": current_user,
+        },
+    )
 
 # ── Create Artifact ───────────────────────────────────────────────────────────
 
