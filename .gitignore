@@ -208,3 +208,6 @@ __marimo__/
 .DS_Store
 Icon\n
 .env.example
+
+# Microsoft Office lock/owner files
+~$*
