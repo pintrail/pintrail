@@ -53,6 +53,28 @@ the upgrade path.
 runs multiple API replicas, move migrations to an explicit deploy step so
 replicas do not race each other.
 
+**`sqlx::migrate!` embeds migrations at compile time.** Adding a `.sql` file
+without recompiling means the server applies the set it was last built with
+while reporting success. `services/pintrail-api/build.rs` emits a
+`rerun-if-changed` on the migrations directory to prevent that.
+
+## Schema deviations from DESIGN.md §2.2
+
+The schema follows the design document except where it was underspecified or
+would not survive contact with Postgres. Each of these is a decision worth
+revisiting, not an accident:
+
+| Change | Why |
+|---|---|
+| `artifacts.desc` → `artifacts.description` | `desc` is a reserved SQL keyword requiring quoting at every reference, and `trails` already spells the same concept `description`. |
+| Added `artifacts.sync_version` (from a sequence) | `GET /artifacts/sync?since=<version>` needs a monotonic cursor. A sequence beats a timestamp: two rows written in the same microsecond still get distinct ordered versions, and it is immune to clock skew. |
+| Added `artifacts.deleted_at` (soft delete) | Without a tombstone, a phone that cached an artifact has no way to learn it was deleted and would display it forever. Deletes bump `sync_version`, so the next sync carries the removal. |
+| Added `reader_verification_tokens` | Email verification and password reset need single-use expiring tokens, whose lifecycle differs from a session's — a used token must die immediately. |
+| Added `attachments.claimed_at` / `attempts` | Needed by the sweep that re-queues jobs abandoned by a worker that died mid-processing (DESIGN.md §2.5 calls for the sweep but not the columns it requires). |
+| Case-insensitive unique email on both identity tables | `Tim@umass.edu` and `tim@umass.edu` are one person; treating them as two accounts is a support ticket at best. |
+| Triggers enforce trail owner integrity | `owner_type` + `owner_id` cannot have a declarative foreign key. Triggers validate the owner exists on write and delete a user's trails when the user is deleted — what `ON DELETE CASCADE` would have done. |
+| Trigger enforces an acyclic artifact tree | Coordinate inheritance walks up `parent_id`; a cycle would loop forever. Also caps chain depth at 64. |
+
 ## Local services
 
 | Service | Address | Credentials |
@@ -66,7 +88,7 @@ replicas do not race each other.
 Implemented incrementally; see the repo's task list for current position.
 
 1. ✅ Workspace skeleton, config, error type, compose, health endpoints
-2. ⬜ Migrations — full DESIGN.md §2.2 schema
+2. ✅ Migrations — full DESIGN.md §2.2 schema
 3. ⬜ `authors/` — scrypt, cookie sessions, role extractors
 4. ⬜ `readers/` — registration, email verification, bearer tokens
 5. ⬜ `artifacts/` — CRUD, coordinate inheritance, `/sync`
