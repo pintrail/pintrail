@@ -162,7 +162,7 @@ async fn list(
 }
 
 async fn detail(
-    _identity: Identity,
+    identity: Identity,
     State(state): State<AppState>,
     Path(id): Path<Uuid>,
 ) -> AppResult<Json<Value>> {
@@ -185,7 +185,13 @@ async fn detail(
         .await?
         .ok_or(AppError::NotFound("artifact"))?;
 
-    Ok(Json(json!({ "artifact": artifact })))
+    // Media comes back with the artifact so opening one is a single round
+    // trip (DESIGN.md §2.7). Fetched through the attachments module rather
+    // than by querying its table here, so table ownership stays intact.
+    let attachments =
+        crate::attachments::list_for_artifact(&state, id, identity.is_author()).await?;
+
+    Ok(Json(json!({ "artifact": artifact, "attachments": attachments })))
 }
 
 async fn create(

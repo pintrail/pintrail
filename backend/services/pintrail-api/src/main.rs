@@ -1,4 +1,5 @@
 mod artifacts;
+mod attachments;
 mod authors;
 mod cli;
 mod config;
@@ -7,7 +8,9 @@ mod error;
 mod identity;
 mod mail;
 mod readers;
+mod serde_util;
 mod state;
+mod storage;
 
 use axum::extract::State;
 use axum::routing::get;
@@ -76,6 +79,7 @@ fn router(state: AppState) -> Router {
         .merge(authors::router())
         .merge(readers::router())
         .merge(artifacts::router())
+        .merge(attachments::router())
         .layer(TraceLayer::new_for_http())
         .with_state(state)
 }

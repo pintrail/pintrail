@@ -20,6 +20,18 @@ pub struct Settings {
     pub public_base_url: String,
     /// Which mailer implementation to use. See `crate::mail`.
     pub mailer: String,
+
+    /// Object storage. `s3_endpoint` is None for real S3 and set for MinIO.
+    pub s3_endpoint: Option<String>,
+    pub s3_region: String,
+    pub s3_bucket: String,
+    pub s3_access_key_id: String,
+    pub s3_secret_access_key: String,
+    /// How long presigned upload and download URLs stay valid.
+    pub presign_ttl: Duration,
+    /// Enforced after upload: a presigned PUT cannot reject an oversized body
+    /// while it streams.
+    pub max_upload_bytes: i64,
 }
 
 impl Settings {
@@ -60,6 +72,13 @@ impl Settings {
             cookie_secure: parsed("COOKIE_SECURE", true)?,
             public_base_url: optional("PUBLIC_BASE_URL", "http://localhost:8080"),
             mailer: optional("MAILER", "log"),
+            s3_endpoint: env::var("S3_ENDPOINT").ok().filter(|v| !v.trim().is_empty()),
+            s3_region: optional("S3_REGION", "us-east-1"),
+            s3_bucket: required("S3_BUCKET")?,
+            s3_access_key_id: required("S3_ACCESS_KEY_ID")?,
+            s3_secret_access_key: required("S3_SECRET_ACCESS_KEY")?,
+            presign_ttl: Duration::from_secs(parsed("PRESIGN_TTL_SECS", 900)?),
+            max_upload_bytes: parsed("MAX_UPLOAD_BYTES", 104_857_600)?,
         })
     }
 }

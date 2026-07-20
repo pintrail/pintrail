@@ -15,6 +15,14 @@ that this rewrite replaces. It stays deployed and untouched until these services
 reach parity. The local Postgres here binds host port **5433** rather than 5432
 so both stacks can run side by side during the transition.
 
+## Toolchain
+
+`aws-sdk-s3` sets the floor at **rustc 1.94.1**; `rust-toolchain.toml` pins
+stable. That file is honoured by rustup's shims, so if `which rustc` reports a
+Homebrew or system install instead of `~/.cargo/bin/rustc`, that older compiler
+wins and the build fails with an MSRV error. Either put `~/.cargo/bin` ahead of
+it on `PATH`, or build with `PATH="$HOME/.cargo/bin:$PATH" cargo build`.
+
 ## Getting started
 
 ```sh
@@ -179,6 +187,52 @@ ancestor supplied them). An authoring UI needs the distinction — otherwise
 alone", an explicit `null` means "clear this and inherit from the parent".
 Collapsing those would make a coordinate impossible to un-set.
 
+## Attachment uploads
+
+Bytes never pass through this process. The flow is two-phase:
+
+1. `POST /artifacts/{id}/attachments/upload-intent` — validates the media type,
+   reserves a row in `pending_upload`, returns a presigned PUT URL.
+2. Client PUTs the file straight to the bucket.
+3. `POST /attachments/{id}/complete` — the API HEADs the object, records the
+   real size, and moves the row to `queued`.
+
+**`pending_upload` exists because the worker polls for `queued`.** Inserting the
+row as `queued` at step 1 would let the worker claim a job whose object has not
+been uploaded yet — every upload racing its own processing. It was added in a
+migration of its own, since Postgres refuses to use a new enum value in the same
+transaction that adds it, and a multi-statement migration is one implicit
+transaction even with `-- no-transaction`.
+
+**Completion verifies the bucket rather than trusting the client.** A client
+that skipped the PUT would otherwise queue work against a nonexistent object.
+Repeat calls are idempotent, so a retry after a dropped response does not
+re-queue work already underway.
+
+**The size limit is enforced at completion, not during upload.** A presigned PUT
+cannot reject an oversized body mid-stream, so the check happens on the recorded
+size — and the object is deleted rather than left occupying the bucket.
+
+**Storage keys are server-generated** (`originals/{artifact_id}/{attachment_id}.{ext}`),
+with the extension from the validated MIME type. A key built from the client's
+filename would invite both collisions and traversal. Filenames are kept only as
+a display label, path-stripped. Keys are never exposed to clients.
+
+**The upload URL signs `content-type`,** so a file cannot claim one type to the
+API and be stored as another — the bucket itself rejects the mismatch.
+
+**v1 accepts images, PDFs, and plain text.** Audio and video are refused with a
+message saying the transcoding pipeline is not built yet, rather than being
+stored as files nothing can process.
+
+Download URLs are presigned and time-limited (`PRESIGN_TTL_SECS`, default 15
+min), preferring processed output but falling back to the original while
+processing is pending — so a freshly uploaded photo appears immediately instead
+of as a gap.
+
+**Not yet done:** abandoned `pending_upload` rows (an intent whose PUT never
+happened) are indexed for a sweep, but nothing reaps them yet.
+
 ## Email delivery
 
 DESIGN.md requires verification but specifies no delivery mechanism, and the
@@ -227,7 +281,7 @@ Implemented incrementally; see the repo's task list for current position.
 3. ✅ `authors/` — argon2id, cookie sessions, role extractors
 4. ✅ `readers/` — registration, email verification, bearer tokens
 5. ✅ `artifacts/` — CRUD, coordinate inheritance, `/sync`
-6. ⬜ `attachments/` — presigned upload intent, S3
+6. ✅ `attachments/` — presigned upload intent, S3
 7. ⬜ `pintrail-worker` — `SKIP LOCKED` queue, image→WebP, PDF thumbnails
 8. ⬜ `trails/` — stops, visibility, share tokens
 9. ⬜ `comments/` — create, list, rate limiting

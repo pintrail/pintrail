@@ -100,25 +100,12 @@ pub struct UpdateArtifact {
     pub kind: Option<ArtifactKind>,
     pub name: Option<String>,
     pub description: Option<String>,
-    #[serde(default, deserialize_with = "present")]
+    #[serde(default, deserialize_with = "crate::serde_util::present")]
     pub lat: Option<Option<f64>>,
-    #[serde(default, deserialize_with = "present")]
+    #[serde(default, deserialize_with = "crate::serde_util::present")]
     pub lng: Option<Option<f64>>,
-    #[serde(default, deserialize_with = "present")]
+    #[serde(default, deserialize_with = "crate::serde_util::present")]
     pub parent_id: Option<Option<Uuid>>,
-    #[serde(default, deserialize_with = "present")]
+    #[serde(default, deserialize_with = "crate::serde_util::present")]
     pub beacon_id: Option<Option<String>>,
-}
-
-/// Distinguishes an absent JSON field from one explicitly set to `null`.
-///
-/// With `#[serde(default)]`, a missing field yields `None`; this makes a
-/// present field yield `Some(..)` even when its value is `null`. That is what
-/// lets `{"lat": null}` mean "clear it" while `{}` means "leave it".
-fn present<'de, T, D>(deserializer: D) -> Result<Option<T>, D::Error>
-where
-    T: serde::Deserialize<'de>,
-    D: serde::Deserializer<'de>,
-{
-    T::deserialize(deserializer).map(Some)
 }

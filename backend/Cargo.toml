@@ -7,6 +7,8 @@ members = ["services/pintrail-api", "services/pintrail-worker"]
 [workspace.dependencies]
 anyhow = "1"
 argon2 = "0.5"
+aws-config = { version = "1", features = ["behavior-version-latest"] }
+aws-sdk-s3 = "1"
 axum = "0.8"
 axum-extra = { version = "0.10", features = ["cookie"] }
 chrono = { version = "0.4", features = ["serde"] }
@@ -36,4 +38,4 @@ uuid = { version = "1", features = ["serde", "v4"] }
 [workspace.package]
 edition = "2021"
 license = "MIT"
-rust-version = "1.82"
+rust-version = "1.94.1"   # floor set by aws-sdk-s3
