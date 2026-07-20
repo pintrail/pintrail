@@ -10,6 +10,7 @@ mod mail;
 mod readers;
 mod serde_util;
 mod state;
+mod trails;
 
 use axum::extract::State;
 use axum::routing::get;
@@ -79,6 +80,7 @@ fn router(state: AppState) -> Router {
         .merge(readers::router())
         .merge(artifacts::router())
         .merge(attachments::router())
+        .merge(trails::router())
         .layer(TraceLayer::new_for_http())
         .with_state(state)
 }

@@ -53,6 +53,24 @@ impl Identity {
     pub fn is_author(&self) -> bool {
         matches!(self, Identity::Author(_))
     }
+
+    /// Gate for creating reader-authored content.
+    ///
+    /// DESIGN.md §2.6 requires a confirmed email before posting comments or
+    /// building trails. Authors are admin-provisioned, so the requirement does
+    /// not apply to them — there is no self-service path to an author account
+    /// that an unverified address could exploit.
+    ///
+    /// This lives on `Identity` rather than being a separate extractor because
+    /// the routes it guards accept either tier, and a `VerifiedReader`
+    /// extractor would lock authors out of their own curation endpoints.
+    pub fn ensure_verified(&self) -> Result<(), AppError> {
+        match self {
+            Identity::Author(_) => Ok(()),
+            Identity::Reader(reader) if reader.email_verified => Ok(()),
+            Identity::Reader(_) => Err(AppError::EmailNotVerified),
+        }
+    }
 }
 
 impl FromRequestParts<AppState> for Identity {

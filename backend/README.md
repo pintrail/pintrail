@@ -289,6 +289,53 @@ at `opt-level = 3` even in debug. Unoptimized, a single 3000×1500 Lanczos3
 resize takes tens of seconds, which makes the worker impossible to exercise
 locally.
 
+## Trails
+
+One table for both curated and user-built trails, distinguished by
+`owner_type` + `owner_id` — they are the same concept pointed at different
+artifacts (DESIGN.md §1.4). The `Identity` extractor resolves either tier, so
+one set of routes serves both.
+
+**Verification gates creation**, per §2.6, but only for readers: authors are
+admin-provisioned, so there is no self-service path an unverified address could
+exploit. That check is `Identity::ensure_verified` rather than a `VerifiedReader`
+extractor, which would lock authors out of their own curation endpoints.
+
+| Visibility | Who can read |
+|---|---|
+| `private` | Owner only |
+| `unlisted` | Owner, plus anyone with the share link — **not** readable by id |
+| `public` | Any signed-in user; appears in the catalogue |
+
+**Every denial is 404, never 403.** A 403 confirms the id exists, which is
+itself a disclosure on private content. This applies to reading, editing,
+reordering, and deleting someone else's trail.
+
+**Share tokens are capabilities, not credentials.** Stored in plaintext, unlike
+session tokens, because a link has to be reconstructible into a URL to be shared
+at all. One grants read of one non-private trail and nothing else. The token is
+returned only to the owner — resolving a link does not hand the recipient the
+token to re-share. Reverting a trail to private revokes links already
+distributed; re-sharing reuses the same token, so a URL that was passed around
+does not break.
+
+**Stops are replaced wholesale** (`PUT /trails/{id}/stops`). The client is a
+drag-to-reorder list (§1.7) that already knows the final order, and sending it
+whole avoids a reorder protocol where every intermediate state must satisfy the
+position uniqueness constraint. Stop rows are referenced by nothing else, so
+replacing them loses nothing. The same artifact may appear twice — a loop walk
+is legitimate.
+
+**A deleted artifact does not silently vanish from someone's trail.** Artifacts
+are soft-deleted, so the FK cascade never fires and the stop survives. It is
+returned with `available: false` and its details withheld, rather than dropped —
+dropping it would renumber a user's trail behind their back and leave them
+wondering what happened to stop 3. New stops pointing at a deleted artifact are
+rejected outright.
+
+Stop coordinates resolve through the parent chain, so a stop at an indoor
+artifact still carries a position to walk to.
+
 ## Email delivery
 
 DESIGN.md requires verification but specifies no delivery mechanism, and the
@@ -339,6 +386,6 @@ Implemented incrementally; see the repo's task list for current position.
 5. ✅ `artifacts/` — CRUD, coordinate inheritance, `/sync`
 6. ✅ `attachments/` — presigned upload intent, S3
 7. ✅ `pintrail-worker` — `SKIP LOCKED` queue, image→WebP, PDF thumbnails
-8. ⬜ `trails/` — stops, visibility, share tokens
+8. ✅ `trails/` — stops, visibility, share tokens
 9. ⬜ `comments/` — create, list, rate limiting
 10. ⬜ `admin/` — minijinja moderation UI
