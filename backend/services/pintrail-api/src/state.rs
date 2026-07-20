@@ -32,6 +32,7 @@ impl AppState {
 
         let storage = Storage::connect(&StorageConfig {
             endpoint: settings.s3_endpoint.clone(),
+            public_endpoint: settings.s3_public_endpoint.clone(),
             region: settings.s3_region.clone(),
             bucket: settings.s3_bucket.clone(),
             access_key_id: settings.s3_access_key_id.clone(),

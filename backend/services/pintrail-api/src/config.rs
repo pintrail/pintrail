@@ -26,6 +26,8 @@ pub struct Settings {
 
     /// Object storage. `s3_endpoint` is None for real S3 and set for MinIO.
     pub s3_endpoint: Option<String>,
+    /// Endpoint baked into presigned URLs; see pintrail_storage::StorageConfig.
+    pub s3_public_endpoint: Option<String>,
     pub s3_region: String,
     pub s3_bucket: String,
     pub s3_access_key_id: String,
@@ -77,6 +79,7 @@ impl Settings {
             mailer: optional("MAILER", "log"),
             trust_proxy_headers: parsed("TRUST_PROXY_HEADERS", false)?,
             s3_endpoint: env::var("S3_ENDPOINT").ok().filter(|v| !v.trim().is_empty()),
+            s3_public_endpoint: env::var("S3_PUBLIC_ENDPOINT").ok().filter(|v| !v.trim().is_empty()),
             s3_region: optional("S3_REGION", "us-east-1"),
             s3_bucket: required("S3_BUCKET")?,
             s3_access_key_id: required("S3_ACCESS_KEY_ID")?,

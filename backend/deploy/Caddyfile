@@ -1,0 +1,31 @@
+# TLS terminator in front of pintrail-api.
+#
+# Caddy obtains and renews certificates automatically; the only requirement is
+# that PINTRAIL_DOMAIN resolves to this host and ports 80 and 443 are open.
+
+{$PINTRAIL_DOMAIN} {
+	encode zstd gzip
+
+	# The API reads X-Forwarded-For for rate limiting and trusts it because
+	# TRUST_PROXY_HEADERS is set. reverse_proxy replaces any inbound value
+	# rather than appending to it, so a client cannot forge its own address.
+	reverse_proxy api:8080 {
+		header_up X-Forwarded-For {remote_host}
+		header_up X-Forwarded-Proto {scheme}
+	}
+
+	header {
+		# The API serves JSON and one small admin panel; nothing here should
+		# ever be framed, sniffed, or leak a full referrer.
+		X-Content-Type-Options nosniff
+		X-Frame-Options DENY
+		Referrer-Policy strict-origin-when-cross-origin
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		-Server
+	}
+
+	log {
+		output stdout
+		format console
+	}
+}

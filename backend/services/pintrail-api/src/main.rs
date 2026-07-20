@@ -38,30 +38,46 @@ async fn main() -> anyhow::Result<()> {
         )
         .init();
 
+    // Arguments are handled before configuration is even read. `help` and
+    // `healthcheck` have no business requiring a full, valid environment: a
+    // healthcheck that needs DATABASE_URL to confirm the process is alive
+    // would report a container as unhealthy for the wrong reason, and `help`
+    // should work anywhere.
+    let args: Vec<String> = std::env::args().skip(1).collect();
+    let command = args.iter().map(String::as_str).collect::<Vec<_>>();
+
+    match command.as_slice() {
+        ["help" | "--help" | "-h"] => {
+            print!("{}", cli::USAGE);
+            return Ok(());
+        }
+        ["healthcheck"] => {
+            // Only BIND_ADDR matters here, and it has a default.
+            let addr = std::env::var("BIND_ADDR").unwrap_or_else(|_| "0.0.0.0:8080".into());
+            return cli::healthcheck(&addr);
+        }
+        [] | ["create-author", _, _] | ["reset-password", _] => {}
+        other => {
+            eprint!("unrecognized command: {}\n\n{}", other.join(" "), cli::USAGE);
+            std::process::exit(2);
+        }
+    }
+
     let settings = Settings::from_env()?;
     let bind_addr = settings.bind_addr.clone();
 
     let state = AppState::connect(settings).await?;
     sqlx::migrate!("../../migrations").run(&state.db).await?;
 
-    // Operator commands run against the same migrated database, then exit.
-    let args: Vec<String> = std::env::args().skip(1).collect();
-    match args.iter().map(String::as_str).collect::<Vec<_>>().as_slice() {
-        [] => {}
+    // Operator commands run against the migrated database, then exit.
+    match command.as_slice() {
         ["create-author", email, role] => {
             return cli::create_author(&state.db, email, role).await;
         }
         ["reset-password", email] => {
             return cli::reset_password(&state.db, email).await;
         }
-        ["help" | "--help" | "-h"] => {
-            print!("{}", cli::USAGE);
-            return Ok(());
-        }
-        other => {
-            eprint!("unrecognized command: {}\n\n{}", other.join(" "), cli::USAGE);
-            std::process::exit(2);
-        }
+        _ => {}
     }
 
     // Stale rate-limit buckets would otherwise accumulate one entry per

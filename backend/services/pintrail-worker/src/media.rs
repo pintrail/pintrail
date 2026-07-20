@@ -101,17 +101,106 @@ fn encode_webp(image: &DynamicImage) -> anyhow::Result<Vec<u8>> {
 }
 
 /// Decodes HEIC/HEIF via `heif-convert`, which ships with libheif.
+///
+/// Uses temp files rather than stdin/stdout. `heif-convert`'s `-` support is
+/// recent (libheif 1.16+) and absent from the version in Debian bookworm,
+/// where `heif-convert - -` fails with "Unknown file type in -" because it
+/// infers the output format from the filename extension and `-` has none.
+/// Temp files with real extensions work across every version, and the input
+/// `.heic` extension is what tells the tool how to read it.
 fn decode_heif(bytes: &[u8]) -> anyhow::Result<DynamicImage> {
-    let output = run_with_stdin(
-        "heif-convert",
-        // "-" for both reads stdin and writes stdout; the PNG intermediate is
-        // lossless, so nothing is given up before the WebP encode.
-        &["-q", "100", "-", "-"],
-        bytes,
-    )
-    .context("heif-convert failed; is libheif installed in this image?")?;
+    let work = TempWork::new("heif")?;
+    let input = work.path("in.heic");
+    let output = work.path("out.png");
 
-    image::load_from_memory(&output).context("heif-convert produced output we could not decode")
+    std::fs::write(&input, bytes).context("writing HEIC input for heif-convert")?;
+
+    run_to_completion(
+        "heif-convert",
+        &[
+            "-q",
+            "100", // the PNG intermediate is lossless; nothing is lost before the WebP encode
+            input.to_str().context("temp path is not valid UTF-8")?,
+            output.to_str().context("temp path is not valid UTF-8")?,
+        ],
+    )
+    .context("heif-convert failed; is libheif (with an HEVC decoder) installed in this image?")?;
+
+    // heif-convert appends a page suffix when a file holds multiple images, so
+    // the exact output name is not guaranteed. Take whichever PNG it wrote.
+    let png = work
+        .find_output("png")?
+        .context("heif-convert produced no PNG output")?;
+
+    image::load_from_memory(&png).context("heif-convert output could not be decoded")
+}
+
+/// A self-cleaning temp directory, so a failure partway through does not leave
+/// decoded originals lying in the container's filesystem.
+struct TempWork {
+    dir: std::path::PathBuf,
+}
+
+impl TempWork {
+    fn new(tag: &str) -> anyhow::Result<Self> {
+        use std::sync::atomic::{AtomicU64, Ordering};
+        // pid + a monotonic counter is unique enough within one process, and
+        // avoids a randomness source (which the workflow constraints forbid in
+        // some contexts anyway).
+        static COUNTER: AtomicU64 = AtomicU64::new(0);
+        let n = COUNTER.fetch_add(1, Ordering::Relaxed);
+
+        let dir = std::env::temp_dir().join(format!(
+            "pintrail-{tag}-{}-{n}",
+            std::process::id()
+        ));
+        std::fs::create_dir_all(&dir).context("creating temp work directory")?;
+
+        Ok(Self { dir })
+    }
+
+    fn path(&self, name: &str) -> std::path::PathBuf {
+        self.dir.join(name)
+    }
+
+    fn find_output(&self, extension: &str) -> anyhow::Result<Option<Vec<u8>>> {
+        for entry in std::fs::read_dir(&self.dir).context("reading temp work directory")? {
+            let path = entry?.path();
+            if path.extension().and_then(|e| e.to_str()) == Some(extension) {
+                return Ok(Some(std::fs::read(&path)?));
+            }
+        }
+        Ok(None)
+    }
+}
+
+impl Drop for TempWork {
+    fn drop(&mut self) {
+        let _ = std::fs::remove_dir_all(&self.dir);
+    }
+}
+
+/// Runs a subprocess with fixed arguments (no shell) that reads and writes
+/// files rather than pipes.
+fn run_to_completion(program: &str, args: &[&str]) -> anyhow::Result<()> {
+    let output = std::process::Command::new(program)
+        .args(args)
+        .stdin(Stdio::null())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .output()
+        .with_context(|| format!("could not start {program}"))?;
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        bail!(
+            "{program} exited with {}: {}",
+            output.status,
+            stderr.trim().chars().take(300).collect::<String>()
+        );
+    }
+
+    Ok(())
 }
 
 /// Renders the first page of a PDF with poppler's `pdftoppm`.

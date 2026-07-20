@@ -65,6 +65,11 @@ impl Config {
                 endpoint: std::env::var("S3_ENDPOINT")
                     .ok()
                     .filter(|v| !v.trim().is_empty()),
+                // The worker never presigns, so this is irrelevant to it, but
+                // the shared config type requires it.
+                public_endpoint: std::env::var("S3_PUBLIC_ENDPOINT")
+                    .ok()
+                    .filter(|v| !v.trim().is_empty()),
                 region: opt("S3_REGION", "us-east-1"),
                 bucket: var("S3_BUCKET")?,
                 access_key_id: var("S3_ACCESS_KEY_ID")?,

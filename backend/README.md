@@ -26,17 +26,21 @@ it on `PATH`, or build with `PATH="$HOME/.cargo/bin:$PATH" cargo build`.
 
 ## Getting started
 
+Everything in containers:
+
 ```sh
 cd backend
-cp .env.example .env
-docker compose up -d          # postgres + minio, bucket auto-created
-cargo run -p pintrail-api     # migrations run automatically on boot
+docker compose up -d --build     # postgres, minio, api, worker
+curl localhost:8080/health
 ```
 
-In another shell:
+Or just the dependencies, with the binaries on the host for a faster edit loop:
 
 ```sh
-cargo run -p pintrail-worker
+docker compose up -d postgres minio minio-init
+cp .env.example .env
+cargo run -p pintrail-api        # migrations run automatically on boot
+cargo run -p pintrail-worker     # in another shell
 ```
 
 Verify:
@@ -49,6 +53,57 @@ curl localhost:8080/health/ready  # readiness -> {"status":"ready"}
 `/health` is deliberately independent of the database so an orchestrator does
 not restart a healthy API during a database blip; `/health/ready` is the one
 that fails when Postgres is unreachable.
+
+## Containers
+
+One `Dockerfile`, two targets. The workspace compiles once in a shared builder
+stage and each runtime stage copies out the binary it needs — building them
+separately would compile the shared dependency graph, which the AWS SDK
+dominates, twice.
+
+```sh
+docker build --target api    -t pintrail-api    .
+docker build --target worker -t pintrail-worker .
+```
+
+**The worker image carries `libheif-examples` and `poppler-utils`**; the API
+image does not. The media pipeline shells out to `heif-convert` and `pdftoppm`
+rather than linking them, so their absence is not a build error — it is every
+HEIC or PDF upload failing at runtime with "is libheif installed in this
+image?" on the row. Only the worker needs them, and the API image stays smaller
+for it.
+
+Neither image contains OpenSSL: sqlx and the AWS SDK are configured for rustls.
+Neither contains `curl` either — the container healthcheck is a `healthcheck`
+subcommand on the binary itself, which opens a plain TCP socket to `/health`.
+Every extra binary in a runtime image is attack surface.
+
+Both run as uid 10001. A media decoder parsing hostile files is the least
+trustworthy code in the system and has no business running as root.
+
+Migrations and admin templates are compiled into the binary, so an image cannot
+start with a stale copy of either, and nothing but the binary needs copying.
+
+### Production
+
+```sh
+docker compose -f compose.yml -f compose.prod.yml up -d --build
+```
+
+The overlay puts Caddy in front for TLS, removes the host port bindings from
+Postgres and MinIO so only the compose network reaches them, and takes every
+credential from the environment. It fails to start if `PINTRAIL_DOMAIN`,
+`POSTGRES_PASSWORD`, `S3_*`, or `PUBLIC_BASE_URL` are unset, rather than
+falling back to development defaults.
+
+It also flips `COOKIE_SECURE=true` and `TRUST_PROXY_HEADERS=true`. The second
+matters: behind Caddy the only address the API can see is Caddy's, so without
+it every client shares one rate-limit bucket. Caddy sets `X-Forwarded-For` from
+the real peer rather than appending to whatever arrived, so a client cannot
+forge its own address.
+
+Pointing `S3_*` at real S3 or R2 makes the MinIO services unnecessary:
+`--scale minio=0`.
 
 ## Notes on choices
 
@@ -219,6 +274,18 @@ a display label, path-stripped. Keys are never exposed to clients.
 
 **The upload URL signs `content-type`,** so a file cannot claim one type to the
 API and be stored as another — the bucket itself rejects the mismatch.
+
+**Two storage endpoints, because the host is part of the signature.** The API
+reaches MinIO by its internal name (`minio:9000` in compose) for its own
+operations, but signs upload and download URLs against a host the *client* can
+resolve (`localhost:9000`, or in production a fronted object-store domain). A
+presigned URL cannot be rewritten after signing — SigV4 covers the host — so
+`S3_PUBLIC_ENDPOINT` configures a second, presigning-only S3 client up front.
+Left unset it falls back to `S3_ENDPOINT`, which is correct for real S3 or R2
+where one public endpoint serves everything, and for host-based local dev where
+both are `localhost`. This surfaced only under compose: an upload URL pointing
+at `minio:9000` is unresolvable from a phone, and every upload sat forever in
+`pending_upload`.
 
 **v1 accepts images, PDFs, and plain text.** Audio and video are refused with a
 message saying the transcoding pipeline is not built yet, rather than being

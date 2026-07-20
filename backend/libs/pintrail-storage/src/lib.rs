@@ -18,8 +18,21 @@ use aws_sdk_s3::Client;
 
 #[derive(Debug, Clone)]
 pub struct StorageConfig {
-    /// `None` for real S3; set for MinIO or another S3-compatible endpoint.
+    /// Endpoint the API and worker use to reach storage directly (get, put,
+    /// head, delete). `None` for real S3; set for MinIO. In compose this is the
+    /// service DNS name, e.g. `http://minio:9000`.
     pub endpoint: Option<String>,
+    /// Endpoint baked into presigned URLs, which a phone or browser follows
+    /// from *outside* the server's network. The host is part of the SigV4
+    /// signature, so this cannot be rewritten after signing -- the presigning
+    /// client has to be configured with it up front.
+    ///
+    /// `None` means "same as `endpoint`", which is correct for real S3 (one
+    /// public endpoint for everything) and for host-based local development.
+    /// It matters only when the two genuinely differ, as they do in compose:
+    /// `minio:9000` is unreachable from a client, `localhost:9000` is
+    /// unreachable from inside a container.
+    pub public_endpoint: Option<String>,
     pub region: String,
     pub bucket: String,
     pub access_key_id: String,
@@ -29,34 +42,52 @@ pub struct StorageConfig {
 
 #[derive(Debug, Clone)]
 pub struct Storage {
+    /// Direct operations against the internal endpoint.
     client: Client,
+    /// Presigning only. Configured with the public endpoint so the URLs it
+    /// mints resolve from outside the network.
+    presign_client: Client,
     bucket: String,
     presign_ttl: Duration,
 }
 
 impl Storage {
     pub async fn connect(config: &StorageConfig) -> anyhow::Result<Self> {
-        let credentials = aws_sdk_s3::config::Credentials::new(
-            &config.access_key_id,
-            &config.secret_access_key,
-            None,
-            None,
-            "pintrail-config",
-        );
+        let build_client = |endpoint: Option<&String>| -> Client {
+            let credentials = aws_sdk_s3::config::Credentials::new(
+                &config.access_key_id,
+                &config.secret_access_key,
+                None,
+                None,
+                "pintrail-config",
+            );
 
-        let mut builder = aws_sdk_s3::config::Builder::new()
-            .region(aws_sdk_s3::config::Region::new(config.region.clone()))
-            .credentials_provider(credentials)
-            .behavior_version(aws_sdk_s3::config::BehaviorVersion::latest());
+            let mut builder = aws_sdk_s3::config::Builder::new()
+                .region(aws_sdk_s3::config::Region::new(config.region.clone()))
+                .credentials_provider(credentials)
+                .behavior_version(aws_sdk_s3::config::BehaviorVersion::latest());
 
-        if let Some(endpoint) = &config.endpoint {
-            // MinIO serves buckets as path segments rather than subdomains, and
-            // a custom endpoint is meaningless without it.
-            builder = builder.endpoint_url(endpoint).force_path_style(true);
-        }
+            if let Some(endpoint) = endpoint {
+                // MinIO serves buckets as path segments rather than subdomains,
+                // and a custom endpoint is meaningless without it.
+                builder = builder.endpoint_url(endpoint).force_path_style(true);
+            }
+
+            Client::from_conf(builder.build())
+        };
+
+        let client = build_client(config.endpoint.as_ref());
+
+        // Fall back to the internal endpoint when no distinct public one is
+        // set, so single-endpoint deployments need configure nothing extra.
+        let presign_client = match &config.public_endpoint {
+            Some(public) => build_client(Some(public)),
+            None => client.clone(),
+        };
 
         Ok(Self {
-            client: Client::from_conf(builder.build()),
+            client,
+            presign_client,
             bucket: config.bucket.clone(),
             presign_ttl: config.presign_ttl,
         })
@@ -74,7 +105,7 @@ impl Storage {
         let config = PresigningConfig::expires_in(self.presign_ttl)?;
 
         let request = self
-            .client
+            .presign_client
             .put_object()
             .bucket(&self.bucket)
             .key(key)
@@ -90,7 +121,7 @@ impl Storage {
         let config = PresigningConfig::expires_in(self.presign_ttl)?;
 
         let request = self
-            .client
+            .presign_client
             .get_object()
             .bucket(&self.bucket)
             .key(key)

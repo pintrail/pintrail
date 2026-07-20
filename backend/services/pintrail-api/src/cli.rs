@@ -17,6 +17,8 @@ usage: pintrail-api [command]
 
 commands:
   (no command)                     run the HTTP server
+  healthcheck                      probe the local server's liveness endpoint
+                                   and exit 0 or 1; used by the container
   create-author <email> <role>     provision an author; reads the password
                                    from stdin. role: viewer | editor | admin
   reset-password <email>           set a new password, read from stdin
@@ -28,6 +30,55 @@ examples:
   pintrail-api create-author dean@umass.edu admin
   echo \"$PW\" | pintrail-api create-author bot@umass.edu editor
 ";
+
+/// Probes `/health` over a plain TCP socket and exits accordingly.
+///
+/// Written by hand rather than pulling in an HTTP client, and used instead of
+/// `curl` in the container healthcheck, so the runtime image needs no extra
+/// packages — every binary in it is attack surface.
+///
+/// Deliberately hits `/health` (liveness) rather than `/health/ready`: a
+/// database blip should not make an orchestrator kill an otherwise healthy
+/// API.
+pub fn healthcheck(bind_addr: &str) -> anyhow::Result<()> {
+    use std::io::{Read, Write};
+    use std::net::TcpStream;
+    use std::time::Duration;
+
+    // The configured address may be a wildcard, which is valid to listen on
+    // but not to connect to.
+    let target = match bind_addr.rsplit_once(':') {
+        Some((host, port)) if host.is_empty() || host == "0.0.0.0" || host == "::" || host == "[::]" => {
+            format!("127.0.0.1:{port}")
+        }
+        _ => bind_addr.to_string(),
+    };
+
+    let timeout = Duration::from_secs(3);
+    let addr: std::net::SocketAddr = target
+        .parse()
+        .map_err(|e| anyhow::anyhow!("cannot parse {target:?} as an address: {e}"))?;
+
+    let mut stream = TcpStream::connect_timeout(&addr, timeout)
+        .map_err(|e| anyhow::anyhow!("connect {target}: {e}"))?;
+    stream.set_read_timeout(Some(timeout))?;
+    stream.set_write_timeout(Some(timeout))?;
+
+    // HTTP/1.0 so the server closes the connection itself and the read below
+    // terminates without needing to parse a content length.
+    write!(stream, "GET /health HTTP/1.0\r\nHost: localhost\r\n\r\n")?;
+    stream.flush()?;
+
+    let mut response = String::new();
+    stream.read_to_string(&mut response)?;
+
+    if response.starts_with("HTTP/1.1 200") || response.starts_with("HTTP/1.0 200") {
+        Ok(())
+    } else {
+        let status = response.lines().next().unwrap_or("(no response)");
+        anyhow::bail!("unhealthy: {status}")
+    }
+}
 
 pub async fn create_author(db: &PgPool, email: &str, role_str: &str) -> anyhow::Result<()> {
     let role: AuthorRole = role_str
