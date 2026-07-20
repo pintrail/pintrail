@@ -1,3 +1,4 @@
+mod admin;
 mod artifacts;
 mod attachments;
 mod authors;
@@ -94,6 +95,11 @@ fn router(state: AppState) -> Router {
         .merge(attachments::router())
         .merge(trails::router())
         .merge(comments::router())
+        // The panel is merged last and wrapped so an expired session lands on
+        // the sign-in page rather than a bare JSON 401.
+        .merge(admin::router().layer(axum::middleware::from_fn(
+            admin::redirect_unauthenticated,
+        )))
         .layer(TraceLayer::new_for_http())
         .with_state(state)
 }

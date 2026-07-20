@@ -9,6 +9,7 @@ anyhow = "1"
 argon2 = "0.5"
 aws-config = { version = "1", features = ["behavior-version-latest"] }
 aws-sdk-s3 = "1"
+minijinja = { version = "2", features = ["loader"] }
 image = { version = "0.25", default-features = false, features = ["jpeg", "png", "webp", "gif"] }
 pintrail-storage = { path = "libs/pintrail-storage" }
 webp = "0.3"

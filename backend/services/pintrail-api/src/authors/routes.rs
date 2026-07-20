@@ -26,8 +26,10 @@ pub fn router() -> Router<AppState> {
         .route("/authors/me", get(me))
         // Author account management. Admin-only, enforced by the extractor in
         // each handler's signature rather than by route-layer middleware.
-        .route("/admin/authors", get(list_authors).post(create_author))
-        .route("/admin/authors/{id}", patch(update_author))
+        // JSON author management lives under /api/admin so the HTML panel can
+        // own /admin/* (see the admin module).
+        .route("/api/admin/authors", get(list_authors).post(create_author))
+        .route("/api/admin/authors/{id}", patch(update_author))
 }
 
 #[derive(Debug, Deserialize)]
@@ -303,7 +305,7 @@ async fn update_author(
     Ok(Json(json!({ "author": AuthorView::from(author) })))
 }
 
-fn session_cookie(
+pub(crate) fn session_cookie(
     value: String,
     state: &AppState,
     expires_at: chrono::DateTime<Utc>,

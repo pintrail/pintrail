@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Comment moderation</h2>
+
+<nav class="muted">
+  Showing:
+  <a href="/admin/comments?status=flagged">flagged</a> ·
+  <a href="/admin/comments?status=visible">visible</a> ·
+  <a href="/admin/comments?status=hidden">hidden</a>
+</nav>
+
+{% if comments %}
+<table>
+  <tr><th>Comment</th><th>Author</th><th>Artifact</th><th>Status</th><th>Posted</th><th></th></tr>
+  {% for c in comments %}
+  <tr>
+    {# Autoescaped: comment bodies are arbitrary user input and this page is
+       viewed by admins with elevated cookies. #}
+    <td class="body-cell">{{ c.body }}</td>
+    <td>{{ c.author }}</td>
+    <td>{{ c.artifact_name }}</td>
+    <td><span class="tag tag-{{ c.status }}">{{ c.status }}</span></td>
+    <td class="muted">{{ c.created_at }}</td>
+    <td>
+      {% if c.status == 'hidden' %}
+        <form method="post" action="/admin/comments/{{ c.id }}/restore" class="inline">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+          <button>Restore</button>
+        </form>
+      {% else %}
+        <form method="post" action="/admin/comments/{{ c.id }}/hide" class="inline">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+          <button class="danger">Hide</button>
+        </form>
+      {% endif %}
+    </td>
+  </tr>
+  {% endfor %}
+</table>
+{% else %}
+<p class="empty">Nothing here.</p>
+{% endif %}
+{% endblock %}

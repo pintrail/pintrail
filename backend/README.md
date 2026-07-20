@@ -400,6 +400,51 @@ legitimate users start seeing 429s: loud, immediate, easy to diagnose. The
 reverse default would make every limit silently spoofable with nothing looking
 wrong. **Set it to true in any deployment behind Caddy.**
 
+## The admin panel
+
+Server-rendered HTML at `/admin`, cookie-authenticated, **admin role only** —
+an editor authenticates fine and still gets 403. Templates are compiled into
+the binary, so the panel cannot break because a deployment forgot to copy a
+directory. No CDN, no build step.
+
+**CSRF protection, which the JSON API did not need.** A cross-site `fetch`
+cannot read a JSON response without CORS, and bearer tokens are not attached
+automatically. An HTML form is different: any page anywhere can POST here and
+the browser sends the author's cookie. `SameSite=Lax` is the primary defense;
+the token is the second layer for when that attribute is lost — a proxy
+rewriting cookies, an older browser, someone relaxing it to `None` for an
+unrelated integration.
+
+The token is *derived* from the session token (`sha256(domain || session)`)
+rather than stored, so it needs no schema change and no server-side state. An
+attacker cannot compute it without the session cookie, which is `HttpOnly`.
+Comparison is constant-time — a short-circuiting `==` leaks how many leading
+bytes matched.
+
+**Escaping matters more here than anywhere else in the system.** Comment bodies
+are arbitrary user input rendered to someone holding an elevated cookie, which
+is exactly where a stored XSS does the most damage. minijinja autoescapes by
+file extension, so every template name ends in `.html`; the test suite posts
+`<script>alert(...)</script>` as a comment and asserts it renders escaped.
+
+**Moderation changes status; it never deletes.** A hidden comment stays readable
+to moderators, which matters when a takedown is contested or mistaken. Readers
+delete their own comments for real — that is their content to remove.
+
+**Only public trails are browsable.** An admin panel that lets a moderator read
+every private trail is surveillance, not moderation. Moderation covers what
+other people can find.
+
+The panel shows readers by display name, never email — same rule as the public
+thread. Authors' emails are shown to other admins, who are colleagues.
+
+An expired session redirects to the sign-in page rather than returning a bare
+JSON 401, which would leave an admin staring at `{"error":"authentication
+required"}` with no way forward.
+
+**Route change:** JSON author management moved from `/admin/authors` to
+`/api/admin/authors` so `/admin/*` could serve HTML.
+
 ## Email delivery
 
 DESIGN.md requires verification but specifies no delivery mechanism, and the
@@ -441,7 +486,8 @@ revisiting, not an accident:
 
 ## Build stages
 
-Implemented incrementally; see the repo's task list for current position.
+All ten complete. Each is one commit on `feature/rust-backend`, verified end
+to end before the next began.
 
 1. ✅ Workspace skeleton, config, error type, compose, health endpoints
 2. ✅ Migrations — full DESIGN.md §2.2 schema
@@ -452,4 +498,4 @@ Implemented incrementally; see the repo's task list for current position.
 7. ✅ `pintrail-worker` — `SKIP LOCKED` queue, image→WebP, PDF thumbnails
 8. ✅ `trails/` — stops, visibility, share tokens
 9. ✅ `comments/` — create, list, rate limiting
-10. ⬜ `admin/` — minijinja moderation UI
+10. ✅ `admin/` — minijinja moderation UI

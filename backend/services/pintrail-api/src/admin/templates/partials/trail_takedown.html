@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Public trails</h2>
+<p class="muted">
+  Only public trails are listed. Private and unlisted trails are not
+  browsable here — moderation covers what other people can find.
+</p>
+
+{% if trails %}
+<table>
+  <tr><th>Title</th><th>Owner</th><th>Stops</th><th>Created</th><th></th></tr>
+  {% for t in trails %}
+  <tr>
+    <td>{{ t.title }}<div class="muted">{{ t.description }}</div></td>
+    <td>{{ t.owner }}<div class="muted">{{ t.owner_type }}</div></td>
+    <td>{{ t.stop_count }}</td>
+    <td class="muted">{{ t.created_at }}</td>
+    <td>
+      <form method="post" action="/admin/trails/{{ t.id }}/delete" class="inline"
+            onsubmit="return confirm('Permanently delete this trail?')">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <button class="danger">Take down</button>
+      </form>
+    </td>
+  </tr>
+  {% endfor %}
+</table>
+{% else %}
+<p class="empty">No public trails.</p>
+{% endif %}
+{% endblock %}

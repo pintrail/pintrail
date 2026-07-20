@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Sign in</h2>
+
+{# One message for every failure, matching the JSON API: distinguishing
+   "no such account" from "wrong password" enumerates valid accounts. #}
+{% if error %}<p class="flash danger">{{ error }}</p>{% endif %}
+
+<form method="post" action="/admin/login">
+  <label>Email<input type="email" name="email" autocomplete="username" required autofocus></label>
+  <label>Password<input type="password" name="password" autocomplete="current-password" required></label>
+  <button>Sign in</button>
+</form>
+
+<p class="muted">Admin accounts are provisioned from the command line.</p>
+{% endblock %}
