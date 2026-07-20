@@ -14,6 +14,28 @@ pub struct Settings {
     /// Whether to set `Secure` on session cookies. Defaults to true; only a
     /// local http development server has any business turning it off.
     pub cookie_secure: bool,
+    /// Public base URL used to build links in outbound email. This cannot be
+    /// derived from the request, because an attacker controls the Host header
+    /// and could redirect a verification link at their own domain.
+    pub public_base_url: String,
+    /// Which mailer implementation to use. See `crate::mail`.
+    pub mailer: String,
+}
+
+impl Settings {
+    pub fn verify_link(&self, token: &str) -> String {
+        format!(
+            "{}/verify-email?token={token}",
+            self.public_base_url.trim_end_matches('/')
+        )
+    }
+
+    pub fn reset_link(&self, token: &str) -> String {
+        format!(
+            "{}/reset-password?token={token}",
+            self.public_base_url.trim_end_matches('/')
+        )
+    }
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -36,6 +58,8 @@ impl Settings {
             db_max_connections: parsed("DB_MAX_CONNECTIONS", 10)?,
             db_acquire_timeout: Duration::from_secs(parsed("DB_ACQUIRE_TIMEOUT_SECS", 5)?),
             cookie_secure: parsed("COOKIE_SECURE", true)?,
+            public_base_url: optional("PUBLIC_BASE_URL", "http://localhost:8080"),
+            mailer: optional("MAILER", "log"),
         })
     }
 }

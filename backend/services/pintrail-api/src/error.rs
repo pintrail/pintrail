@@ -25,6 +25,12 @@ pub enum AppError {
     #[error("insufficient permissions")]
     Forbidden,
 
+    /// Distinct from `Forbidden` so the mobile app can tell "you need to
+    /// confirm your email" from "you may never do this" and offer to resend
+    /// the verification message.
+    #[error("email address must be verified first")]
+    EmailNotVerified,
+
     #[error("{0} not found")]
     NotFound(&'static str),
 
@@ -56,6 +62,7 @@ impl AppError {
             AppError::Unauthorized => StatusCode::UNAUTHORIZED,
             AppError::InvalidCredentials => StatusCode::UNAUTHORIZED,
             AppError::Forbidden => StatusCode::FORBIDDEN,
+            AppError::EmailNotVerified => StatusCode::FORBIDDEN,
             AppError::NotFound(_) => StatusCode::NOT_FOUND,
             AppError::Conflict(_) => StatusCode::CONFLICT,
             AppError::TooManyRequests => StatusCode::TOO_MANY_REQUESTS,

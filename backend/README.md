@@ -88,6 +88,60 @@ Thereafter admins manage accounts over HTTP at `/admin/authors`.
 only brute-force barrier. The rate-limiting infrastructure arrives with comments
 in stage 9 and should be applied to `/authors/login` at the same time.
 
+## Auth model (reader tier)
+
+Bearer tokens rather than cookies, 90-day lifetime — an explorer should not be
+logged out between campus visits, and the tier cannot edit content.
+
+**Verification gates writing, not reading.** An unverified reader can sign in
+and browse; `login` reports `email_verified` so the app can prompt rather than
+discovering the limit when a comment fails. Two extractors express this:
+`AuthenticatedReader` (signed in) and `VerifiedReader` (signed in and
+confirmed), the latter returning a distinct `EmailNotVerified` 403 so the
+client can offer "resend" instead of a login screen.
+
+**Registration is not an account-existence oracle.** `POST /readers/register`
+returns the same 202 whether or not the address is already registered. A 409 on
+duplicate would let anyone test any address for membership — unacceptable on a
+public tier. The real owner is not left uninformed: an existing address
+receives a "someone tried to register" notice instead of a verification link.
+Password reset responds identically for the same reason.
+
+**No unauthenticated endpoint modifies an existing credential.** Re-registering
+an address that exists but is unverified re-sends the link and leaves the
+stored password untouched. An earlier draft refreshed it, which was an account
+takeover: an attacker re-registers a pending address with their own password,
+the fresh link lands in the real owner's inbox, the owner clicks it in good
+faith, and the account is verified under the attacker's credential. Someone who
+genuinely mistyped their password recovers via password reset, which proves
+mailbox control first.
+
+| Token | TTL | Notes |
+|---|---|---|
+| Session (bearer) | 90 days | SHA-256 stored; revoked on logout and on password reset |
+| Email verification | 24 hours | Survives a night in a spam folder |
+| Password reset | 1 hour | Shorter because a reset link grants account takeover |
+
+Verification and reset tokens are single-use (`consumed_at`), and issuing a new
+one supersedes any outstanding token of the same purpose — otherwise every
+"resend" click leaves another live link in an inbox. Completing a reset also
+marks the address verified, since it proves mailbox control, and revokes every
+existing session.
+
+## Email delivery
+
+DESIGN.md requires verification but specifies no delivery mechanism, and the
+repo has no SMTP configuration. `src/mail.rs` defines the seam: `Mailer` is the
+interface, and `LogMailer` (`MAILER=log`, the default) writes messages to the
+log instead of sending them, so the flows are exercisable end to end. It warns
+loudly at startup so it cannot be deployed by accident. **A real provider is
+still required before launch** — add one `impl Mailer` and a branch in
+`build_mailer`; no route changes.
+
+`PUBLIC_BASE_URL` builds the links. It is configuration rather than being
+derived from the request, because an attacker controls the `Host` header and
+could otherwise point a verification link at their own domain.
+
 ## Schema deviations from DESIGN.md §2.2
 
 The schema follows the design document except where it was underspecified or
@@ -120,7 +174,7 @@ Implemented incrementally; see the repo's task list for current position.
 1. ✅ Workspace skeleton, config, error type, compose, health endpoints
 2. ✅ Migrations — full DESIGN.md §2.2 schema
 3. ✅ `authors/` — argon2id, cookie sessions, role extractors
-4. ⬜ `readers/` — registration, email verification, bearer tokens
+4. ✅ `readers/` — registration, email verification, bearer tokens
 5. ⬜ `artifacts/` — CRUD, coordinate inheritance, `/sync`
 6. ⬜ `attachments/` — presigned upload intent, S3
 7. ⬜ `pintrail-worker` — `SKIP LOCKED` queue, image→WebP, PDF thumbnails

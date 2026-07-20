@@ -2,6 +2,7 @@ use sqlx::postgres::PgPoolOptions;
 use sqlx::PgPool;
 
 use crate::config::Settings;
+use crate::mail::SharedMailer;
 
 /// Shared handle passed to every route via `State`.
 ///
@@ -11,6 +12,7 @@ use crate::config::Settings;
 pub struct AppState {
     pub db: PgPool,
     pub settings: Settings,
+    pub mailer: SharedMailer,
 }
 
 impl AppState {
@@ -21,6 +23,13 @@ impl AppState {
             .connect(&settings.database_url)
             .await?;
 
-        Ok(Self { db, settings })
+        let mailer = crate::mail::build_mailer(&settings.mailer)
+            .map_err(|e| anyhow::anyhow!("{e}"))?;
+
+        Ok(Self {
+            db,
+            settings,
+            mailer,
+        })
     }
 }

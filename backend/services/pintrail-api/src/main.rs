@@ -1,7 +1,10 @@
 mod authors;
 mod cli;
 mod config;
+mod crypto;
 mod error;
+mod mail;
+mod readers;
 mod state;
 
 use axum::extract::State;
@@ -69,6 +72,7 @@ fn router(state: AppState) -> Router {
         .route("/health", get(health))
         .route("/health/ready", get(ready))
         .merge(authors::router())
+        .merge(readers::router())
         .layer(TraceLayer::new_for_http())
         .with_state(state)
 }
