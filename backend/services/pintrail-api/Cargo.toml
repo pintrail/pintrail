@@ -10,6 +10,7 @@ anyhow.workspace = true
 argon2.workspace = true
 aws-config.workspace = true
 aws-sdk-s3.workspace = true
+pintrail-storage.workspace = true
 axum.workspace = true
 axum-extra.workspace = true
 chrono.workspace = true

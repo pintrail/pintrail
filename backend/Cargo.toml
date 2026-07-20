@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["services/pintrail-api", "services/pintrail-worker"]
+members = ["libs/pintrail-storage", "services/pintrail-api", "services/pintrail-worker"]
 
 # Shared across both binaries so the API and worker never disagree about
 # how a row is deserialized or how the queue is polled.
@@ -9,6 +9,9 @@ anyhow = "1"
 argon2 = "0.5"
 aws-config = { version = "1", features = ["behavior-version-latest"] }
 aws-sdk-s3 = "1"
+image = { version = "0.25", default-features = false, features = ["jpeg", "png", "webp", "gif"] }
+pintrail-storage = { path = "libs/pintrail-storage" }
+webp = "0.3"
 axum = "0.8"
 axum-extra = { version = "0.10", features = ["cookie"] }
 chrono = { version = "0.4", features = ["serde"] }
@@ -39,3 +42,15 @@ uuid = { version = "1", features = ["serde", "v4"] }
 edition = "2021"
 license = "MIT"
 rust-version = "1.94.1"   # floor set by aws-sdk-s3
+
+# Image decoding, resizing, and WebP encoding are unusably slow in an
+# unoptimized build -- a single 3000x1500 Lanczos3 resize takes tens of
+# seconds, which makes the worker impossible to exercise in development.
+# Optimizing just these dependencies keeps our own crates debuggable while
+# making processing realistic.
+[profile.dev.package.image]
+opt-level = 3
+[profile.dev.package.webp]
+opt-level = 3
+[profile.dev.package.libwebp-sys]
+opt-level = 3

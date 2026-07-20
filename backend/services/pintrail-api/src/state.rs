@@ -3,7 +3,7 @@ use sqlx::PgPool;
 
 use crate::config::Settings;
 use crate::mail::SharedMailer;
-use crate::storage::Storage;
+use pintrail_storage::{Storage, StorageConfig};
 
 /// Shared handle passed to every route via `State`.
 ///
@@ -28,7 +28,15 @@ impl AppState {
         let mailer = crate::mail::build_mailer(&settings.mailer)
             .map_err(|e| anyhow::anyhow!("{e}"))?;
 
-        let storage = Storage::connect(&settings).await?;
+        let storage = Storage::connect(&StorageConfig {
+            endpoint: settings.s3_endpoint.clone(),
+            region: settings.s3_region.clone(),
+            bucket: settings.s3_bucket.clone(),
+            access_key_id: settings.s3_access_key_id.clone(),
+            secret_access_key: settings.s3_secret_access_key.clone(),
+            presign_ttl: settings.presign_ttl,
+        })
+        .await?;
 
         // Fail at startup rather than on an author's first upload.
         storage.check().await?;

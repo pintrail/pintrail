@@ -10,7 +10,6 @@ mod mail;
 mod readers;
 mod serde_util;
 mod state;
-mod storage;
 
 use axum::extract::State;
 use axum::routing::get;

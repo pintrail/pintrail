@@ -7,6 +7,9 @@ rust-version.workspace = true
 
 [dependencies]
 anyhow.workspace = true
+image.workspace = true
+pintrail-storage.workspace = true
+webp.workspace = true
 chrono.workspace = true
 dotenvy.workspace = true
 serde.workspace = true

@@ -7,6 +7,7 @@ Postgres database and one S3-compatible bucket.
 |---|---|
 | [`services/pintrail-api`](services/pintrail-api) | axum HTTP API. Modules per concern (`authors/`, `readers/`, `artifacts/`, `attachments/`, `trails/`, `comments/`, `admin/`), each owning its own tables. |
 | [`services/pintrail-worker`](services/pintrail-worker) | Attachment processing. Claims work from Postgres with `FOR UPDATE SKIP LOCKED` — no Redis. |
+| [`libs/pintrail-storage`](libs/pintrail-storage) | S3 client shared by both binaries. |
 
 ## Relationship to `pintrail/`
 
@@ -233,6 +234,61 @@ of as a gap.
 **Not yet done:** abandoned `pending_upload` rows (an intent whose PUT never
 happened) are indexed for a sweep, but nothing reaps them yet.
 
+## The worker
+
+Claims queued attachments and turns originals into what the app displays.
+Run as many replicas as needed — they coordinate through nothing but the
+database.
+
+```sql
+SELECT id FROM attachments WHERE status = 'queued'
+ORDER BY created_at FOR UPDATE SKIP LOCKED LIMIT $1
+```
+
+The claim is a single statement (CTE + `UPDATE ... RETURNING`), so a claim
+cannot be lost between selecting and marking. `SKIP LOCKED` makes a replica
+step over rows another replica holds instead of blocking. Verified with three
+concurrent workers: every job completed exactly once, and no row's `attempts`
+exceeded 1.
+
+**The stuck-job sweep is the crash-recovery half.** `SKIP LOCKED` only skips
+*locked* rows — a worker killed mid-job leaves its row in `processing` with the
+lock gone, and nothing would ever pick it up. Each cycle returns rows whose
+`claimed_at` is older than `WORKER_STUCK_TIMEOUT_SECS` (default 300).
+
+**Failures retry a bounded number of times** (`WORKER_MAX_ATTEMPTS`, default 3),
+then stop with the reason recorded on the row. A transient storage fault
+deserves a retry; a corrupt file never will succeed, and after three tries it is
+a content problem an author needs to see. The full `anyhow` context chain is
+stored, so a subprocess failure is diagnosable from the row alone.
+
+**A failed poll cycle never kills the worker** — the next tick retries. During
+development a bad SQL cast produced an error every second for minutes; the
+process stayed up, which is exactly what should happen in production.
+
+| Kind | Processing |
+|---|---|
+| `image` | Decode → downscale to fit 2048px (only ever down; enlarging inflates the file for no detail) → WebP q=85 |
+| `pdf` | Render page 1 at 150dpi via `pdftoppm` → WebP thumbnail. The PDF itself is served as uploaded. |
+| `text` | No output; the original is what gets served. |
+| `audio`/`video` | Rejected at upload. Reaching the worker means the allowlist and dispatch have drifted. |
+
+HEIC/HEIF (the iPhone default) is decoded by shelling out to `heif-convert`
+rather than linking libheif — one less native dependency compiled in, at the
+cost of needing the tool in the runtime image. Both subprocesses are invoked
+without a shell and with fixed arguments, so no part of an uploaded file can
+influence a command line.
+
+Batches are processed **sequentially** within a worker: the work is CPU-bound,
+so concurrency on one process would just contend for the same cores. Throughput
+comes from more replicas. Decode/encode runs on `spawn_blocking` so it does not
+stall the async runtime.
+
+**Dev profile note:** `Cargo.toml` compiles `image`, `webp`, and `libwebp-sys`
+at `opt-level = 3` even in debug. Unoptimized, a single 3000×1500 Lanczos3
+resize takes tens of seconds, which makes the worker impossible to exercise
+locally.
+
 ## Email delivery
 
 DESIGN.md requires verification but specifies no delivery mechanism, and the
@@ -282,7 +338,7 @@ Implemented incrementally; see the repo's task list for current position.
 4. ✅ `readers/` — registration, email verification, bearer tokens
 5. ✅ `artifacts/` — CRUD, coordinate inheritance, `/sync`
 6. ✅ `attachments/` — presigned upload intent, S3
-7. ⬜ `pintrail-worker` — `SKIP LOCKED` queue, image→WebP, PDF thumbnails
+7. ✅ `pintrail-worker` — `SKIP LOCKED` queue, image→WebP, PDF thumbnails
 8. ⬜ `trails/` — stops, visibility, share tokens
 9. ⬜ `comments/` — create, list, rate limiting
 10. ⬜ `admin/` — minijinja moderation UI
