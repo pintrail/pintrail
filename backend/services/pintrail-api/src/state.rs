@@ -3,6 +3,7 @@ use sqlx::PgPool;
 
 use crate::config::Settings;
 use crate::mail::SharedMailer;
+use crate::rate_limit::RateLimiter;
 use pintrail_storage::{Storage, StorageConfig};
 
 /// Shared handle passed to every route via `State`.
@@ -15,6 +16,7 @@ pub struct AppState {
     pub settings: Settings,
     pub mailer: SharedMailer,
     pub storage: Storage,
+    pub limiter: RateLimiter,
 }
 
 impl AppState {
@@ -46,6 +48,7 @@ impl AppState {
             settings,
             mailer,
             storage,
+            limiter: RateLimiter::new(),
         })
     }
 }

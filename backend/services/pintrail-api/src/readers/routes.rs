@@ -14,7 +14,9 @@ use super::extractors::AuthenticatedReader;
 use super::model::{Reader, ReaderTokenPurpose, ReaderView};
 use crate::crypto::{hash_password, hash_token, verify_dummy_password, verify_password};
 use crate::error::{AppError, AppResult};
+use crate::client_ip::ClientIp;
 use crate::mail;
+use crate::rate_limit::{EMAIL_TRIGGER_PER_IP, LOGIN_PER_ACCOUNT, LOGIN_PER_IP};
 use crate::state::AppState;
 
 pub fn router() -> Router<AppState> {
@@ -45,6 +47,9 @@ fn accepted() -> (StatusCode, Json<Value>) {
 pub struct RegisterRequest {
     pub email: String,
     pub password: String,
+    /// Optional. Without one, comments show a pseudonym rather than anything
+    /// derived from the email address.
+    pub display_name: Option<String>,
 }
 
 /// Self-service registration.
@@ -58,8 +63,13 @@ pub struct RegisterRequest {
 /// "someone tried to register" message instead of a verification link.
 async fn register(
     State(state): State<AppState>,
+    ClientIp(ip): ClientIp,
     Json(body): Json<RegisterRequest>,
 ) -> AppResult<(StatusCode, Json<Value>)> {
+    // Every call here can send mail, so the limit protects other people's
+    // inboxes as much as this service.
+    state.limiter.check(&format!("register:{ip}"), EMAIL_TRIGGER_PER_IP)?;
+
     let email = body.email.trim();
 
     if !looks_like_email(email) {
@@ -74,7 +84,7 @@ async fn register(
 
     let existing = sqlx::query_as::<_, Reader>(
         r#"
-        SELECT id, email, email_verified, password_hash, is_active, created_at, updated_at
+        SELECT id, email, email_verified, password_hash, is_active, display_name, created_at, updated_at
         FROM readers WHERE lower(email) = lower($1)
         "#,
     )
@@ -117,13 +127,29 @@ async fn register(
             tracing::info!(reader_id = %reader.id, "re-sent verification for unverified account");
         }
         None => {
+            let display_name = body
+                .display_name
+                .as_deref()
+                .map(str::trim)
+                .filter(|n| !n.is_empty());
+
             let reader_id: Uuid = sqlx::query_scalar(
-                "INSERT INTO readers (email, password_hash) VALUES ($1, $2) RETURNING id",
+                "INSERT INTO readers (email, password_hash, display_name) \
+                 VALUES ($1, $2, $3) RETURNING id",
             )
             .bind(email)
             .bind(&hash)
+            .bind(display_name)
             .fetch_one(&mut *tx)
-            .await?;
+            .await
+            .map_err(|e| match &e {
+                // Only display_name can collide here; the email case was
+                // handled above.
+                sqlx::Error::Database(db) if db.is_unique_violation() => {
+                    AppError::Conflict("that display name is taken".into())
+                }
+                _ => AppError::from(e),
+            })?;
 
             let token =
                 issue_verification_token(&mut *tx, reader_id, ReaderTokenPurpose::VerifyEmail)
@@ -197,14 +223,17 @@ pub struct EmailRequest {
 /// Re-sends a verification link. Same opaque response as registration.
 async fn resend_verification(
     State(state): State<AppState>,
+    ClientIp(ip): ClientIp,
     Json(body): Json<EmailRequest>,
 ) -> AppResult<(StatusCode, Json<Value>)> {
+    state.limiter.check(&format!("resend:{ip}"), EMAIL_TRIGGER_PER_IP)?;
+
     let email = body.email.trim();
     let mut tx = state.db.begin().await?;
 
     let reader = sqlx::query_as::<_, Reader>(
         r#"
-        SELECT id, email, email_verified, password_hash, is_active, created_at, updated_at
+        SELECT id, email, email_verified, password_hash, is_active, display_name, created_at, updated_at
         FROM readers WHERE lower(email) = lower($1) AND is_active AND NOT email_verified
         "#,
     )
@@ -240,13 +269,19 @@ pub struct LoginRequest {
 /// restriction only when a comment fails.
 async fn login(
     State(state): State<AppState>,
+    ClientIp(ip): ClientIp,
     Json(body): Json<LoginRequest>,
 ) -> AppResult<Json<Value>> {
     let email = body.email.trim();
 
+    let account_key = format!("reader-login:{}", email.to_ascii_lowercase());
+    let ip_key = format!("reader-login-ip:{ip}");
+    state.limiter.check(&ip_key, LOGIN_PER_IP)?;
+    state.limiter.check(&account_key, LOGIN_PER_ACCOUNT)?;
+
     let reader = sqlx::query_as::<_, Reader>(
         r#"
-        SELECT id, email, email_verified, password_hash, is_active, created_at, updated_at
+        SELECT id, email, email_verified, password_hash, is_active, display_name, created_at, updated_at
         FROM readers WHERE lower(email) = lower($1)
         "#,
     )
@@ -277,6 +312,9 @@ async fn login(
     .bind(token.expires_at)
     .execute(&state.db)
     .await?;
+
+    state.limiter.reset(&account_key);
+    state.limiter.reset(&ip_key);
 
     tracing::info!(reader_id = %reader.id, "reader logged in");
 
@@ -318,14 +356,17 @@ async fn me(reader: AuthenticatedReader) -> Json<Value> {
 /// registration.
 async fn request_password_reset(
     State(state): State<AppState>,
+    ClientIp(ip): ClientIp,
     Json(body): Json<EmailRequest>,
 ) -> AppResult<(StatusCode, Json<Value>)> {
+    state.limiter.check(&format!("reset:{ip}"), EMAIL_TRIGGER_PER_IP)?;
+
     let email = body.email.trim();
     let mut tx = state.db.begin().await?;
 
     let reader = sqlx::query_as::<_, Reader>(
         r#"
-        SELECT id, email, email_verified, password_hash, is_active, created_at, updated_at
+        SELECT id, email, email_verified, password_hash, is_active, display_name, created_at, updated_at
         FROM readers WHERE lower(email) = lower($1) AND is_active
         "#,
     )

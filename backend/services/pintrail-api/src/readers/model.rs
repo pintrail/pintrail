@@ -17,6 +17,9 @@ pub struct Reader {
     pub email_verified: bool,
     pub password_hash: String,
     pub is_active: bool,
+    /// Public-facing name. None means "never chosen"; comments then show a
+    /// pseudonym derived from the id, never the email address.
+    pub display_name: Option<String>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
@@ -28,6 +31,7 @@ pub struct ReaderView {
     pub id: Uuid,
     pub email: String,
     pub email_verified: bool,
+    pub display_name: Option<String>,
     pub created_at: DateTime<Utc>,
 }
 
@@ -37,6 +41,7 @@ impl From<Reader> for ReaderView {
             id: r.id,
             email: r.email,
             email_verified: r.email_verified,
+            display_name: r.display_name,
             created_at: r.created_at,
         }
     }

@@ -14,6 +14,8 @@ use super::auth::{
 };
 use super::extractors::{AuthenticatedAuthor, RequireAdmin};
 use super::model::{Author, AuthorRole, AuthorView};
+use crate::client_ip::ClientIp;
+use crate::rate_limit::{LOGIN_PER_ACCOUNT, LOGIN_PER_IP};
 use crate::error::{AppError, AppResult};
 use crate::state::AppState;
 
@@ -41,10 +43,20 @@ pub struct LoginRequest {
 /// which emails are worth attacking.
 async fn login(
     State(state): State<AppState>,
+    ClientIp(ip): ClientIp,
     jar: CookieJar,
     Json(body): Json<LoginRequest>,
 ) -> AppResult<(CookieJar, Json<Value>)> {
     let email = body.email.trim();
+
+    // Two keys: per-account stops guessing one password list against one
+    // author, per-address stops spraying one password across many accounts --
+    // which the per-account counter never sees. Checked before any database
+    // work so a flood costs as little as possible.
+    let account_key = format!("author-login:{}", email.to_ascii_lowercase());
+    let ip_key = format!("author-login-ip:{ip}");
+    state.limiter.check(&ip_key, LOGIN_PER_IP)?;
+    state.limiter.check(&account_key, LOGIN_PER_ACCOUNT)?;
 
     let author = sqlx::query_as::<_, Author>(
         r#"
@@ -90,6 +102,12 @@ async fn login(
     .bind(token.expires_at)
     .execute(&state.db)
     .await?;
+
+    // A success clears the counter; otherwise someone who fumbles a password
+    // nine times and then gets it right stays one attempt from lockout for
+    // the rest of the window.
+    state.limiter.reset(&account_key);
+    state.limiter.reset(&ip_key);
 
     tracing::info!(author_id = %author.id, role = author.role.as_str(), "author logged in");
 

@@ -2,11 +2,14 @@ mod artifacts;
 mod attachments;
 mod authors;
 mod cli;
+mod client_ip;
+mod comments;
 mod config;
 mod crypto;
 mod error;
 mod identity;
 mod mail;
+mod rate_limit;
 mod readers;
 mod serde_util;
 mod state;
@@ -60,14 +63,23 @@ async fn main() -> anyhow::Result<()> {
         }
     }
 
+    // Stale rate-limit buckets would otherwise accumulate one entry per
+    // client address ever seen.
+    rate_limit::spawn_sweeper(state.limiter.clone(), std::time::Duration::from_secs(3600));
+
     let app = router(state);
 
     let listener = tokio::net::TcpListener::bind(&bind_addr).await?;
     tracing::info!(addr = %bind_addr, "pintrail-api listening");
 
-    axum::serve(listener, app)
-        .with_graceful_shutdown(shutdown_signal())
-        .await?;
+    // ConnectInfo carries the peer address, which rate limiting keys on when
+    // no trusted proxy header is present.
+    axum::serve(
+        listener,
+        app.into_make_service_with_connect_info::<std::net::SocketAddr>(),
+    )
+    .with_graceful_shutdown(shutdown_signal())
+    .await?;
 
     Ok(())
 }
@@ -81,6 +93,7 @@ fn router(state: AppState) -> Router {
         .merge(artifacts::router())
         .merge(attachments::router())
         .merge(trails::router())
+        .merge(comments::router())
         .layer(TraceLayer::new_for_http())
         .with_state(state)
 }

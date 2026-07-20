@@ -62,7 +62,7 @@ async fn load_reader(parts: &mut Parts, state: &AppState) -> Result<Reader, AppE
     sqlx::query_as::<_, Reader>(
         r#"
         SELECT r.id, r.email, r.email_verified, r.password_hash, r.is_active,
-               r.created_at, r.updated_at
+               r.display_name, r.created_at, r.updated_at
         FROM reader_sessions s
         JOIN readers r ON r.id = s.reader_id
         WHERE s.token_hash = $1

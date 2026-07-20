@@ -93,9 +93,7 @@ Thereafter admins manage accounts over HTTP at `/admin/authors`.
 | Suspension | Deletes the author's sessions | Otherwise a suspended account keeps working until its cookie happens to expire. Password reset does the same. |
 | Self-lockout | Admins cannot demote or suspend themselves | It is the one mistake here with no in-app recovery. A second guard refuses any change leaving zero active admins. |
 
-**Not yet done:** login is not rate-limited, so the argon2 cost is currently the
-only brute-force barrier. The rate-limiting infrastructure arrives with comments
-in stage 9 and should be applied to `/authors/login` at the same time.
+Login is rate-limited from stage 9 — see **Rate limiting** below.
 
 ## Auth model (reader tier)
 
@@ -336,6 +334,72 @@ rejected outright.
 Stop coordinates resolve through the parent chain, so a stop at an indoor
 artifact still carries a position to walk to.
 
+## Comments
+
+Reader-authored, verification-gated. Authors cannot comment: `comments.reader_id`
+references `readers`, so the concept simply does not exist for them.
+
+**The thread never publishes email addresses.** The wireframe (§1.7) shows an
+author handle, but §2.2 gave readers only an email — rendering comments from
+what the schema had would have published every commenter's address to every
+other user. A `display_name` column was added; readers who never choose one get
+a stable pseudonym derived from their **id**, never their email, because a
+university email local part is usually a real name or username.
+
+Hidden and flagged comments are absent from the thread for **everyone**,
+moderators included. A hidden comment reappearing because an admin happens to be
+reading would defeat the point; the moderation queue is its own route.
+
+Deleting works only on your own comments — the query matches on `reader_id`, so
+the endpoint cannot be turned into a moderation tool by guessing ids. Someone
+else's comment reports 404 rather than 403.
+
+## Rate limiting
+
+Two mechanisms, deliberately:
+
+**Comments count rows in the table** (10 per 10 minutes per reader). Exact,
+shared across replicas, and survives a restart. The
+`comments_reader_created_idx` index from stage 2 exists for this query.
+
+**Auth routes use an in-memory sliding window** — logins, registration, resend,
+and password reset. A database write per login attempt would hand an attacker a
+cheap way to generate write load, and these limits do not need to be exact.
+
+| Route | Quota |
+|---|---|
+| Login (per account) | 10 / 15 min |
+| Login (per client address) | 30 / 15 min |
+| Register, resend, password reset (per address) | 5 / 15 min |
+
+Logins are keyed **both** ways: per-account stops a password list being run
+against one user, per-address stops one password being sprayed across many
+accounts — which the per-account counter never sees. A successful login clears
+the counters, so someone who fumbles their password and then gets it right is
+not left one attempt from lockout.
+
+Sliding rather than fixed windows: a fixed window lets an attacker send a full
+budget at the end of one window and another at the start of the next, doubling
+the rate at the boundary.
+
+**Caveat: the in-memory limiter is per-replica.** With N API replicas an
+attacker gets N times the budget, and a restart clears every counter. Acceptable
+for the single-node deployment §2.1 describes; move the counters to Postgres or
+the Redis §2.8 contemplates before scaling out.
+
+### `TRUST_PROXY_HEADERS`
+
+Per-address limits need the real client address. Behind Caddy the socket address
+is the proxy's, so `X-Forwarded-For` has to be trusted — but it is a request
+header, and anyone reaching the API directly can forge it, which would make
+every per-address limit bypassable.
+
+So it is trusted only when `TRUST_PROXY_HEADERS=true`, and **the default is
+false on purpose**. Unset behind a proxy, every client shares one bucket and
+legitimate users start seeing 429s: loud, immediate, easy to diagnose. The
+reverse default would make every limit silently spoofable with nothing looking
+wrong. **Set it to true in any deployment behind Caddy.**
+
 ## Email delivery
 
 DESIGN.md requires verification but specifies no delivery mechanism, and the
@@ -387,5 +451,5 @@ Implemented incrementally; see the repo's task list for current position.
 6. ✅ `attachments/` — presigned upload intent, S3
 7. ✅ `pintrail-worker` — `SKIP LOCKED` queue, image→WebP, PDF thumbnails
 8. ✅ `trails/` — stops, visibility, share tokens
-9. ⬜ `comments/` — create, list, rate limiting
+9. ✅ `comments/` — create, list, rate limiting
 10. ⬜ `admin/` — minijinja moderation UI

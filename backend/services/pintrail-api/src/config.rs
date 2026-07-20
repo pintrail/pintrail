@@ -20,6 +20,9 @@ pub struct Settings {
     pub public_base_url: String,
     /// Which mailer implementation to use. See `crate::mail`.
     pub mailer: String,
+    /// Whether to believe `X-Forwarded-For`. See `crate::client_ip` for why
+    /// the default is false.
+    pub trust_proxy_headers: bool,
 
     /// Object storage. `s3_endpoint` is None for real S3 and set for MinIO.
     pub s3_endpoint: Option<String>,
@@ -72,6 +75,7 @@ impl Settings {
             cookie_secure: parsed("COOKIE_SECURE", true)?,
             public_base_url: optional("PUBLIC_BASE_URL", "http://localhost:8080"),
             mailer: optional("MAILER", "log"),
+            trust_proxy_headers: parsed("TRUST_PROXY_HEADERS", false)?,
             s3_endpoint: env::var("S3_ENDPOINT").ok().filter(|v| !v.trim().is_empty()),
             s3_region: optional("S3_REGION", "us-east-1"),
             s3_bucket: required("S3_BUCKET")?,
