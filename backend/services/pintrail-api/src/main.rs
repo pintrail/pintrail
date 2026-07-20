@@ -1,8 +1,10 @@
+mod artifacts;
 mod authors;
 mod cli;
 mod config;
 mod crypto;
 mod error;
+mod identity;
 mod mail;
 mod readers;
 mod state;
@@ -73,6 +75,7 @@ fn router(state: AppState) -> Router {
         .route("/health/ready", get(ready))
         .merge(authors::router())
         .merge(readers::router())
+        .merge(artifacts::router())
         .layer(TraceLayer::new_for_http())
         .with_state(state)
 }

@@ -128,6 +128,57 @@ one supersedes any outstanding token of the same purpose — otherwise every
 marks the address verified, since it proves mailbox control, and revokes every
 existing session.
 
+## The sync protocol
+
+`GET /artifacts/sync?since=<version>` returns every artifact whose
+`sync_version` exceeds the client's cursor, with coordinates **already
+resolved** — the phone never walks the parent chain itself. The response's
+`version` is the cursor for next time.
+
+That cursor is the highest version actually returned, not the sequence's
+current value. Reading the sequence could skip a row committed by a slower
+concurrent transaction holding a lower version.
+
+Three things the protocol has to get right, none of which DESIGN.md §2.4
+specifies:
+
+**Deletes are tombstones.** A row that simply vanished would leave every phone
+geofencing it forever, since sync only reports what changed. Deletes are soft
+(`deleted_at`), bump `sync_version`, and travel to clients flagged `deleted` so
+the cache can evict. A *first* sync (`since=0`) omits them — nothing is cached
+yet, so shipping every historical deletion is pure waste.
+
+**Deleting a parent deletes the subtree.** A child left behind would inherit
+coordinates from a deleted ancestor.
+
+**Moving a parent dirties everything that inherits from it.** This is the
+subtle one. An artifact with NULL coordinates reports its ancestor's position,
+so moving a building changes the effective location of every room inside it —
+without touching those rooms' own `sync_version`. Nothing in the protocol could
+then correct the phone, which would geofence rooms at the building's old
+coordinates indefinitely. Migration `..._artifact_sync_propagation` adds a
+trigger that marks the inheriting descendants dirty. It descends only through
+artifacts that actually inherit, since a child with its own coordinates — and
+everything beneath it — is unaffected.
+
+## Coordinate resolution
+
+One recursive CTE (`RESOLVED_COORDS_CTE`) propagates coordinates downward from
+the roots in a single pass, rather than walking upward per row, which would be
+a query per artifact across a whole-campus manifest. The
+`artifacts_latlng_paired` constraint guarantees lat and lng are both set or
+both null, so coalescing them independently cannot pair one artifact's latitude
+with another's longitude.
+
+Detail responses report `lat`/`lng` (the artifact's own, null when inherited),
+`effective_lat`/`effective_lng` (resolved), and `location_source_id` (which
+ancestor supplied them). An authoring UI needs the distinction — otherwise
+"clearing" a coordinate that was never set looks like a broken form.
+
+`PATCH` uses double-`Option` on coordinates: an absent field means "leave
+alone", an explicit `null` means "clear this and inherit from the parent".
+Collapsing those would make a coordinate impossible to un-set.
+
 ## Email delivery
 
 DESIGN.md requires verification but specifies no delivery mechanism, and the
@@ -175,7 +226,7 @@ Implemented incrementally; see the repo's task list for current position.
 2. ✅ Migrations — full DESIGN.md §2.2 schema
 3. ✅ `authors/` — argon2id, cookie sessions, role extractors
 4. ✅ `readers/` — registration, email verification, bearer tokens
-5. ⬜ `artifacts/` — CRUD, coordinate inheritance, `/sync`
+5. ✅ `artifacts/` — CRUD, coordinate inheritance, `/sync`
 6. ⬜ `attachments/` — presigned upload intent, S3
 7. ⬜ `pintrail-worker` — `SKIP LOCKED` queue, image→WebP, PDF thumbnails
 8. ⬜ `trails/` — stops, visibility, share tokens
