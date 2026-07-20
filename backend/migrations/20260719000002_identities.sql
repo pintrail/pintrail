@@ -6,7 +6,10 @@
 CREATE TABLE authors (
     id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     email         VARCHAR(320) NOT NULL,
-    password_hash VARCHAR NOT NULL,   -- scrypt, "salt_hex:dk_hex"
+    -- argon2id, PHC string format ($argon2id$v=19$m=...$salt$hash). DESIGN.md
+    -- specified scrypt to preserve legacy hashes; there turned out to be none
+    -- to preserve, so both identity tiers use one hasher.
+    password_hash VARCHAR NOT NULL,
     role          author_role NOT NULL DEFAULT 'viewer',
     is_active     BOOLEAN NOT NULL DEFAULT true,
     created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -40,7 +43,7 @@ CREATE TABLE readers (
     id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     email          VARCHAR(320) NOT NULL,
     email_verified BOOLEAN NOT NULL DEFAULT false,
-    password_hash  VARCHAR NOT NULL,   -- argon2id; no legacy hashes on this tier
+    password_hash  VARCHAR NOT NULL,   -- argon2id, PHC string format
     is_active      BOOLEAN NOT NULL DEFAULT true,   -- admin can suspend
     created_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at     TIMESTAMPTZ NOT NULL DEFAULT now()

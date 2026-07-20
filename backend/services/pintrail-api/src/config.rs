@@ -11,6 +11,9 @@ pub struct Settings {
     pub bind_addr: String,
     pub db_max_connections: u32,
     pub db_acquire_timeout: Duration,
+    /// Whether to set `Secure` on session cookies. Defaults to true; only a
+    /// local http development server has any business turning it off.
+    pub cookie_secure: bool,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -32,6 +35,7 @@ impl Settings {
             bind_addr: optional("BIND_ADDR", "0.0.0.0:8080"),
             db_max_connections: parsed("DB_MAX_CONNECTIONS", 10)?,
             db_acquire_timeout: Duration::from_secs(parsed("DB_ACQUIRE_TIMEOUT_SECS", 5)?),
+            cookie_secure: parsed("COOKIE_SECURE", true)?,
         })
     }
 }

@@ -1,3 +1,5 @@
+mod authors;
+mod cli;
 mod config;
 mod error;
 mod state;
@@ -30,6 +32,26 @@ async fn main() -> anyhow::Result<()> {
     let state = AppState::connect(settings).await?;
     sqlx::migrate!("../../migrations").run(&state.db).await?;
 
+    // Operator commands run against the same migrated database, then exit.
+    let args: Vec<String> = std::env::args().skip(1).collect();
+    match args.iter().map(String::as_str).collect::<Vec<_>>().as_slice() {
+        [] => {}
+        ["create-author", email, role] => {
+            return cli::create_author(&state.db, email, role).await;
+        }
+        ["reset-password", email] => {
+            return cli::reset_password(&state.db, email).await;
+        }
+        ["help" | "--help" | "-h"] => {
+            print!("{}", cli::USAGE);
+            return Ok(());
+        }
+        other => {
+            eprint!("unrecognized command: {}\n\n{}", other.join(" "), cli::USAGE);
+            std::process::exit(2);
+        }
+    }
+
     let app = router(state);
 
     let listener = tokio::net::TcpListener::bind(&bind_addr).await?;
@@ -46,6 +68,7 @@ fn router(state: AppState) -> Router {
     Router::new()
         .route("/health", get(health))
         .route("/health/ready", get(ready))
+        .merge(authors::router())
         .layer(TraceLayer::new_for_http())
         .with_state(state)
 }

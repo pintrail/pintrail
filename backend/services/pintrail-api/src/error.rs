@@ -16,6 +16,12 @@ pub enum AppError {
     #[error("authentication required")]
     Unauthorized,
 
+    /// Deliberately one variant for every login failure -- wrong password,
+    /// unknown email, suspended account. Separate messages would let an
+    /// attacker enumerate which emails have accounts.
+    #[error("invalid email or password")]
+    InvalidCredentials,
+
     #[error("insufficient permissions")]
     Forbidden,
 
@@ -48,6 +54,7 @@ impl AppError {
         match self {
             AppError::BadRequest(_) => StatusCode::BAD_REQUEST,
             AppError::Unauthorized => StatusCode::UNAUTHORIZED,
+            AppError::InvalidCredentials => StatusCode::UNAUTHORIZED,
             AppError::Forbidden => StatusCode::FORBIDDEN,
             AppError::NotFound(_) => StatusCode::NOT_FOUND,
             AppError::Conflict(_) => StatusCode::CONFLICT,
