@@ -27,7 +27,7 @@ pub fn router() -> Router<AppState> {
 /// a query per row. Because the `artifacts_latlng_paired` constraint keeps
 /// lat and lng either both set or both null, coalescing them independently
 /// cannot mix one artifact's latitude with another's longitude.
-const RESOLVED_COORDS_CTE: &str = r#"
+pub(crate) const RESOLVED_COORDS_CTE: &str = r#"
 WITH RECURSIVE resolved AS (
     SELECT id, parent_id, lat, lng,
            lat AS effective_lat,
@@ -332,7 +332,7 @@ async fn remove(
     Ok(Json(json!({ "deleted": deleted })))
 }
 
-fn validate_coords(lat: Option<f64>, lng: Option<f64>) -> AppResult<()> {
+pub(crate) fn validate_coords(lat: Option<f64>, lng: Option<f64>) -> AppResult<()> {
     match (lat, lng) {
         (None, None) => Ok(()),
         (Some(lat), Some(lng)) => {

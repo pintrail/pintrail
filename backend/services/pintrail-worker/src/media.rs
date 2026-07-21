@@ -3,7 +3,6 @@
 //! Scope is v1 per docs/DESIGN.md §2.8: images and PDFs. Audio and video are
 //! rejected at upload time rather than reaching here.
 
-use std::io::Cursor;
 use std::process::Stdio;
 
 use anyhow::{bail, Context};
@@ -268,6 +267,7 @@ fn run_with_stdin(program: &str, args: &[&str], input: &[u8]) -> anyhow::Result<
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::io::Cursor;
 
     fn test_png(width: u32, height: u32) -> Vec<u8> {
         let img = DynamicImage::new_rgb8(width, height);

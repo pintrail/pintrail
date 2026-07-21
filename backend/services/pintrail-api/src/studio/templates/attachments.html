@@ -1,0 +1,50 @@
+{# Attachment gallery, swapped into #attachments. Re-fetches itself on a delay
+   while anything is still processing, so a freshly uploaded photo turns into a
+   thumbnail without a manual refresh. #}
+<div class="row">
+  <h3 style="margin:0">Media</h3>
+  {% if can_edit %}
+  <span class="push"></span>
+  <label class="btn btn-sm" style="cursor:pointer">
+    + Upload
+    <input type="file" multiple accept="image/*,application/pdf" style="display:none"
+           data-upload-for="{{ artifact_id }}" data-status-target="#upload-status">
+  </label>
+  {% endif %}
+</div>
+<p id="upload-status" class="hint" style="min-height:1.1rem"></p>
+
+{% if attachments %}
+<div class="gallery">
+  {% for m in attachments %}
+  <div class="thumb">
+    {% if m.url and m.status == "processed" %}
+      <img src="{{ m.url }}" alt="{{ m.caption or m.original_filename }}" loading="lazy">
+    {% elif m.status == "failed" %}
+      <div class="placeholder">failed</div>
+    {% else %}
+      <div class="placeholder">processing…</div>
+    {% endif %}
+    <div class="cap">{{ m.caption or m.original_filename }}</div>
+    <div class="st {{ 'processing' if m.status in ['queued','processing','pending_upload'] }} {{ 'failed' if m.status == 'failed' }}">
+      <span>{{ m.status }}</span>
+      {% if can_edit %}
+      <button class="btn-sm" style="padding:0 .35rem"
+              hx-post="/studio/attachments/{{ m.id }}/delete"
+              hx-vals='{"csrf_token": "{{ csrf_token }}"}'
+              hx-target="#attachments" hx-swap="innerHTML"
+              hx-confirm="Remove this media?">✕</button>
+      {% endif %}
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<p class="hint">No media yet.{% if can_edit %} Upload photos or a PDF above.{% endif %}</p>
+{% endif %}
+
+{% if processing %}
+{# Something is still queued or processing -- poll again shortly. #}
+<div hx-get="/studio/artifacts/{{ artifact_id }}/attachments"
+     hx-trigger="load delay:1500ms" hx-target="#attachments" hx-swap="innerHTML"></div>
+{% endif %}

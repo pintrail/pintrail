@@ -14,6 +14,7 @@ mod rate_limit;
 mod readers;
 mod serde_util;
 mod state;
+mod studio;
 mod trails;
 
 use axum::extract::State;
@@ -115,6 +116,10 @@ fn router(state: AppState) -> Router {
         // the sign-in page rather than a bare JSON 401.
         .merge(admin::router().layer(axum::middleware::from_fn(
             admin::redirect_unauthenticated,
+        )))
+        .merge(studio::assets::router())
+        .merge(studio::router().layer(axum::middleware::from_fn(
+            studio::redirect_unauthenticated,
         )))
         .layer(TraceLayer::new_for_http())
         .with_state(state)

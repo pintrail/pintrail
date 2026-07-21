@@ -1,0 +1,25 @@
+{# Sidebar artifact tree. A recursive macro renders the building -> room ->
+   item nesting to any depth. Loaded on start and re-fetched whenever the body
+   fires refresh-tree (after a create, edit, or delete). #}
+{% macro node(a) %}
+<li>
+  <a class="node {{ 'active' if a.id == selected_id }}"
+     hx-get="/studio/artifacts/{{ a.id }}" hx-target="#detail" hx-push-url="true">
+    <span class="kind-chip">{{ a.kind }}</span>
+    <span>{{ a.name or "(untitled)" }}</span>
+  </a>
+  {% if a.children %}
+  <ul class="kids">
+    {% for c in a.children %}{{ node(c) }}{% endfor %}
+  </ul>
+  {% endif %}
+</li>
+{% endmacro %}
+
+{% if roots %}
+<ul class="tree">
+  {% for a in roots %}{{ node(a) }}{% endfor %}
+</ul>
+{% else %}
+<p class="hint">No artifacts yet.{% if can_edit %} Use <strong>+ New</strong> to add one.{% endif %}</p>
+{% endif %}

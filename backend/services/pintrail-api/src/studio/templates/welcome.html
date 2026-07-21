@@ -1,0 +1,5 @@
+{# Shown in the detail pane before anything is selected. #}
+<div class="empty">
+  <p style="font-size:1.1rem;margin-bottom:.5rem">Select an artifact to view it.</p>
+  <p>{% if can_edit %}Or create one with <strong>+ New</strong> in the sidebar.{% else %}You have read-only access.{% endif %}</p>
+</div>

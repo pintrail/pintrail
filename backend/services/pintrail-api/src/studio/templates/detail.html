@@ -1,0 +1,69 @@
+{# Artifact detail. Swapped into #detail on selection, or wrapped in page.html
+   for a direct load. #}
+<div class="card">
+  <div class="row">
+    <div>
+      <h1>{{ a.name or "(untitled)" }}</h1>
+      <p class="subtitle">
+        <span class="kind-chip">{{ a.kind }}</span>
+        {% if a.parent_name %} · inside <a hx-get="/studio/artifacts/{{ a.parent_id }}" hx-target="#detail" hx-push-url="true" style="cursor:pointer">{{ a.parent_name }}</a>{% endif %}
+      </p>
+    </div>
+    {% if can_edit %}
+    <div class="push row">
+      <button class="btn-sm" hx-get="/studio/artifacts/{{ a.id }}/edit" hx-target="#detail">Edit</button>
+      <button class="btn-sm btn-danger"
+              hx-post="/studio/artifacts/{{ a.id }}/delete"
+              hx-vals='{"csrf_token": "{{ csrf_token }}"}'
+              hx-target="#detail"
+              hx-confirm="Delete “{{ a.name }}” and everything nested inside it?">Delete</button>
+    </div>
+    {% endif %}
+  </div>
+
+  {% if a.description %}<p style="margin:.75rem 0 0">{{ a.description }}</p>{% endif %}
+</div>
+
+<div class="card">
+  <h3>Location</h3>
+  {% if a.effective_lat is none %}
+    <p class="hint">No coordinates set, and no ancestor has any. This artifact will not geofence until it or a parent gets a location.</p>
+  {% else %}
+    <div class="map small" data-map data-lat="{{ a.effective_lat }}" data-lng="{{ a.effective_lng }}"></div>
+    <dl class="meta" style="margin-top:.9rem">
+      {% if a.lat is none %}
+        <dt>Coordinates</dt><dd class="inherited">inherited from {{ a.source_name or "an ancestor" }}</dd>
+        <dt>Effective</dt><dd>{{ a.effective_lat }}, {{ a.effective_lng }}</dd>
+      {% else %}
+        <dt>Coordinates</dt><dd>{{ a.lat }}, {{ a.lng }} <span class="hint">(set on this artifact)</span></dd>
+      {% endif %}
+    </dl>
+  {% endif %}
+</div>
+
+<div class="card" id="attachments"
+     hx-get="/studio/artifacts/{{ a.id }}/attachments"
+     hx-trigger="load, refresh-attachments from:body"
+     hx-swap="innerHTML">
+</div>
+
+{% if a.children %}
+<div class="card">
+  <h3>Nested inside</h3>
+  <ul class="tree">
+    {% for c in a.children %}
+    <li><a class="node" hx-get="/studio/artifacts/{{ c.id }}" hx-target="#detail" hx-push-url="true">
+      <span class="kind-chip">{{ c.kind }}</span><span>{{ c.name or "(untitled)" }}</span></a></li>
+    {% endfor %}
+  </ul>
+  {% if can_edit %}
+  <button class="btn-sm" style="margin-top:.75rem"
+          hx-get="/studio/artifacts/new?parent={{ a.id }}" hx-target="#detail">+ Add one inside</button>
+  {% endif %}
+</div>
+{% elif can_edit %}
+<div class="card">
+  <button class="btn-sm" hx-get="/studio/artifacts/new?parent={{ a.id }}" hx-target="#detail">+ Add a nested artifact</button>
+  <span class="hint" style="margin-left:.5rem">e.g. a room or object inside this one</span>
+</div>
+{% endif %}

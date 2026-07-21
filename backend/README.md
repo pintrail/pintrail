@@ -467,6 +467,35 @@ legitimate users start seeing 429s: loud, immediate, easy to diagnose. The
 reverse default would make every limit silently spoofable with nothing looking
 wrong. **Set it to true in any deployment behind Caddy.**
 
+## The Studio (browser authoring tool)
+
+A server-rendered UI at `/studio` for viewing and authoring artifacts while the
+mobile app is built. Cookie-authenticated on the author tier — viewers browse,
+editors and admins write. Sign in at `/studio/login` with an author account
+(`create-author` from the CLI).
+
+- **htmx** drives every interaction as a fragment swap: selecting an artifact,
+  opening the create/edit form, deleting, and polling the media gallery. The
+  sidebar tree refreshes via an `HX-Trigger: refresh-tree` response header.
+- **Leaflet** provides the location map — click to place coordinates, or leave
+  blank to inherit from the parent (the indoor case). The detail view shows the
+  effective location and whether it was set or inherited.
+- **Media upload** runs from the browser against the *existing* cookie-authed
+  attachment endpoints: `upload-intent` → direct PUT to storage → `complete`,
+  then the gallery polls until the worker's WebP thumbnail appears. No
+  studio-specific upload API.
+
+**htmx, Leaflet, and the studio's own JS are vendored into the binary** via
+`include_str!` and served from `/studio/assets/*` — no CDN. Only the map *tiles*
+come from OpenStreetMap, which is inherent to having a map. A deep-linked
+artifact URL renders the whole document; an htmx request for the same URL gets
+just the fragment, so refresh and navigation both work.
+
+Reuses the admin panel's CSRF protection (form posts carry a session-derived
+token) and the artifacts module's coordinate-resolution query. Templates
+autoescape — artifact names and descriptions are author input rendered to a
+browser.
+
 ## The admin panel
 
 Server-rendered HTML at `/admin`, cookie-authenticated, **admin role only** —

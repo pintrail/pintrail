@@ -1,0 +1,59 @@
+{# Create/edit form. `action` and `submit_label` differ between the two; the
+   map picker writes into the hidden lat/lng fields, and Clear blanks them so
+   the artifact inherits its parent's location. #}
+<div class="card">
+  <h1>{{ heading }}</h1>
+  {% if error %}<p class="flash err">{{ error }}</p>{% endif %}
+
+  <form hx-post="{{ action }}" hx-target="#detail" hx-swap="innerHTML">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+    <label class="field"><span class="lbl">Name</span>
+      <input type="text" name="name" value="{{ form.name }}" required autofocus></label>
+
+    <div class="field-row">
+      <label class="field"><span class="lbl">Kind</span>
+        <select name="kind">
+          {% for k in kinds %}
+          <option value="{{ k }}" {{ 'selected' if k == form.kind }}>{{ k }}</option>
+          {% endfor %}
+        </select></label>
+
+      <label class="field"><span class="lbl">Inside (parent)</span>
+        <select name="parent_id">
+          <option value="">— none (top level) —</option>
+          {% for p in parents %}
+          <option value="{{ p.id }}" {{ 'selected' if p.id == form.parent_id }}>{{ p.label }}</option>
+          {% endfor %}
+        </select></label>
+    </div>
+
+    <label class="field"><span class="lbl">Description</span>
+      <textarea name="description">{{ form.description }}</textarea></label>
+
+    <div class="field">
+      <span class="lbl">Location <span class="hint">— click the map to place it, or leave blank to inherit from the parent</span></span>
+      <div class="map"
+           data-map data-editable="true"
+           data-lat="{{ form.lat }}" data-lng="{{ form.lng }}"
+           data-input-lat="#f-lat" data-input-lng="#f-lng"
+           data-clear-button="#f-clear"></div>
+      <div class="row" style="margin-top:.6rem">
+        <input type="number" step="any" id="f-lat" name="lat" placeholder="latitude"
+               value="{{ form.lat }}" style="max-width:11rem">
+        <input type="number" step="any" id="f-lng" name="lng" placeholder="longitude"
+               value="{{ form.lng }}" style="max-width:11rem">
+        <button type="button" class="btn-sm" id="f-clear">Clear (inherit)</button>
+      </div>
+    </div>
+
+    <div class="row" style="margin-top:1rem">
+      <button class="btn-primary" type="submit">{{ submit_label }}</button>
+      {% if cancel_id %}
+      <button type="button" class="btn" hx-get="/studio/artifacts/{{ cancel_id }}" hx-target="#detail">Cancel</button>
+      {% else %}
+      <button type="button" class="btn" hx-get="/studio/welcome" hx-target="#detail">Cancel</button>
+      {% endif %}
+    </div>
+  </form>
+</div>
