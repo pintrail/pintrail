@@ -1,0 +1,121 @@
+# The whole stack, locally.
+#
+#   docker compose up -d --build          everything, API on :8080
+#   docker compose up -d postgres minio minio-init
+#                                         just the dependencies, so the
+#                                         binaries can run on the host
+#
+# Postgres is both the datastore and the job queue (SKIP LOCKED, docs/DESIGN.md
+# §2.5) -- there is deliberately no Redis. MinIO stands in for S3 so presigned
+# URLs behave exactly as they will against S3 or R2.
+#
+# Production overlay: compose.prod.yml.
+
+name: pintrail-backend
+
+x-app-env: &app-env
+  DATABASE_URL: postgres://pintrail:pintrail@postgres:5432/pintrail
+  S3_ENDPOINT: http://minio:9000
+  S3_REGION: us-east-1
+  S3_BUCKET: pintrail-media
+  S3_ACCESS_KEY_ID: pintrail
+  S3_SECRET_ACCESS_KEY: pintrail-dev-secret
+  RUST_LOG: ${RUST_LOG:-pintrail_api=debug,pintrail_worker=debug,info}
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: pintrail
+      POSTGRES_PASSWORD: pintrail
+      POSTGRES_DB: pintrail
+    ports:
+      # 5433 on the host, not 5432, so this runs alongside the legacy
+      # pintrail/ stack during the migration.
+      - "5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pintrail -d pintrail"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: pintrail
+      MINIO_ROOT_PASSWORD: pintrail-dev-secret
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - miniodata:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # Creates the media bucket on first boot, then exits.
+  minio-init:
+    image: minio/mc:latest
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      mc alias set local http://minio:9000 pintrail pintrail-dev-secret &&
+      mc mb --ignore-existing local/pintrail-media &&
+      echo 'bucket ready'
+      "
+
+  api:
+    build:
+      context: .
+      target: api
+    environment:
+      <<: *app-env
+      BIND_ADDR: 0.0.0.0:8080
+      # Presigned URLs must resolve from the host (and a phone), not from the
+      # compose network. The API reaches MinIO at minio:9000 for its own
+      # operations, but signs upload/download URLs against localhost:9000.
+      S3_PUBLIC_ENDPOINT: ${S3_PUBLIC_ENDPOINT:-http://localhost:9000}
+      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-http://localhost:8080}
+      # Local development is plain http, so a Secure cookie would never be
+      # sent back. Both of these flip in compose.prod.yml.
+      COOKIE_SECURE: "false"
+      TRUST_PROXY_HEADERS: "false"
+      # Writes verification and password-reset links to the log instead of
+      # sending them. There is no real mailer yet.
+      MAILER: log
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio-init:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+  worker:
+    build:
+      context: .
+      target: worker
+    environment:
+      <<: *app-env
+      WORKER_POLL_INTERVAL_SECS: "5"
+    depends_on:
+      # Waits for the API because that is what runs migrations. The worker
+      # would survive starting first -- a failed poll cycle does not kill it --
+      # but it would log an error every tick until the tables appeared.
+      api:
+        condition: service_healthy
+      minio-init:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  miniodata:

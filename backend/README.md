@@ -1,0 +1,597 @@
+# Pintrail backend (Rust)
+
+Implementation of [`docs/DESIGN.md`](../docs/DESIGN.md) — two binaries over one
+Postgres database and one S3-compatible bucket.
+
+| Crate | Role |
+|---|---|
+| [`services/pintrail-api`](services/pintrail-api) | axum HTTP API. Modules per concern (`authors/`, `readers/`, `artifacts/`, `attachments/`, `trails/`, `comments/`, `admin/`), each owning its own tables. |
+| [`services/pintrail-worker`](services/pintrail-worker) | Attachment processing. Claims work from Postgres with `FOR UPDATE SKIP LOCKED` — no Redis. |
+| [`libs/pintrail-storage`](libs/pintrail-storage) | S3 client shared by both binaries. |
+
+## Relationship to `pintrail/`
+
+`pintrail/` at the repo root is the **legacy Python system** (portal/artifact/worker)
+that this rewrite replaces. It stays deployed and untouched until these services
+reach parity. The local Postgres here binds host port **5433** rather than 5432
+so both stacks can run side by side during the transition.
+
+## Toolchain
+
+`aws-sdk-s3` sets the floor at **rustc 1.94.1**; `rust-toolchain.toml` pins
+stable. That file is honoured by rustup's shims, so if `which rustc` reports a
+Homebrew or system install instead of `~/.cargo/bin/rustc`, that older compiler
+wins and the build fails with an MSRV error. Either put `~/.cargo/bin` ahead of
+it on `PATH`, or build with `PATH="$HOME/.cargo/bin:$PATH" cargo build`.
+
+## Getting started
+
+Everything in containers:
+
+```sh
+cd backend
+docker compose up -d --build     # postgres, minio, api, worker
+curl localhost:8080/health
+```
+
+Or just the dependencies, with the binaries on the host for a faster edit loop:
+
+```sh
+docker compose up -d postgres minio minio-init
+cp .env.example .env
+cargo run -p pintrail-api        # migrations run automatically on boot
+cargo run -p pintrail-worker     # in another shell
+```
+
+Verify:
+
+```sh
+curl localhost:8080/health        # liveness  -> {"status":"ok",...}
+curl localhost:8080/health/ready  # readiness -> {"status":"ready"}
+```
+
+`/health` is deliberately independent of the database so an orchestrator does
+not restart a healthy API during a database blip; `/health/ready` is the one
+that fails when Postgres is unreachable.
+
+## Containers
+
+One `Dockerfile`, two targets. The workspace compiles once in a shared builder
+stage and each runtime stage copies out the binary it needs — building them
+separately would compile the shared dependency graph, which the AWS SDK
+dominates, twice.
+
+```sh
+docker build --target api    -t pintrail-api    .
+docker build --target worker -t pintrail-worker .
+```
+
+**The worker image carries `libheif-examples` and `poppler-utils`**; the API
+image does not. The media pipeline shells out to `heif-convert` and `pdftoppm`
+rather than linking them, so their absence is not a build error — it is every
+HEIC or PDF upload failing at runtime with "is libheif installed in this
+image?" on the row. Only the worker needs them, and the API image stays smaller
+for it.
+
+Neither image contains OpenSSL: sqlx and the AWS SDK are configured for rustls.
+Neither contains `curl` either — the container healthcheck is a `healthcheck`
+subcommand on the binary itself, which opens a plain TCP socket to `/health`.
+Every extra binary in a runtime image is attack surface.
+
+Both run as uid 10001. A media decoder parsing hostile files is the least
+trustworthy code in the system and has no business running as root.
+
+Migrations and admin templates are compiled into the binary, so an image cannot
+start with a stale copy of either, and nothing but the binary needs copying.
+
+### Production
+
+```sh
+docker compose -f compose.yml -f compose.prod.yml up -d --build
+```
+
+The overlay puts Caddy in front for TLS, removes the host port bindings from
+Postgres and MinIO so only the compose network reaches them, and takes every
+credential from the environment. It fails to start if `PINTRAIL_DOMAIN`,
+`POSTGRES_PASSWORD`, `S3_*`, or `PUBLIC_BASE_URL` are unset, rather than
+falling back to development defaults.
+
+It also flips `COOKIE_SECURE=true` and `TRUST_PROXY_HEADERS=true`. The second
+matters: behind Caddy the only address the API can see is Caddy's, so without
+it every client shares one rate-limit bucket. Caddy sets `X-Forwarded-For` from
+the real peer rather than appending to whatever arrived, so a client cannot
+forge its own address.
+
+Pointing `S3_*` at real S3 or R2 makes the MinIO services unnecessary:
+`--scale minio=0`.
+
+## Notes on choices
+
+**Runtime-checked queries.** Queries use `sqlx::query_as` rather than the
+compile-time-verified `sqlx::query!` macros, so `cargo build` works without a
+live database or a checked-in `.sqlx` cache. If the team later wants
+compile-time verification, `cargo sqlx prepare` and a switch to the macros is
+the upgrade path.
+
+**Migrations run at startup.** Fine for a single-node deployment. If this ever
+runs multiple API replicas, move migrations to an explicit deploy step so
+replicas do not race each other.
+
+**`sqlx::migrate!` embeds migrations at compile time.** Adding a `.sql` file
+without recompiling means the server applies the set it was last built with
+while reporting success. `services/pintrail-api/build.rs` emits a
+`rerun-if-changed` on the migrations directory to prevent that.
+
+## Creating the first admin
+
+Authors are admin-provisioned with no self-service signup, so the first one
+comes from the CLI. The password is read from stdin, never from an argument —
+process arguments are visible to any user on the host via `ps`.
+
+```sh
+cargo run -p pintrail-api -- create-author dean@umass.edu admin
+cargo run -p pintrail-api -- reset-password dean@umass.edu   # also revokes sessions
+cargo run -p pintrail-api -- help
+```
+
+Thereafter admins manage accounts over HTTP at `/admin/authors`.
+
+## Auth model (author tier)
+
+| Property | Choice | Why |
+|---|---|---|
+| Password hash | argon2id, PHC string | DESIGN.md §2.6 specified scrypt only to preserve legacy hashes; there were none, so both tiers use one hasher. PHC embeds params, so cost can be raised later without invalidating stored hashes. |
+| Session token | 256-bit from OS CSPRNG, SHA-256 stored | Only the hash is persisted, so a database leak yields no live sessions. SHA-256 rather than argon2 is correct here: the input is already high-entropy, so there is nothing for a slow hash to defend, and this runs on every request. |
+| Cookie | `HttpOnly`, `SameSite=Lax`, `Secure`, `Path=/` | `HttpOnly` keeps an XSS bug from also being session theft. `Lax` blocks the cross-site POST that CSRF needs while still allowing an author to follow a link into the panel. `Secure` is on unless `COOKIE_SECURE=false` for local http. |
+| Login failures | One opaque 401 for every cause | Distinct messages for unknown-email, wrong-password, and suspended would enumerate valid accounts. Unknown emails also verify against a dummy hash so response time does not leak the distinction either — measured at 200.0 ms both ways. |
+| Role gate | Extractor in the handler signature | `RequireAdmin` in the signature means the check cannot be forgotten: without it the handler has no author value to work with. Under-privileged is 403, unauthenticated is 401. |
+| Suspension | Deletes the author's sessions | Otherwise a suspended account keeps working until its cookie happens to expire. Password reset does the same. |
+| Self-lockout | Admins cannot demote or suspend themselves | It is the one mistake here with no in-app recovery. A second guard refuses any change leaving zero active admins. |
+
+Login is rate-limited from stage 9 — see **Rate limiting** below.
+
+## Auth model (reader tier)
+
+Bearer tokens rather than cookies, 90-day lifetime — an explorer should not be
+logged out between campus visits, and the tier cannot edit content.
+
+**Verification gates writing, not reading.** An unverified reader can sign in
+and browse; `login` reports `email_verified` so the app can prompt rather than
+discovering the limit when a comment fails. Two extractors express this:
+`AuthenticatedReader` (signed in) and `VerifiedReader` (signed in and
+confirmed), the latter returning a distinct `EmailNotVerified` 403 so the
+client can offer "resend" instead of a login screen.
+
+**Registration is not an account-existence oracle.** `POST /readers/register`
+returns the same 202 whether or not the address is already registered. A 409 on
+duplicate would let anyone test any address for membership — unacceptable on a
+public tier. The real owner is not left uninformed: an existing address
+receives a "someone tried to register" notice instead of a verification link.
+Password reset responds identically for the same reason.
+
+**No unauthenticated endpoint modifies an existing credential.** Re-registering
+an address that exists but is unverified re-sends the link and leaves the
+stored password untouched. An earlier draft refreshed it, which was an account
+takeover: an attacker re-registers a pending address with their own password,
+the fresh link lands in the real owner's inbox, the owner clicks it in good
+faith, and the account is verified under the attacker's credential. Someone who
+genuinely mistyped their password recovers via password reset, which proves
+mailbox control first.
+
+| Token | TTL | Notes |
+|---|---|---|
+| Session (bearer) | 90 days | SHA-256 stored; revoked on logout and on password reset |
+| Email verification | 24 hours | Survives a night in a spam folder |
+| Password reset | 1 hour | Shorter because a reset link grants account takeover |
+
+Verification and reset tokens are single-use (`consumed_at`), and issuing a new
+one supersedes any outstanding token of the same purpose — otherwise every
+"resend" click leaves another live link in an inbox. Completing a reset also
+marks the address verified, since it proves mailbox control, and revokes every
+existing session.
+
+## The sync protocol
+
+`GET /artifacts/sync?since=<version>` returns every artifact whose
+`sync_version` exceeds the client's cursor, with coordinates **already
+resolved** — the phone never walks the parent chain itself. The response's
+`version` is the cursor for next time.
+
+That cursor is the highest version actually returned, not the sequence's
+current value. Reading the sequence could skip a row committed by a slower
+concurrent transaction holding a lower version.
+
+Three things the protocol has to get right, none of which DESIGN.md §2.4
+specifies:
+
+**Deletes are tombstones.** A row that simply vanished would leave every phone
+geofencing it forever, since sync only reports what changed. Deletes are soft
+(`deleted_at`), bump `sync_version`, and travel to clients flagged `deleted` so
+the cache can evict. A *first* sync (`since=0`) omits them — nothing is cached
+yet, so shipping every historical deletion is pure waste.
+
+**Deleting a parent deletes the subtree.** A child left behind would inherit
+coordinates from a deleted ancestor.
+
+**Moving a parent dirties everything that inherits from it.** This is the
+subtle one. An artifact with NULL coordinates reports its ancestor's position,
+so moving a building changes the effective location of every room inside it —
+without touching those rooms' own `sync_version`. Nothing in the protocol could
+then correct the phone, which would geofence rooms at the building's old
+coordinates indefinitely. Migration `..._artifact_sync_propagation` adds a
+trigger that marks the inheriting descendants dirty. It descends only through
+artifacts that actually inherit, since a child with its own coordinates — and
+everything beneath it — is unaffected.
+
+## Coordinate resolution
+
+One recursive CTE (`RESOLVED_COORDS_CTE`) propagates coordinates downward from
+the roots in a single pass, rather than walking upward per row, which would be
+a query per artifact across a whole-campus manifest. The
+`artifacts_latlng_paired` constraint guarantees lat and lng are both set or
+both null, so coalescing them independently cannot pair one artifact's latitude
+with another's longitude.
+
+Detail responses report `lat`/`lng` (the artifact's own, null when inherited),
+`effective_lat`/`effective_lng` (resolved), and `location_source_id` (which
+ancestor supplied them). An authoring UI needs the distinction — otherwise
+"clearing" a coordinate that was never set looks like a broken form.
+
+`PATCH` uses double-`Option` on coordinates: an absent field means "leave
+alone", an explicit `null` means "clear this and inherit from the parent".
+Collapsing those would make a coordinate impossible to un-set.
+
+## Attachment uploads
+
+Bytes never pass through this process. The flow is two-phase:
+
+1. `POST /artifacts/{id}/attachments/upload-intent` — validates the media type,
+   reserves a row in `pending_upload`, returns a presigned PUT URL.
+2. Client PUTs the file straight to the bucket.
+3. `POST /attachments/{id}/complete` — the API HEADs the object, records the
+   real size, and moves the row to `queued`.
+
+**`pending_upload` exists because the worker polls for `queued`.** Inserting the
+row as `queued` at step 1 would let the worker claim a job whose object has not
+been uploaded yet — every upload racing its own processing. It was added in a
+migration of its own, since Postgres refuses to use a new enum value in the same
+transaction that adds it, and a multi-statement migration is one implicit
+transaction even with `-- no-transaction`.
+
+**Completion verifies the bucket rather than trusting the client.** A client
+that skipped the PUT would otherwise queue work against a nonexistent object.
+Repeat calls are idempotent, so a retry after a dropped response does not
+re-queue work already underway.
+
+**The size limit is enforced at completion, not during upload.** A presigned PUT
+cannot reject an oversized body mid-stream, so the check happens on the recorded
+size — and the object is deleted rather than left occupying the bucket.
+
+**Storage keys are server-generated** (`originals/{artifact_id}/{attachment_id}.{ext}`),
+with the extension from the validated MIME type. A key built from the client's
+filename would invite both collisions and traversal. Filenames are kept only as
+a display label, path-stripped. Keys are never exposed to clients.
+
+**The upload URL signs `content-type`,** so a file cannot claim one type to the
+API and be stored as another — the bucket itself rejects the mismatch.
+
+**Two storage endpoints, because the host is part of the signature.** The API
+reaches MinIO by its internal name (`minio:9000` in compose) for its own
+operations, but signs upload and download URLs against a host the *client* can
+resolve (`localhost:9000`, or in production a fronted object-store domain). A
+presigned URL cannot be rewritten after signing — SigV4 covers the host — so
+`S3_PUBLIC_ENDPOINT` configures a second, presigning-only S3 client up front.
+Left unset it falls back to `S3_ENDPOINT`, which is correct for real S3 or R2
+where one public endpoint serves everything, and for host-based local dev where
+both are `localhost`. This surfaced only under compose: an upload URL pointing
+at `minio:9000` is unresolvable from a phone, and every upload sat forever in
+`pending_upload`.
+
+**v1 accepts images, PDFs, and plain text.** Audio and video are refused with a
+message saying the transcoding pipeline is not built yet, rather than being
+stored as files nothing can process.
+
+Download URLs are presigned and time-limited (`PRESIGN_TTL_SECS`, default 15
+min), preferring processed output but falling back to the original while
+processing is pending — so a freshly uploaded photo appears immediately instead
+of as a gap.
+
+**Not yet done:** abandoned `pending_upload` rows (an intent whose PUT never
+happened) are indexed for a sweep, but nothing reaps them yet.
+
+## The worker
+
+Claims queued attachments and turns originals into what the app displays.
+Run as many replicas as needed — they coordinate through nothing but the
+database.
+
+```sql
+SELECT id FROM attachments WHERE status = 'queued'
+ORDER BY created_at FOR UPDATE SKIP LOCKED LIMIT $1
+```
+
+The claim is a single statement (CTE + `UPDATE ... RETURNING`), so a claim
+cannot be lost between selecting and marking. `SKIP LOCKED` makes a replica
+step over rows another replica holds instead of blocking. Verified with three
+concurrent workers: every job completed exactly once, and no row's `attempts`
+exceeded 1.
+
+**The stuck-job sweep is the crash-recovery half.** `SKIP LOCKED` only skips
+*locked* rows — a worker killed mid-job leaves its row in `processing` with the
+lock gone, and nothing would ever pick it up. Each cycle returns rows whose
+`claimed_at` is older than `WORKER_STUCK_TIMEOUT_SECS` (default 300).
+
+**Failures retry a bounded number of times** (`WORKER_MAX_ATTEMPTS`, default 3),
+then stop with the reason recorded on the row. A transient storage fault
+deserves a retry; a corrupt file never will succeed, and after three tries it is
+a content problem an author needs to see. The full `anyhow` context chain is
+stored, so a subprocess failure is diagnosable from the row alone.
+
+**A failed poll cycle never kills the worker** — the next tick retries. During
+development a bad SQL cast produced an error every second for minutes; the
+process stayed up, which is exactly what should happen in production.
+
+| Kind | Processing |
+|---|---|
+| `image` | Decode → downscale to fit 2048px (only ever down; enlarging inflates the file for no detail) → WebP q=85 |
+| `pdf` | Render page 1 at 150dpi via `pdftoppm` → WebP thumbnail. The PDF itself is served as uploaded. |
+| `text` | No output; the original is what gets served. |
+| `audio`/`video` | Rejected at upload. Reaching the worker means the allowlist and dispatch have drifted. |
+
+HEIC/HEIF (the iPhone default) is decoded by shelling out to `heif-convert`
+rather than linking libheif — one less native dependency compiled in, at the
+cost of needing the tool in the runtime image. Both subprocesses are invoked
+without a shell and with fixed arguments, so no part of an uploaded file can
+influence a command line.
+
+Batches are processed **sequentially** within a worker: the work is CPU-bound,
+so concurrency on one process would just contend for the same cores. Throughput
+comes from more replicas. Decode/encode runs on `spawn_blocking` so it does not
+stall the async runtime.
+
+**Dev profile note:** `Cargo.toml` compiles `image`, `webp`, and `libwebp-sys`
+at `opt-level = 3` even in debug. Unoptimized, a single 3000×1500 Lanczos3
+resize takes tens of seconds, which makes the worker impossible to exercise
+locally.
+
+## Trails
+
+One table for both curated and user-built trails, distinguished by
+`owner_type` + `owner_id` — they are the same concept pointed at different
+artifacts (DESIGN.md §1.4). The `Identity` extractor resolves either tier, so
+one set of routes serves both.
+
+**Verification gates creation**, per §2.6, but only for readers: authors are
+admin-provisioned, so there is no self-service path an unverified address could
+exploit. That check is `Identity::ensure_verified` rather than a `VerifiedReader`
+extractor, which would lock authors out of their own curation endpoints.
+
+| Visibility | Who can read |
+|---|---|
+| `private` | Owner only |
+| `unlisted` | Owner, plus anyone with the share link — **not** readable by id |
+| `public` | Any signed-in user; appears in the catalogue |
+
+**Every denial is 404, never 403.** A 403 confirms the id exists, which is
+itself a disclosure on private content. This applies to reading, editing,
+reordering, and deleting someone else's trail.
+
+**Share tokens are capabilities, not credentials.** Stored in plaintext, unlike
+session tokens, because a link has to be reconstructible into a URL to be shared
+at all. One grants read of one non-private trail and nothing else. The token is
+returned only to the owner — resolving a link does not hand the recipient the
+token to re-share. Reverting a trail to private revokes links already
+distributed; re-sharing reuses the same token, so a URL that was passed around
+does not break.
+
+**Stops are replaced wholesale** (`PUT /trails/{id}/stops`). The client is a
+drag-to-reorder list (§1.7) that already knows the final order, and sending it
+whole avoids a reorder protocol where every intermediate state must satisfy the
+position uniqueness constraint. Stop rows are referenced by nothing else, so
+replacing them loses nothing. The same artifact may appear twice — a loop walk
+is legitimate.
+
+**A deleted artifact does not silently vanish from someone's trail.** Artifacts
+are soft-deleted, so the FK cascade never fires and the stop survives. It is
+returned with `available: false` and its details withheld, rather than dropped —
+dropping it would renumber a user's trail behind their back and leave them
+wondering what happened to stop 3. New stops pointing at a deleted artifact are
+rejected outright.
+
+Stop coordinates resolve through the parent chain, so a stop at an indoor
+artifact still carries a position to walk to.
+
+## Comments
+
+Reader-authored, verification-gated. Authors cannot comment: `comments.reader_id`
+references `readers`, so the concept simply does not exist for them.
+
+**The thread never publishes email addresses.** The wireframe (§1.7) shows an
+author handle, but §2.2 gave readers only an email — rendering comments from
+what the schema had would have published every commenter's address to every
+other user. A `display_name` column was added; readers who never choose one get
+a stable pseudonym derived from their **id**, never their email, because a
+university email local part is usually a real name or username.
+
+Hidden and flagged comments are absent from the thread for **everyone**,
+moderators included. A hidden comment reappearing because an admin happens to be
+reading would defeat the point; the moderation queue is its own route.
+
+Deleting works only on your own comments — the query matches on `reader_id`, so
+the endpoint cannot be turned into a moderation tool by guessing ids. Someone
+else's comment reports 404 rather than 403.
+
+## Rate limiting
+
+Two mechanisms, deliberately:
+
+**Comments count rows in the table** (10 per 10 minutes per reader). Exact,
+shared across replicas, and survives a restart. The
+`comments_reader_created_idx` index from stage 2 exists for this query.
+
+**Auth routes use an in-memory sliding window** — logins, registration, resend,
+and password reset. A database write per login attempt would hand an attacker a
+cheap way to generate write load, and these limits do not need to be exact.
+
+| Route | Quota |
+|---|---|
+| Login (per account) | 10 / 15 min |
+| Login (per client address) | 30 / 15 min |
+| Register, resend, password reset (per address) | 5 / 15 min |
+
+Logins are keyed **both** ways: per-account stops a password list being run
+against one user, per-address stops one password being sprayed across many
+accounts — which the per-account counter never sees. A successful login clears
+the counters, so someone who fumbles their password and then gets it right is
+not left one attempt from lockout.
+
+Sliding rather than fixed windows: a fixed window lets an attacker send a full
+budget at the end of one window and another at the start of the next, doubling
+the rate at the boundary.
+
+**Caveat: the in-memory limiter is per-replica.** With N API replicas an
+attacker gets N times the budget, and a restart clears every counter. Acceptable
+for the single-node deployment §2.1 describes; move the counters to Postgres or
+the Redis §2.8 contemplates before scaling out.
+
+### `TRUST_PROXY_HEADERS`
+
+Per-address limits need the real client address. Behind Caddy the socket address
+is the proxy's, so `X-Forwarded-For` has to be trusted — but it is a request
+header, and anyone reaching the API directly can forge it, which would make
+every per-address limit bypassable.
+
+So it is trusted only when `TRUST_PROXY_HEADERS=true`, and **the default is
+false on purpose**. Unset behind a proxy, every client shares one bucket and
+legitimate users start seeing 429s: loud, immediate, easy to diagnose. The
+reverse default would make every limit silently spoofable with nothing looking
+wrong. **Set it to true in any deployment behind Caddy.**
+
+## The Studio (browser authoring tool)
+
+A server-rendered UI at `/studio` for viewing and authoring artifacts while the
+mobile app is built. Cookie-authenticated on the author tier — viewers browse,
+editors and admins write. Sign in at `/studio/login` with an author account
+(`create-author` from the CLI).
+
+- **htmx** drives every interaction as a fragment swap: selecting an artifact,
+  opening the create/edit form, deleting, and polling the media gallery. The
+  sidebar tree refreshes via an `HX-Trigger: refresh-tree` response header.
+- **Leaflet** provides the location map — click to place coordinates, or leave
+  blank to inherit from the parent (the indoor case). The detail view shows the
+  effective location and whether it was set or inherited.
+- **Media upload** runs from the browser against the *existing* cookie-authed
+  attachment endpoints: `upload-intent` → direct PUT to storage → `complete`,
+  then the gallery polls until the worker's WebP thumbnail appears. No
+  studio-specific upload API.
+
+**htmx, Leaflet, and the studio's own JS are vendored into the binary** via
+`include_str!` and served from `/studio/assets/*` — no CDN. Only the map *tiles*
+come from OpenStreetMap, which is inherent to having a map. A deep-linked
+artifact URL renders the whole document; an htmx request for the same URL gets
+just the fragment, so refresh and navigation both work.
+
+Reuses the admin panel's CSRF protection (form posts carry a session-derived
+token) and the artifacts module's coordinate-resolution query. Templates
+autoescape — artifact names and descriptions are author input rendered to a
+browser.
+
+## The admin panel
+
+Server-rendered HTML at `/admin`, cookie-authenticated, **admin role only** —
+an editor authenticates fine and still gets 403. Templates are compiled into
+the binary, so the panel cannot break because a deployment forgot to copy a
+directory. No CDN, no build step.
+
+**CSRF protection, which the JSON API did not need.** A cross-site `fetch`
+cannot read a JSON response without CORS, and bearer tokens are not attached
+automatically. An HTML form is different: any page anywhere can POST here and
+the browser sends the author's cookie. `SameSite=Lax` is the primary defense;
+the token is the second layer for when that attribute is lost — a proxy
+rewriting cookies, an older browser, someone relaxing it to `None` for an
+unrelated integration.
+
+The token is *derived* from the session token (`sha256(domain || session)`)
+rather than stored, so it needs no schema change and no server-side state. An
+attacker cannot compute it without the session cookie, which is `HttpOnly`.
+Comparison is constant-time — a short-circuiting `==` leaks how many leading
+bytes matched.
+
+**Escaping matters more here than anywhere else in the system.** Comment bodies
+are arbitrary user input rendered to someone holding an elevated cookie, which
+is exactly where a stored XSS does the most damage. minijinja autoescapes by
+file extension, so every template name ends in `.html`; the test suite posts
+`<script>alert(...)</script>` as a comment and asserts it renders escaped.
+
+**Moderation changes status; it never deletes.** A hidden comment stays readable
+to moderators, which matters when a takedown is contested or mistaken. Readers
+delete their own comments for real — that is their content to remove.
+
+**Only public trails are browsable.** An admin panel that lets a moderator read
+every private trail is surveillance, not moderation. Moderation covers what
+other people can find.
+
+The panel shows readers by display name, never email — same rule as the public
+thread. Authors' emails are shown to other admins, who are colleagues.
+
+An expired session redirects to the sign-in page rather than returning a bare
+JSON 401, which would leave an admin staring at `{"error":"authentication
+required"}` with no way forward.
+
+**Route change:** JSON author management moved from `/admin/authors` to
+`/api/admin/authors` so `/admin/*` could serve HTML.
+
+## Email delivery
+
+DESIGN.md requires verification but specifies no delivery mechanism, and the
+repo has no SMTP configuration. `src/mail.rs` defines the seam: `Mailer` is the
+interface, and `LogMailer` (`MAILER=log`, the default) writes messages to the
+log instead of sending them, so the flows are exercisable end to end. It warns
+loudly at startup so it cannot be deployed by accident. **A real provider is
+still required before launch** — add one `impl Mailer` and a branch in
+`build_mailer`; no route changes.
+
+`PUBLIC_BASE_URL` builds the links. It is configuration rather than being
+derived from the request, because an attacker controls the `Host` header and
+could otherwise point a verification link at their own domain.
+
+## Schema deviations from DESIGN.md §2.2
+
+The schema follows the design document except where it was underspecified or
+would not survive contact with Postgres. Each of these is a decision worth
+revisiting, not an accident:
+
+| Change | Why |
+|---|---|
+| `artifacts.desc` → `artifacts.description` | `desc` is a reserved SQL keyword requiring quoting at every reference, and `trails` already spells the same concept `description`. |
+| Added `artifacts.sync_version` (from a sequence) | `GET /artifacts/sync?since=<version>` needs a monotonic cursor. A sequence beats a timestamp: two rows written in the same microsecond still get distinct ordered versions, and it is immune to clock skew. |
+| Added `artifacts.deleted_at` (soft delete) | Without a tombstone, a phone that cached an artifact has no way to learn it was deleted and would display it forever. Deletes bump `sync_version`, so the next sync carries the removal. |
+| Added `reader_verification_tokens` | Email verification and password reset need single-use expiring tokens, whose lifecycle differs from a session's — a used token must die immediately. |
+| Added `attachments.claimed_at` / `attempts` | Needed by the sweep that re-queues jobs abandoned by a worker that died mid-processing (DESIGN.md §2.5 calls for the sweep but not the columns it requires). |
+| Case-insensitive unique email on both identity tables | `Tim@umass.edu` and `tim@umass.edu` are one person; treating them as two accounts is a support ticket at best. |
+| Triggers enforce trail owner integrity | `owner_type` + `owner_id` cannot have a declarative foreign key. Triggers validate the owner exists on write and delete a user's trails when the user is deleted — what `ON DELETE CASCADE` would have done. |
+| Trigger enforces an acyclic artifact tree | Coordinate inheritance walks up `parent_id`; a cycle would loop forever. Also caps chain depth at 64. |
+
+## Local services
+
+| Service | Address | Credentials |
+|---|---|---|
+| Postgres | `localhost:5433` | `pintrail` / `pintrail` |
+| MinIO API | `localhost:9000` | `pintrail` / `pintrail-dev-secret` |
+| MinIO console | `localhost:9001` | same |
+
+## Build stages
+
+All ten complete. Each is one commit on `feature/rust-backend`, verified end
+to end before the next began.
+
+1. ✅ Workspace skeleton, config, error type, compose, health endpoints
+2. ✅ Migrations — full DESIGN.md §2.2 schema
+3. ✅ `authors/` — argon2id, cookie sessions, role extractors
+4. ✅ `readers/` — registration, email verification, bearer tokens
+5. ✅ `artifacts/` — CRUD, coordinate inheritance, `/sync`
+6. ✅ `attachments/` — presigned upload intent, S3
+7. ✅ `pintrail-worker` — `SKIP LOCKED` queue, image→WebP, PDF thumbnails
+8. ✅ `trails/` — stops, visibility, share tokens
+9. ✅ `comments/` — create, list, rate limiting
+10. ✅ `admin/` — minijinja moderation UI

@@ -1,0 +1,5 @@
+{# Full-page wrapper. A direct navigation or refresh hits the server for a
+   whole document; an htmx swap gets just the fragment. Both share one fragment
+   template, pulled in here by variable so the route picks which. #}
+{% extends "studio_base.html" %}
+{% block detail %}{% include fragment %}{% endblock %}

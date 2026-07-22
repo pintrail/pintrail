@@ -1,0 +1,14 @@
+# Build artifacts dwarf the source; sending them wastes minutes per build and
+# they are rebuilt inside the image anyway.
+target/
+**/target/
+
+# Never bake secrets into an image layer.
+.env
+*.pem
+*.key
+
+.git/
+.gitignore
+.DS_Store
+README.md

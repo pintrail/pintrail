@@ -1,0 +1,9 @@
+# The AWS SDK (aws-sdk-s3 1.138) requires rustc 1.94.1 or newer.
+#
+# Note: this file is honoured by rustup's shims. If `which rustc` reports a
+# Homebrew or system install rather than ~/.cargo/bin, that toolchain wins and
+# the build fails with an MSRV error -- put ~/.cargo/bin ahead of it on PATH,
+# or invoke ~/.cargo/bin/cargo directly.
+[toolchain]
+channel = "stable"
+components = ["rustfmt", "clippy"]

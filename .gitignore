@@ -208,6 +208,9 @@ __marimo__/
 .DS_Store
 Icon\n
 .env.example
+# ...but env templates carry no secrets and are meant to be committed, so
+# developers can copy them to a real .env.
+!.env.example
 
 # Microsoft Office lock/owner files
 ~$*

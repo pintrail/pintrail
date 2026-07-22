@@ -1,0 +1,65 @@
+{# Layout for the admin panel. Deliberately dependency-free: no CDN, no build
+   step, one small stylesheet inline. The panel is used by a handful of people
+   and should keep working when nothing else does. #}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ title }} — Pintrail admin</title>
+  <style>
+    :root { color-scheme: light dark; }
+    body { font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
+           max-width: 60rem; margin: 0 auto; padding: 1.5rem; line-height: 1.5; }
+    header { display: flex; gap: 1rem; align-items: baseline;
+             border-bottom: 1px solid #8884; padding-bottom: .75rem; margin-bottom: 1.5rem; }
+    header h1 { font-size: 1.1rem; margin: 0; }
+    nav a { margin-right: .9rem; text-decoration: none; }
+    nav a.active { font-weight: 600; text-decoration: underline; }
+    .who { margin-left: auto; font-size: .85rem; opacity: .75; }
+    table { border-collapse: collapse; width: 100%; margin: 1rem 0; }
+    th, td { text-align: left; padding: .5rem .6rem; border-bottom: 1px solid #8883;
+             vertical-align: top; }
+    th { font-size: .78rem; text-transform: uppercase; letter-spacing: .04em; opacity: .7; }
+    .body-cell { max-width: 28rem; overflow-wrap: anywhere; }
+    .tag { font-size: .72rem; padding: .1rem .4rem; border-radius: .25rem;
+           border: 1px solid #8886; }
+    .tag-flagged { background: #f9731633; }
+    .tag-hidden  { background: #8881; opacity: .8; }
+    .tag-visible { background: #22c55e26; }
+    button { font: inherit; padding: .25rem .6rem; cursor: pointer; }
+    .danger { color: #b91c1c; }
+    .empty { opacity: .6; font-style: italic; padding: 1.5rem 0; }
+    .flash { padding: .6rem .8rem; border: 1px solid #8886; border-radius: .3rem;
+             margin-bottom: 1rem; }
+    form.inline { display: inline; }
+    label { display: block; margin: .75rem 0; }
+    input[type=email], input[type=password] { font: inherit; padding: .4rem;
+             width: 100%; max-width: 22rem; box-sizing: border-box; }
+    .muted { opacity: .65; font-size: .85rem; }
+  </style>
+</head>
+<body>
+{% if author %}
+  <header>
+    <h1>Pintrail admin</h1>
+    <nav>
+      <a href="/admin/comments" class="{{ 'active' if section == 'comments' }}">Comments</a>
+      <a href="/admin/trails" class="{{ 'active' if section == 'trails' }}">Trails</a>
+      <a href="/admin/authors" class="{{ 'active' if section == 'authors' }}">Authors</a>
+    </nav>
+    <span class="who">
+      {{ author.email }} ({{ author.role }})
+      <form method="post" action="/admin/logout" class="inline">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <button>Sign out</button>
+      </form>
+    </span>
+  </header>
+{% endif %}
+
+{% if flash %}<p class="flash">{{ flash }}</p>{% endif %}
+
+{% block content %}{% endblock %}
+</body>
+</html>

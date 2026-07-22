@@ -1,0 +1,156 @@
+{# Studio shell: two-pane authoring tool. Deliberately self-contained -- htmx
+   and Leaflet are served from this binary, only map tiles are remote. #}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ title }} · Pintrail Studio</title>
+  <link rel="stylesheet" href="/studio/assets/leaflet.css">
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #fbfbfd; --panel: #ffffff; --ink: #1c1d22; --muted: #6b6f76;
+      --line: #e5e6eb; --accent: #2563eb; --accent-ink: #ffffff;
+      --danger: #b91c1c; --ok: #15803d; --chip: #f1f2f5;
+      --shadow: 0 1px 2px rgba(0,0,0,.05), 0 8px 24px rgba(0,0,0,.04);
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0f1013; --panel: #17181c; --ink: #e8e9ee; --muted: #9a9ea7;
+        --line: #2a2c33; --accent: #3b82f6; --accent-ink: #ffffff;
+        --danger: #f87171; --ok: #4ade80; --chip: #22242b;
+        --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.3);
+      }
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; background: var(--bg); color: var(--ink); line-height: 1.5;
+      font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+    a { color: var(--accent); text-decoration: none; }
+    button, .btn {
+      font: inherit; padding: .5rem .85rem; border-radius: .5rem; cursor: pointer;
+      border: 1px solid var(--line); background: var(--panel); color: var(--ink);
+    }
+    button:hover, .btn:hover { border-color: var(--muted); }
+    .btn-primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+    .btn-primary:hover { filter: brightness(1.05); border-color: var(--accent); }
+    .btn-danger { color: var(--danger); }
+    .btn-sm { padding: .3rem .55rem; font-size: .85rem; }
+
+    header.topbar {
+      display: flex; align-items: center; gap: .75rem; padding: .75rem 1.25rem;
+      background: var(--panel); border-bottom: 1px solid var(--line); position: sticky; top: 0; z-index: 500;
+    }
+    .brand { font-weight: 650; letter-spacing: -.01em; display: flex; align-items: center; gap: .5rem; }
+    .brand .dot { width: .7rem; height: .7rem; border-radius: 50%; background: var(--accent); display: inline-block; }
+    .spacer { margin-left: auto; }
+    .who { color: var(--muted); font-size: .85rem; }
+
+    .layout { display: grid; grid-template-columns: 320px 1fr; min-height: calc(100vh - 57px); }
+    @media (max-width: 780px) { .layout { grid-template-columns: 1fr; } .sidebar { display: none; } }
+
+    .sidebar { border-right: 1px solid var(--line); background: var(--panel); padding: 1rem; overflow-y: auto; }
+    .sidebar .head { display: flex; align-items: center; margin-bottom: .75rem; }
+    .sidebar .head h2 { font-size: .8rem; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin: 0; }
+
+    .tree { list-style: none; margin: 0; padding: 0; }
+    .tree li { margin: 0; }
+    .tree a.node {
+      display: flex; align-items: center; gap: .5rem; padding: .4rem .5rem; border-radius: .45rem;
+      color: var(--ink); cursor: pointer;
+    }
+    .tree a.node:hover { background: var(--chip); }
+    .tree a.node.active { background: color-mix(in srgb, var(--accent) 14%, transparent); color: var(--accent); }
+    .tree .kids { list-style: none; margin: 0; padding-left: 1rem; border-left: 1px solid var(--line); margin-left: .7rem; }
+    .kind-chip {
+      font-size: .68rem; text-transform: uppercase; letter-spacing: .03em; color: var(--muted);
+      border: 1px solid var(--line); border-radius: .3rem; padding: 0 .3rem; flex-shrink: 0;
+    }
+
+    main.detail { padding: 1.5rem 1.75rem; overflow-y: auto; max-width: 900px; }
+    .empty { color: var(--muted); text-align: center; padding: 4rem 1rem; }
+
+    .card { background: var(--panel); border: 1px solid var(--line); border-radius: .75rem; box-shadow: var(--shadow); padding: 1.25rem; margin-bottom: 1.25rem; }
+    .card h1 { margin: 0 0 .25rem; font-size: 1.4rem; letter-spacing: -.02em; }
+    .card h3 { margin: 0 0 .75rem; font-size: .78rem; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+    .subtitle { color: var(--muted); margin: 0 0 1rem; }
+    .row { display: flex; gap: .6rem; flex-wrap: wrap; align-items: center; }
+    .push { margin-left: auto; }
+
+    .map { height: 300px; border-radius: .6rem; border: 1px solid var(--line); overflow: hidden; z-index: 0; }
+    .map.small { height: 220px; }
+
+    dl.meta { display: grid; grid-template-columns: max-content 1fr; gap: .35rem .9rem; margin: 0; }
+    dl.meta dt { color: var(--muted); }
+    dl.meta dd { margin: 0; }
+    .inherited { color: var(--muted); font-style: italic; }
+
+    label.field { display: block; margin: .9rem 0; }
+    label.field .lbl { display: block; font-size: .85rem; color: var(--muted); margin-bottom: .3rem; }
+    input[type=text], input[type=number], input[type=email], input[type=password], textarea, select {
+      font: inherit; width: 100%; padding: .55rem .65rem; border-radius: .5rem;
+      border: 1px solid var(--line); background: var(--bg); color: var(--ink);
+    }
+    textarea { min-height: 5rem; resize: vertical; }
+    .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; }
+    .hint { color: var(--muted); font-size: .82rem; margin-top: .3rem; }
+    .flash { padding: .6rem .8rem; border-radius: .5rem; margin-bottom: 1rem; border: 1px solid var(--line); }
+    .flash.err { color: var(--danger); border-color: color-mix(in srgb, var(--danger) 40%, var(--line)); }
+
+    .gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: .8rem; }
+    .thumb { border: 1px solid var(--line); border-radius: .55rem; overflow: hidden; background: var(--bg); }
+    .thumb img { width: 100%; height: 110px; object-fit: cover; display: block; }
+    .thumb .cap { padding: .4rem .5rem; font-size: .78rem; }
+    .thumb .st { padding: .2rem .5rem .5rem; font-size: .72rem; color: var(--muted); display: flex; justify-content: space-between; align-items: center; }
+    .st.processing { color: var(--accent); }
+    .st.failed { color: var(--danger); }
+    .placeholder { height: 110px; display: grid; place-items: center; color: var(--muted); font-size: .8rem; background: var(--chip); }
+
+    .signin { max-width: 22rem; margin: 4rem auto; }
+    .signin .card { padding: 1.5rem; }
+
+    /* Leaflet controls read better on a dark theme with a slight lift. */
+    .leaflet-container { font: inherit; background: var(--chip); }
+  </style>
+  <script src="/studio/assets/htmx.min.js" defer></script>
+  <script src="/studio/assets/leaflet.js" defer></script>
+  <script src="/studio/assets/studio.js" defer></script>
+</head>
+<body>
+{% if author %}
+  <header class="topbar">
+    <a class="brand" href="/studio"><span class="dot"></span> Pintrail Studio</a>
+    <span class="spacer"></span>
+    <span class="who">{{ author.email }} · {{ author.role }}</span>
+    <form method="post" action="/studio/logout" style="display:inline">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <button class="btn-sm">Sign out</button>
+    </form>
+  </header>
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="head">
+        <h2>Artifacts</h2>
+        <span class="push"></span>
+        {% if can_edit %}
+        <button class="btn-sm btn-primary" hx-get="/studio/artifacts/new" hx-target="#detail">+ New</button>
+        {% endif %}
+      </div>
+      <div id="tree"
+           hx-get="/studio/tree"
+           hx-trigger="load, refresh-tree from:body"
+           hx-swap="innerHTML">
+      </div>
+    </aside>
+    <main class="detail" id="detail">
+      {% block detail %}{% endblock %}
+    </main>
+  </div>
+{% else %}
+  {% block content %}{% endblock %}
+{% endif %}
+</body>
+</html>
