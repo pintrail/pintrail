@@ -116,6 +116,16 @@ services:
         condition: service_completed_successfully
     restart: unless-stopped
 
+  # Local mail catcher for testing MAILER=smtp. Opt-in:
+  #   docker compose --profile mail up -d mailpit
+  # SMTP on :1025, web UI + API on http://localhost:8025
+  mailpit:
+    image: axllent/mailpit:latest
+    profiles: ["mail"]
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+
 volumes:
   pgdata:
   miniodata:

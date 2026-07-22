@@ -543,18 +543,34 @@ required"}` with no way forward.
 
 ## Email delivery
 
-DESIGN.md requires verification but specifies no delivery mechanism, and the
-repo has no SMTP configuration. `src/mail.rs` defines the seam: `Mailer` is the
-interface, and `LogMailer` (`MAILER=log`, the default) writes messages to the
-log instead of sending them, so the flows are exercisable end to end. It warns
-loudly at startup so it cannot be deployed by accident. **A real provider is
-still required before launch** — add one `impl Mailer` and a branch in
-`build_mailer`; no route changes.
+Two implementations behind one `Mailer` trait, chosen by `MAILER`:
 
-`PUBLIC_BASE_URL` builds the links. It is configuration rather than being
-derived from the request, because an attacker controls the `Host` header and
-could otherwise point a verification link at their own domain.
+- **`log`** (default) writes verification and reset links to the log — for
+  development, and it warns loudly at startup so it cannot ship by accident.
+- **`smtp`** delivers over SMTP, so it works with Resend, Brevo, Amazon SES, a
+  campus relay — anything speaking SMTP — by changing only environment
+  variables (`SMTP_HOST`, `SMTP_PORT`, `SMTP_TLS`, `SMTP_USERNAME`,
+  `SMTP_PASSWORD`, `MAIL_FROM`). rustls, not native-tls, so it needs no OpenSSL
+  in the image.
 
+**`send` never blocks the request.** It is a synchronous trait method called
+from async handlers, so `SmtpMailer::send` only enqueues onto a channel and
+returns; a background task owns the SMTP connection and does the delivery, with
+a couple of retries on transient failure. A registration returns immediately
+regardless of mail latency, and a dead relay neither blocks nor fails the user's
+request — which also keeps the response identical whether or not the address
+exists. Verified: with SMTP pointed at a dead port, register returned 202 in
+0.25 s while the background task retried and logged the failure.
+
+`MAIL_FROM` should be an address on a **domain you have verified** with the
+provider (SPF/DKIM/DMARC), or transactional mail lands in spam — that DNS setup,
+not the provider choice, is the real work. For a UMass app, a campus SMTP relay
+is likely the best option: free, already reputable, and sends from a
+university-adjacent address.
+
+Local testing: `docker compose --profile mail up -d mailpit` runs a catcher
+(SMTP `:1025`, web UI `http://localhost:8025`), then set `MAILER=smtp
+SMTP_HOST=localhost SMTP_PORT=1025 SMTP_TLS=none`.
 ## Schema deviations from DESIGN.md §2.2
 
 The schema follows the design document except where it was underspecified or

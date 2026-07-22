@@ -18,8 +18,20 @@ pub struct Settings {
     /// derived from the request, because an attacker controls the Host header
     /// and could redirect a verification link at their own domain.
     pub public_base_url: String,
-    /// Which mailer implementation to use. See `crate::mail`.
+    /// Which mailer implementation to use. See `crate::mail`. `log` (default)
+    /// writes to the log; `smtp` sends via the fields below.
     pub mailer: String,
+    /// SMTP settings, read only when `mailer = "smtp"`. One SMTP impl works
+    /// with Resend, Brevo, SES, a campus relay -- anything speaking SMTP.
+    pub smtp_host: Option<String>,
+    pub smtp_port: u16,
+    pub smtp_username: Option<String>,
+    pub smtp_password: Option<String>,
+    /// `starttls` (587, the usual submission port), `implicit` (465, SMTPS),
+    /// or `none` (plaintext, for a local mail catcher only).
+    pub smtp_tls: String,
+    /// The From address, e.g. `Pintrail <no-reply@pintrail.example>`.
+    pub mail_from: String,
     /// Whether to believe `X-Forwarded-For`. See `crate::client_ip` for why
     /// the default is false.
     pub trust_proxy_headers: bool,
@@ -77,6 +89,12 @@ impl Settings {
             cookie_secure: parsed("COOKIE_SECURE", true)?,
             public_base_url: optional("PUBLIC_BASE_URL", "http://localhost:8080"),
             mailer: optional("MAILER", "log"),
+            smtp_host: env::var("SMTP_HOST").ok().filter(|v| !v.trim().is_empty()),
+            smtp_port: parsed("SMTP_PORT", 587)?,
+            smtp_username: env::var("SMTP_USERNAME").ok().filter(|v| !v.trim().is_empty()),
+            smtp_password: env::var("SMTP_PASSWORD").ok().filter(|v| !v.trim().is_empty()),
+            smtp_tls: optional("SMTP_TLS", "starttls"),
+            mail_from: optional("MAIL_FROM", "Pintrail <no-reply@localhost>"),
             trust_proxy_headers: parsed("TRUST_PROXY_HEADERS", false)?,
             s3_endpoint: env::var("S3_ENDPOINT").ok().filter(|v| !v.trim().is_empty()),
             s3_public_endpoint: env::var("S3_PUBLIC_ENDPOINT").ok().filter(|v| !v.trim().is_empty()),

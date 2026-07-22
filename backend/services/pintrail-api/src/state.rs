@@ -27,8 +27,7 @@ impl AppState {
             .connect(&settings.database_url)
             .await?;
 
-        let mailer = crate::mail::build_mailer(&settings.mailer)
-            .map_err(|e| anyhow::anyhow!("{e}"))?;
+        let mailer = crate::mail::build_mailer(&settings).map_err(|e| anyhow::anyhow!("{e}"))?;
 
         let storage = Storage::connect(&StorageConfig {
             endpoint: settings.s3_endpoint.clone(),
