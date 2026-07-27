@@ -92,6 +92,12 @@ This is the largest backend addition the MVP needs, and it is the one thing that
 should ship (and be tested) before app work. The transport stays bearer tokens
 as already decided — OAuth is simply *how the bearer token is obtained*.
 
+> **The implementable contract lives in [`AUTH_OAUTH.md`](AUTH_OAUTH.md)** —
+> request/response shapes, per-provider verification rules (JWKS, nonce
+> hashing), the identity-resolution algorithm, the migration DDL, TTLs, rate
+> limits, config, and the test plan that defines the PR as done. This section
+> stays at design level.
+
 ### 4.1 New endpoint
 
 `POST /auth/oauth/{provider}` where `provider ∈ {apple, google}`. Body carries
@@ -622,10 +628,10 @@ fallback. Everything else exists.
 
 ## 11. Build order (milestones)
 
-0. **Backend — social sign-in (§4):** the OAuth endpoint (Apple + Google token
-   verification, nonce, identity resolution), the schema migration, and the
-   `/authors/token` fallback. Its own PR, with the adversarial tests listed in
-   §4.5. Ships first — it is the critical path.
+0. **Backend — social sign-in:** implement [`AUTH_OAUTH.md`](AUTH_OAUTH.md) as
+   its own PR — the OAuth endpoint, the migration, the `/authors/token`
+   fallback, and its §9 test plan (adversarial cases A1–A11 + functional
+   F1–F12) as the definition of done. Ships first — it is the critical path.
 1. **App shell + auth:** the sign-in screen (Apple/Google + email fallback),
    nonce + native flows, secure token storage, `AuthContext`, role-driven
    rendering, the API client with bearer + 401/403 handling.
