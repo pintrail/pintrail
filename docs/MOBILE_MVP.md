@@ -339,6 +339,204 @@ option, so both buttons share identical width, height (52pt), and radius (12pt).
 Palette note: the accent (`#2563eb` light / `#3b82f6` dark) matches the web
 studio, so the two Pintrail surfaces read as one product.
 
+### 6.2 Shared UI foundations
+
+The tokens and components every screen draws from, so the app reads as one
+system. These mirror the web studio's palette; the two surfaces are one brand.
+
+**Surfaces** (light / dark):
+
+| Token | Light | Dark |
+|---|---|---|
+| `bg` | `#fbfbfd` | `#0f1013` |
+| `panel` | `#ffffff` | `#17181c` |
+| `ink` | `#1c1d22` | `#e8e9ee` |
+| `muted` | `#6b6f76` | `#9a9ea7` |
+| `line` | `#e5e6eb` | `#2a2c33` |
+| `accent` | `#2563eb` | `#3b82f6` |
+
+**Type scale:** display 34/700 · title 28/700 · headline 20/600 · body 16/400 ·
+callout 15/500 · footnote 13/400 · caption 12/400. All support Dynamic Type.
+
+**Spacing:** a 4pt base — 4 · 8 · 12 · 16 · 20 · 24 · 32. **Radii:** card 16 ·
+control 12 · chip 8 · sheet-top 20.
+
+**Tab bar:** three tabs — Nearby, Trails, Me — icon + label, 49pt tall above the
+bottom safe inset, translucent blurred `panel`, active tint `accent`, inactive
+`muted`. Present on the `(tabs)` screens only.
+
+**Kind chip:** a small pill used on list rows, map pins, and detail — a per-kind
+glyph (from `@expo/vector-icons`, already in the scaffold) + the kind label,
+tinted per kind (building, room, artwork, installation, rooftop, other each get
+a stable hue). One component, reused everywhere a kind is shown.
+
+**Thumbnail:** an artifact's first processed image, `cover`. When there is no
+image (or it is still processing), a **placeholder tile** — the kind glyph
+centered on the kind's tint — stands in, so the layout never shifts when a
+photo finishes processing.
+
+**Distance formatting:** `< 15 m` → "Here" · `< 1 km` → "240 m" · else "1.2 km".
+
+### 6.3 Nearby — map + list
+
+The home screen while walking: a live map you can also read as a ranked list.
+The pattern is a full-screen map under a **draggable bottom sheet**, the modern
+maps-app idiom.
+
+#### Composition
+
+```
+┌───────────────────────────────┐
+│ ◈ Pintrail            [ ⌖ ]    │  ← floating: logo pill (left), recenter FAB
+│                                │    (right); both over the map, safe-area aware
+│              📍 you            │
+│         ●        ●             │  ← artifact pins; user is a blue dot
+│              ●        ●        │
+│      ●            ●            │
+│                                │
+├───────────────────────────────┤  ← bottom sheet (drag handle)
+│  ▬▬▬                           │
+│  8 places nearby               │
+│  ┌───┐ Elm Solar Array         │
+│  │▨▨│ ⬡ Rooftop · Elm Building │  240 m
+│  └───┘                         │
+│  ┌───┐ Rain Garden             │
+│  │▨▨│ ⬡ Installation           │  310 m
+│  └───┘                         │
+├───────────────────────────────┤
+│   [ Nearby ]   Trails    Me    │  ← tab bar
+└───────────────────────────────┘
+```
+
+#### Anatomy
+
+| Element | Spec |
+|---|---|
+| Map | Full-screen `react-native-maps`, Apple/Google native tiles. Camera starts on the user (or campus default until located). |
+| User location | Standard platform blue dot + heading. |
+| Pins | One pin style carrying the kind glyph; **cluster** when dense (a numbered bubble that zooms in on tap). Selected pin lifts ~8pt and gains the accent ring. |
+| Logo pill | Small translucent `panel` pill, top-left, over the map, below the status bar. Brand presence without a heavy header. |
+| Recenter FAB | 44pt circular `panel` button, top-right (or above the sheet), re-centers on the user; hidden until location is granted. |
+| Bottom sheet | Three detents — **peek** (~140pt: handle + "N places nearby" + first row, sitting *above* the tab bar), **half** (~55%), **full**. Spring physics. |
+| List row | 56pt: 44pt rounded thumbnail, name (body/600), kind chip + parent (footnote/muted) on the second line, distance right-aligned (callout/muted). Whole row is the tap target. |
+
+#### Interactions
+
+- **Tap a row** → selects and centers its pin, sheet drops to peek.
+- **Tap a pin** → sheet snaps to a single **preview card** for that artifact
+  (thumbnail, name, kind, distance, "View" button); swipe the sheet down to
+  return to the full list.
+- **Tap "View" / tap the row's chevron** → push `artifact/[id]`.
+- Rows are sorted by distance, recomputed client-side as the user moves (§7) —
+  no per-move network call.
+
+#### States
+
+| State | Screen |
+|---|---|
+| Permission not yet asked | Map dimmed behind a centered card: "See what's around you", a line of why, and an **Allow location** button. |
+| Permission denied | Card offers **Open Settings** and a secondary **Browse the map** (campus-default camera, list without distances) so the app is never a dead end. |
+| Loading manifest | Map visible; sheet shows three shimmer rows. |
+| Located, nothing in range | Sheet: "Nothing nearby yet" + "Browse the map" — pins still show if any exist further out. |
+| Located, normal | As drawn above. |
+
+#### Motion (reduce-motion aware)
+
+Pins drop in with a short stagger on first load; the sheet uses spring detents;
+the selected pin lifts. Reduce Motion → pins appear without the drop, sheet
+snaps without overshoot.
+
+#### Accessibility
+
+Each pin and row has a label ("Elm Solar Array, rooftop, 240 metres"); the sheet
+is an accessible, focus-trapping sheet with a labelled handle; the recenter FAB
+and logo are labelled; rows honour Dynamic Type (wrapping to a taller row rather
+than truncating the name). Full light/dark.
+
+### 6.4 Artifact detail
+
+Reached from a pin, a list row, a trail stop, or a deep link. A single scrolling
+screen: image up top, story below, comments at the bottom.
+
+#### Composition
+
+```
+┌───────────────────────────────┐
+│ ‹                         ✎    │  ← translucent back (left); Edit (right,
+│      ◀   ▨▨▨▨▨▨▨▨▨   ▶         │    authors only). Paged image carousel,
+│              • ○ ○             │    ~320pt, page dots
+├───────────────────────────────┐
+│  Elm Solar Array               │  ← content card, 16pt corner radius,
+│  ⬡ Rooftop · in Elm Building   │    overlapping the hero by ~16pt
+│  Here · 40kW, installed 2021   │
+│                                │
+│  Installed 2021, this 40 kW    │
+│  array provides roughly 12%    │
+│  of the building's annual…     │
+│                                │
+│  ┌─────────────────────────┐   │  ← location card (mini map + pin),
+│  │        [ mini map ]      │   │    ~180pt, tap → open in Maps
+│  └─────────────────────────┘   │
+│                                │
+│  Comments (4)                  │
+│  jstudent42 · 2d               │
+│  Cool to see this in action!   │
+│  …                             │
+│  ┌─────────────────────────┐   │  ← composer (state-dependent, below)
+│  │ Add a comment…      Post │   │
+│  └─────────────────────────┘   │
+└───────────────────────────────┘
+```
+
+#### Anatomy
+
+| Element | Spec |
+|---|---|
+| Image carousel | Full-width paged gallery, ~320pt, `cover`, page dots. Uses each attachment's processed image; **parallax** on scroll (hero scales/translates slightly). No images → a kind placeholder header (kind glyph on the kind tint). |
+| Back / Edit | Translucent circular controls floating over the hero, safe-area aware. **Edit** appears only when `role ≥ editor` and routes to `author/artifact-edit-[id]`. |
+| Content card | `panel`, 16pt top radius, overlapping the hero ~16pt for the card-over-image look. |
+| Title | display/700. |
+| Kind + breadcrumb | Kind chip + "in {parent}", the parent tappable to its own detail. |
+| Location line | Distance/"Here" when location is known; omitted otherwise. |
+| Description | body/400, generous line height. |
+| Location card | Non-interactive `react-native-maps` region (~180pt) with a single pin at the **effective** coordinates; tap opens the platform Maps app. Hidden if the artifact has no resolvable location. |
+| Comments | "Comments (N)"; rows show display name (callout/600), relative time (footnote/muted), body (body). Newest first. |
+| Composer | State-dependent (below). |
+
+#### Comment composer states
+
+| Viewer | Composer |
+|---|---|
+| Verified explorer | Text field + Post; optimistic insert, rolls back on error. |
+| Unverified explorer | Field disabled with an inline "Confirm your email to comment" + **Resend** (the `403 EmailNotVerified` path). |
+| Signed-out | "Sign in to comment" button → sign-in. |
+| Author (editor/admin) | **No composer** — comments are reader-authored in the backend, so an author session sees the thread read-only. A one-line note says so rather than showing a field that would 401. |
+
+Readers may delete **their own** comments (a small "…" on their rows →
+`DELETE /comments/{id}`); moderation lives in the web admin, not here.
+
+#### States
+
+| State | Screen |
+|---|---|
+| Loading | Skeleton: shimmering hero block + title/line bars. |
+| Image still processing | Placeholder tile in the carousel slot with a subtle "processing" shimmer; swapped for the photo when `status = processed` (poll like the studio does). |
+| No images | Kind placeholder header; layout otherwise unchanged. |
+| No comments | "Be the first to comment." above the composer. |
+| Unavailable (stale link / deleted) | Friendly full-screen "This place is no longer available." with a back action — matches the trail-stop `available: false` case. |
+
+#### Motion (reduce-motion aware)
+
+Hero parallax on scroll; carousel paging; a new comment slides in on post.
+Reduce Motion → no parallax (hero stays put), instant comment insert.
+
+#### Accessibility
+
+Carousel images expose their caption/filename as labels and announce "image N of
+M"; back and Edit are labelled; the location card announces the place name;
+comment rows read as "{name}, {time}: {body}"; the composer field is labelled and
+its disabled/verify state is announced. Dynamic Type throughout; full light/dark.
+
 ---
 
 ## 7. Location & "nearby" (MVP, foreground)
