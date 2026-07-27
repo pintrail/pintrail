@@ -220,13 +220,124 @@ first sign-in. `email.tsx`/`verify.tsx` exist only for the fallback.
 Authoring entry points (a "+" on Nearby, an "Edit" on artifact detail) are
 **conditionally rendered on role**.
 
-### Sign-in screen, concretely
+### 6.1 Sign-in screen — visual specification
 
-A full-bleed campus/hero image, the wordmark, then the two platform buttons in
-their native styling (Apple's required black/white button; Google's standard
-button) stacked with comfortable spacing, and a small centered "Use email
-instead" beneath. Nothing else — no forms, no tier questions. It should feel
-like a first-class consumer app on first launch, which is most of the "cool."
+The first thing anyone sees. It carries no data and asks no questions, so all of
+its job is *impression*: a real place, a clear mark, two obvious ways in. Spec is
+buildable as written; numbers are in points (pt).
+
+#### Composition (portrait)
+
+```
+┌───────────────────────────────┐  ← full-bleed hero image, edge to edge,
+│                                │    behind the status bar (no top inset)
+│                                │
+│         [ ◈ pin mark ]         │  ← brand block, optically centered in the
+│          P I N T R A I L       │    upper third
+│      Discover the campus.      │
+│                                │
+│                                │
+│              ·                 │  ← flexible spacer (hero breathes here)
+│                                │
+│   ┌─────────────────────────┐  │
+│   │    Continue with Apple   │  │  ← auth stack, pinned to the lower third
+│   └─────────────────────────┘  │
+│   ┌─────────────────────────┐  │
+│   │  [G]  Continue with Google│ │
+│   └─────────────────────────┘  │
+│                                │
+│        Use email instead        │  ← quiet text link
+│                                │
+│   By continuing you agree to    │  ← legal microcopy, 2 lines max
+│   the Terms and Privacy Policy. │
+└───────────────────────────────┘  ← buttons sit above the bottom safe-area inset
+```
+
+A dark **gradient scrim** sits between the hero and the content
+(`rgba(0,0,0,0)` at ~40% height → `rgba(0,0,0,0.65)` at the bottom) so text and
+buttons stay legible over any photo. The brand block gets its own lighter top
+scrim if the chosen image is bright at the top.
+
+#### Anatomy & spacing (top → bottom)
+
+| Element | Spec |
+|---|---|
+| Hero image | Full-bleed, `cover`, extends under the status bar. Ships light- and dark-toned variants (or one image the scrim tames for both). |
+| Pin mark | App logo mark, ~64pt, centered. |
+| Wordmark | "Pintrail", 34pt / weight 700, letter-spacing +0.5, white. |
+| Tagline | One line, 16pt / weight 400, white at 85% opacity. 20pt below wordmark. |
+| Spacer | Flexible — pushes brand up, auth stack down; both anchor to thirds, not the exact center. |
+| Auth buttons | Two, full width minus **24pt** side margins, **52pt** tall, **12pt** corner radius, **12pt** gap between them. |
+| "Use email instead" | 15pt / weight 500, white, centered, 20pt below the buttons, 44pt tap target. |
+| Legal line | 12pt / weight 400, white at 60%, centered; "Terms" and "Privacy Policy" tappable. 16pt above the bottom safe inset. |
+
+#### Buttons (platform-compliant, equal prominence)
+
+Apple **requires** its button be no less prominent than any other sign-in
+option, so both buttons share identical width, height (52pt), and radius (12pt).
+
+- **Apple** — `expo-apple-authentication`'s `AppleAuthenticationButton`
+  (`SIGN_IN`/`CONTINUE`), style `BLACK` in light mode, `WHITE` in dark, corner
+  radius 12. Do not re-implement it; the native component keeps Apple's label,
+  logo, and localization correct.
+- **Google** — a custom button that follows Google's current Identity branding
+  exactly: white background `#FFFFFF`, text `#1F1F1F` weight 500, the **unmodified**
+  colored "G" mark from Google's asset kit at 20pt, left-aligned logo with the
+  label optically centered. Dark variant: background `#131314`, text `#E3E3E3`.
+  Never recolor or redraw the G.
+- **Order:** Apple first on iOS (platform convention + prominence); on Android,
+  Google first. Drive off `Platform.OS`.
+
+#### States
+
+| State | Behavior |
+|---|---|
+| Idle | Both buttons enabled. |
+| Pressed | Native press feedback (Apple's own; Google button uses `Pressable` with an 8% overlay). |
+| In progress | The tapped button shows an inline spinner and its label reads "Signing in…"; the other button and the email link dim to 40% and disable, so only one flow runs at a time. |
+| Cancelled | User backed out of the provider sheet → silently restore idle (no error; cancellation is not failure). |
+| Error | A dismissible banner slides in above the auth stack ("Couldn't sign in — try again"); buttons return to idle. Network vs. provider errors get the same friendly copy; details go to logs, not the screen. |
+
+#### Motion (all gated on Reduce Motion)
+
+- Entrance: brand block and auth stack fade + rise 12pt, staggered ~80ms, over
+  ~400ms on first mount.
+- Hero: a slow, subtle Ken Burns drift (scale 1.0 → 1.06 over ~20s, alternating).
+  Off entirely when Reduce Motion is on — it becomes a static image.
+- Nothing bounces or spins decoratively; motion is a settle, not a show.
+
+#### Accessibility
+
+- Scrim guarantees ≥ 4.5:1 contrast for all text and the "use email" link over
+  the hero.
+- Every control ≥ 44pt tap target (buttons are 52).
+- VoiceOver labels: "Continue with Apple", "Continue with Google", "Use email
+  instead", and the two legal links; the pin mark is decorative (hidden).
+- Supports Dynamic Type up to the large accessibility sizes — the wordmark and
+  tagline scale, and the auth stack stays pinned above the safe inset (it
+  scrolls if type is enormous rather than colliding with the buttons).
+- Full light/dark support via the button variants and the two hero tones.
+
+#### Assets to produce
+
+- Hero image(s): a strong campus photograph (or two, for light/dark), 1284×2778
+  @3x, licensed for the app.
+- App pin/logo mark as SVG (also the source of the tab-bar and launcher icons).
+- Google "G" from Google's official kit (do not trace your own).
+- Wordmark typeface decision — a single display weight is enough for MVP;
+  system font is an acceptable start if a brand face isn't chosen yet.
+
+#### Copy
+
+- Wordmark: **Pintrail**
+- Tagline (pick one): "Discover the campus." / "Find what's around you." /
+  "Every place has a story."
+- Buttons: "Continue with Apple", "Continue with Google"
+- Fallback: "Use email instead"
+- Legal: "By continuing you agree to the Terms and Privacy Policy."
+
+Palette note: the accent (`#2563eb` light / `#3b82f6` dark) matches the web
+studio, so the two Pintrail surfaces read as one product.
 
 ---
 
