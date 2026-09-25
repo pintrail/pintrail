@@ -1,27 +1,38 @@
-# TLS terminator in front of pintrail-api.
-#
-# Caddy obtains and renews certificates automatically; the only requirement is
-# that PINTRAIL_DOMAIN resolves to this host and ports 80 and 443 are open.
+# TLS terminator in front of pintrail-api, with object storage served under
+# /media/ on the same host. The path prefix IS the bucket name, so nothing is
+# rewritten and the presigned SigV4 signature stays valid.
+
+# Reroute from this domain to pintrail
+mapindstudy.cs.umass.edu {
+	tls /certs/mapindstudy.crt /certs/mapindstudy.key
+	redir https://pintrail.cs.umass.edu{uri} permanent
+}
 
 {$PINTRAIL_DOMAIN} {
-	encode zstd gzip
+	tls /certs/mapindstudy.crt /certs/mapindstudy.key
 
-	# The API reads X-Forwarded-For for rate limiting and trusts it because
-	# TRUST_PROXY_HEADERS is set. reverse_proxy replaces any inbound value
-	# rather than appending to it, so a client cannot forge its own address.
-	reverse_proxy api:8080 {
-		header_up X-Forwarded-For {remote_host}
-		header_up X-Forwarded-Proto {scheme}
+	@media path /media/*
+	handle @media {
+		# No compression and no header rewriting here. The signature covers
+		# the host and path exactly as the client sent them.
+		reverse_proxy minio:9000
 	}
 
-	header {
-		# The API serves JSON and one small admin panel; nothing here should
-		# ever be framed, sniffed, or leak a full referrer.
-		X-Content-Type-Options nosniff
-		X-Frame-Options DENY
-		Referrer-Policy strict-origin-when-cross-origin
-		Strict-Transport-Security "max-age=31536000; includeSubDomains"
-		-Server
+	handle {
+		encode zstd gzip
+
+		reverse_proxy api:8080 {
+			header_up X-Forwarded-For {remote_host}
+			header_up X-Forwarded-Proto {scheme}
+		}
+
+		header {
+			X-Content-Type-Options nosniff
+			X-Frame-Options DENY
+			Referrer-Policy strict-origin-when-cross-origin
+			Strict-Transport-Security "max-age=31536000; includeSubDomains"
+			-Server
+		}
 	}
 
 	log {

@@ -1,0 +1,39 @@
+# MinIO's images were withdrawn from Docker Hub, so object storage is now
+# Versity S3 Gateway over a posix directory. The service keeps the name
+# "minio" so nothing else in compose.yml or compose.prod.yml has to be
+# rewired; rename it when this gets committed properly.
+#
+# With the posix backend a bucket is simply a top level directory under the
+# gateway root, so minio-init no longer needs the mc client and no longer
+# needs the gateway to be running.
+services:
+  minio:
+    image: ghcr.io/versity/versitygw:latest
+    command: !override
+      ["--port", ":9000", "--health", "/health", "posix", "/data"]
+    environment: !override
+      ROOT_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID:?set S3_ACCESS_KEY_ID}
+      ROOT_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY:?set S3_SECRET_ACCESS_KEY}
+      VGW_REGION: ${S3_REGION:-us-east-1}
+      # The studio uploads straight to the presigned URL from the browser,
+      # which is a cross origin request to this gateway.
+      VGW_CORS_ALLOW_ORIGIN: ${PUBLIC_BASE_URL:?set PUBLIC_BASE_URL}
+    healthcheck: !override
+      disable: true
+    volumes:
+      - miniodata:/data
+
+  minio-init:
+    image: alpine:3
+    depends_on: !override {}
+    environment: !override
+      S3_BUCKET: ${S3_BUCKET:?set S3_BUCKET}
+    entrypoint: !override
+      ["/bin/sh", "-c", "mkdir -p /data/$${S3_BUCKET} && echo 'bucket ready'"]
+    volumes:
+      - miniodata:/data
+
+  caddy:
+    volumes:
+      - /etc/ssl/certs/mapindstudy-fullchain.pem:/certs/mapindstudy.crt:ro
+      - /etc/ssl/private/mapindstudy-mapindstudy.key:/certs/mapindstudy.key:ro
