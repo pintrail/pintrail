@@ -57,7 +57,7 @@ async fn main() -> anyhow::Result<()> {
             let addr = std::env::var("BIND_ADDR").unwrap_or_else(|_| "0.0.0.0:8080".into());
             return cli::healthcheck(&addr);
         }
-        [] | ["create-author", _, _] | ["reset-password", _] => {}
+        [] | ["migrate"] | ["create-author", _, _] | ["reset-password", _] => {}
         other => {
             eprint!("unrecognized command: {}\n\n{}", other.join(" "), cli::USAGE);
             std::process::exit(2);
@@ -68,10 +68,23 @@ async fn main() -> anyhow::Result<()> {
     let bind_addr = settings.bind_addr.clone();
 
     let state = AppState::connect(settings).await?;
-    sqlx::migrate!("../../migrations").run(&state.db).await?;
+
+    // Ignoring migrations the database has but this binary lacks is what
+    // makes a code-only rollback possible: after a deploy applies a new
+    // (additive) migration, the previous image must still start against the
+    // newer schema. Without this sqlx refuses with VersionMissing.
+    let mut migrator = sqlx::migrate!("../../migrations");
+    migrator.set_ignore_missing(true);
+    migrator.run(&state.db).await?;
 
     // Operator commands run against the migrated database, then exit.
     match command.as_slice() {
+        // The deploy script runs this as its own step, so a failing migration
+        // stops the deploy before any running container is replaced.
+        ["migrate"] => {
+            println!("migrations up to date");
+            return Ok(());
+        }
         ["create-author", email, role] => {
             return cli::create_author(&state.db, email, role).await;
         }

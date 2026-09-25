@@ -19,6 +19,9 @@ commands:
   (no command)                     run the HTTP server
   healthcheck                      probe the local server's liveness endpoint
                                    and exit 0 or 1; used by the container
+  migrate                          apply pending database migrations and
+                                   exit (the server also applies them at
+                                   startup)
   create-author <email> <role>     provision an author; reads the password
                                    from stdin. role: viewer | editor | admin
   reset-password <email>           set a new password, read from stdin
