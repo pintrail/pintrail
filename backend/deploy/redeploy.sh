@@ -85,7 +85,7 @@ main() {
   if ((backup)); then
     if postgres_running; then
       log "backing up the database"
-      backup_file=$(backup_database "${to:0:10}")
+      backup_file=$(backup_database "before-${to:0:10}")
       log "backup written to $backup_file"
     else
       warn "postgres is not running, so there is nothing to back up (first deploy?)"
