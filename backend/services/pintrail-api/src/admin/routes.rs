@@ -12,10 +12,10 @@ use uuid::Uuid;
 use super::csrf;
 use crate::authors::auth::{generate_session_token, hash_session_token, SESSION_COOKIE};
 use crate::authors::extractors::RequireAdmin;
-use crate::authors::model::Author;
+use crate::authors::model::{looks_like_email, validate_password, Author, AuthorRole};
 use crate::client_ip::ClientIp;
-use crate::crypto::{verify_dummy_password, verify_password};
-use crate::error::{AppError, AppResult};
+use crate::crypto::{hash_password, verify_dummy_password, verify_password};
+use crate::error::{AppError, AppResult, PasswordChangeRequiredMarker};
 use crate::rate_limit::{LOGIN_PER_ACCOUNT, LOGIN_PER_IP};
 use crate::state::AppState;
 
@@ -61,7 +61,7 @@ pub fn router() -> Router<AppState> {
         .route("/admin/comments/{id}/restore", post(restore_comment))
         .route("/admin/trails", get(trail_list))
         .route("/admin/trails/{id}/delete", post(delete_trail))
-        .route("/admin/authors", get(author_list))
+        .route("/admin/authors", get(author_list).post(create_author))
         .route("/admin/authors/{id}/toggle", post(toggle_author))
 }
 
@@ -126,7 +126,7 @@ async fn login_submit(
     state.limiter.check(&account_key, LOGIN_PER_ACCOUNT)?;
 
     let author = sqlx::query_as::<_, Author>(
-        "SELECT id, email, password_hash, role, is_active, created_at, updated_at \
+        "SELECT id, email, password_hash, role, is_active, must_change_password, created_at, updated_at \
          FROM authors WHERE lower(email) = lower($1)",
     )
     .bind(email)
@@ -184,7 +184,15 @@ async fn login_submit(
         token.expires_at,
     ));
 
-    Ok((jar, Redirect::to("/admin/comments")).into_response())
+    // An admin-chosen password is replaced before anything else; the panel's
+    // extractors would refuse this session anyway, so go straight there.
+    let landing = if author.must_change_password {
+        "/studio/password"
+    } else {
+        "/admin/comments"
+    };
+
+    Ok((jar, Redirect::to(landing)).into_response())
 }
 
 #[derive(Debug, Deserialize)]
@@ -444,13 +452,45 @@ async fn delete_trail(
 
 // --- author management -----------------------------------------------------
 
+#[derive(Debug, Deserialize)]
+pub struct AuthorListQuery {
+    /// Email of an account just created, for the confirmation message.
+    created: Option<String>,
+}
+
 async fn author_list(
     admin: RequireAdmin,
     State(state): State<AppState>,
     jar: CookieJar,
+    Query(query): Query<AuthorListQuery>,
+) -> AppResult<Html<String>> {
+    let flash = query.created.map(|email| {
+        format!(
+            "Created {email}. They will be asked to choose a new password \
+             when they first sign in."
+        )
+    });
+
+    render_author_list(&admin.0, &state, &jar, flash, None, None).await
+}
+
+/// What the create form re-displays after a rejected submission. The password
+/// is deliberately absent: it is never echoed back into the page.
+struct CreateFormEcho {
+    email: String,
+    role: String,
+}
+
+async fn render_author_list(
+    admin: &Author,
+    state: &AppState,
+    jar: &CookieJar,
+    flash: Option<String>,
+    error: Option<String>,
+    echo: Option<CreateFormEcho>,
 ) -> AppResult<Html<String>> {
     let authors = sqlx::query_as::<_, Author>(
-        "SELECT id, email, password_hash, role, is_active, created_at, updated_at \
+        "SELECT id, email, password_hash, role, is_active, must_change_password, created_at, updated_at \
          FROM authors ORDER BY created_at",
     )
     .fetch_all(&state.db)
@@ -464,22 +504,132 @@ async fn author_list(
                 email => a.email,
                 role => a.role.as_str(),
                 is_active => a.is_active,
-                is_self => a.id == admin.0.id,
+                must_change_password => a.must_change_password,
+                is_self => a.id == admin.id,
                 created_at => a.created_at.format("%Y-%m-%d").to_string(),
             }
         })
         .collect();
+
+    let (new_email, new_role) = match echo {
+        Some(e) => (e.email, e.role),
+        None => (String::new(), AuthorRole::Viewer.as_str().to_string()),
+    };
 
     render(
         "author_list.html",
         context! {
             title => "Authors",
             section => "authors",
-            author => author_context(&admin.0),
-            csrf_token => csrf::token_for_session(&session_token(&jar)),
+            author => author_context(admin),
+            csrf_token => csrf::token_for_session(&session_token(jar)),
             authors => rows,
+            flash => flash,
+            error => error,
+            new_email => new_email,
+            new_role => new_role,
+            roles => ["viewer", "editor", "admin"],
         },
     )
+}
+
+#[derive(Debug, Deserialize)]
+pub struct CreateAuthorForm {
+    pub csrf_token: String,
+    pub email: String,
+    pub role: String,
+    pub password: String,
+    pub password_confirm: String,
+}
+
+/// Creates an author from the panel.
+///
+/// The admin chooses the initial password, so the account is flagged and the
+/// author must replace it on first sign-in. Validation failures re-render the
+/// list with the message inline rather than a bare JSON error page.
+async fn create_author(
+    admin: RequireAdmin,
+    State(state): State<AppState>,
+    jar: CookieJar,
+    Form(form): Form<CreateAuthorForm>,
+) -> AppResult<Response> {
+    require_csrf(&jar, &form.csrf_token)?;
+
+    let email = form.email.trim().to_string();
+    let reject = |message: String| {
+        let echo = CreateFormEcho {
+            email: email.clone(),
+            role: form.role.clone(),
+        };
+        let state = state.clone();
+        let jar = jar.clone();
+        let admin = admin.0.clone();
+        async move {
+            render_author_list(&admin, &state, &jar, None, Some(message), Some(echo))
+                .await
+                .map(IntoResponse::into_response)
+        }
+    };
+
+    if !looks_like_email(&email) {
+        return reject("That does not look like an email address.".into()).await;
+    }
+    let role: AuthorRole = match form.role.parse() {
+        Ok(role) => role,
+        Err(e) => return reject(e).await,
+    };
+    if let Err(e) = validate_password(&form.password) {
+        return reject(e).await;
+    }
+    if form.password != form.password_confirm {
+        return reject("The two passwords do not match.".into()).await;
+    }
+
+    let hash = hash_password(&form.password)?;
+
+    let inserted = sqlx::query_scalar::<_, Uuid>(
+        "INSERT INTO authors (email, password_hash, role, must_change_password) \
+         VALUES ($1, $2, $3, true) RETURNING id",
+    )
+    .bind(&email)
+    .bind(&hash)
+    .bind(role)
+    .fetch_one(&state.db)
+    .await;
+
+    let id = match inserted {
+        Ok(id) => id,
+        // The unique index is on lower(email), so this catches case variants
+        // of an existing address too.
+        Err(sqlx::Error::Database(db)) if db.is_unique_violation() => {
+            return reject(format!("An author with email {email} already exists.")).await;
+        }
+        Err(e) => return Err(e.into()),
+    };
+
+    tracing::info!(
+        actor = %admin.0.id,
+        created = %id,
+        role = role.as_str(),
+        "author created from panel"
+    );
+
+    let target = format!("/admin/authors?created={}", url_encode(&email));
+    Ok(Redirect::to(&target).into_response())
+}
+
+/// Percent-encodes a query value. Emails are mostly safe characters, but `+`
+/// and `&` are legal in them and would otherwise corrupt the query string.
+fn url_encode(value: &str) -> String {
+    value
+        .bytes()
+        .map(|b| match b {
+            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'.' | b'_' | b'~' | b'@' => {
+                (b as char).to_string()
+            }
+            _ => format!("%{b:02X}"),
+        })
+        .collect()
 }
 
 /// Suspends or reactivates an author.
@@ -555,6 +705,9 @@ pub async fn redirect_unauthenticated(
 
     if !is_login_page && response.status() == StatusCode::UNAUTHORIZED {
         return Redirect::to("/admin/login").into_response();
+    }
+    if response.extensions().get::<PasswordChangeRequiredMarker>().is_some() {
+        return Redirect::to("/studio/password").into_response();
     }
 
     response

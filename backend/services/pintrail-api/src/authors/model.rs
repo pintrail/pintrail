@@ -49,6 +49,9 @@ pub struct Author {
     pub password_hash: String,
     pub role: AuthorRole,
     pub is_active: bool,
+    /// Set when an admin chose this password; cleared when the author picks
+    /// their own. While set, only the change-password page will serve them.
+    pub must_change_password: bool,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
@@ -62,6 +65,7 @@ pub struct AuthorView {
     pub email: String,
     pub role: AuthorRole,
     pub is_active: bool,
+    pub must_change_password: bool,
     pub created_at: DateTime<Utc>,
 }
 
@@ -72,8 +76,34 @@ impl From<Author> for AuthorView {
             email: a.email,
             role: a.role,
             is_active: a.is_active,
+            must_change_password: a.must_change_password,
             created_at: a.created_at,
         }
+    }
+}
+
+/// Minimum bar only. Authors are a small trusted group, so this guards against
+/// fat-fingering an empty password rather than trying to enforce a policy.
+/// Shared by the CLI, the JSON API, and the HTML panel so all three agree.
+pub fn validate_password(password: &str) -> Result<(), String> {
+    if password.chars().count() < 12 {
+        return Err("password must be at least 12 characters".into());
+    }
+    Ok(())
+}
+
+/// Deliberately loose: full RFC 5322 validation rejects addresses that work
+/// in practice, and the real check is whether mail arrives.
+pub fn looks_like_email(candidate: &str) -> bool {
+    match candidate.split_once('@') {
+        Some((local, domain)) => {
+            !local.is_empty()
+                && domain.contains('.')
+                && !domain.starts_with('.')
+                && !domain.ends_with('.')
+                && !candidate.contains(char::is_whitespace)
+        }
+        None => false,
     }
 }
 
@@ -102,5 +132,27 @@ mod tests {
         assert_eq!("ADMIN".parse::<AuthorRole>().unwrap(), AuthorRole::Admin);
         assert_eq!(" editor ".parse::<AuthorRole>().unwrap(), AuthorRole::Editor);
         assert!("root".parse::<AuthorRole>().is_err());
+    }
+
+    #[test]
+    fn accepts_plausible_addresses() {
+        assert!(looks_like_email("dean@umass.edu"));
+        assert!(looks_like_email("a.b+tag@mail.example.co.uk"));
+    }
+
+    #[test]
+    fn rejects_implausible_addresses() {
+        assert!(!looks_like_email("no-at-sign"));
+        assert!(!looks_like_email("@umass.edu"));
+        assert!(!looks_like_email("dean@umass"));
+        assert!(!looks_like_email("dean@.edu"));
+        assert!(!looks_like_email("dean @umass.edu"));
+        assert!(!looks_like_email(""));
+    }
+
+    #[test]
+    fn password_length_is_enforced() {
+        assert!(validate_password("short").is_err());
+        assert!(validate_password("exactly12chr").is_ok());
     }
 }

@@ -166,7 +166,12 @@ cargo run -p pintrail-api -- reset-password dean@umass.edu   # also revokes sess
 cargo run -p pintrail-api -- help
 ```
 
-Thereafter admins manage accounts over HTTP at `/admin/authors`.
+Thereafter admins create and manage accounts in the browser at
+`/admin/authors` (or over JSON at `/api/admin/authors`). An account created
+that way has a password the admin chose, so it is flagged
+`must_change_password` and the author must pick their own at
+`/studio/password` before anything else will serve them. CLI-created accounts
+are not flagged: the operator typing the password is its owner.
 
 ## Auth model (author tier)
 
@@ -178,6 +183,7 @@ Thereafter admins manage accounts over HTTP at `/admin/authors`.
 | Login failures | One opaque 401 for every cause | Distinct messages for unknown-email, wrong-password, and suspended would enumerate valid accounts. Unknown emails also verify against a dummy hash so response time does not leak the distinction either — measured at 200.0 ms both ways. |
 | Role gate | Extractor in the handler signature | `RequireAdmin` in the signature means the check cannot be forgotten: without it the handler has no author value to work with. Under-privileged is 403, unauthenticated is 401. |
 | Suspension | Deletes the author's sessions | Otherwise a suspended account keeps working until its cookie happens to expire. Password reset does the same. |
+| Forced password change | Admin-set passwords are flagged; the role extractor refuses flagged authors | Checked in `RequireAuthorRole` rather than at sign-in, so no route — HTML or JSON — can be reached with a password someone else knows. The refusal is a 403 marked so the HTML tiers redirect to `/studio/password`; that page alone uses the unflagged `SessionAuthor` extractor. Changing the password revokes the author's other sessions. |
 | Self-lockout | Admins cannot demote or suspend themselves | It is the one mistake here with no in-app recovery. A second guard refuses any change leaving zero active admins. |
 
 Login is rate-limited from stage 9 — see **Rate limiting** below.
@@ -504,7 +510,7 @@ wrong. **Set it to true in any deployment behind Caddy.**
 A server-rendered UI at `/studio` for viewing and authoring artifacts while the
 mobile app is built. Cookie-authenticated on the author tier — viewers browse,
 editors and admins write. Sign in at `/studio/login` with an author account
-(`create-author` from the CLI).
+created by an admin. Any author can change their password at `/studio/password`.
 
 - **htmx** drives every interaction as a fragment swap: selecting an artifact,
   opening the create/edit form, deleting, and polling the media gallery. The
@@ -569,6 +575,11 @@ thread. Authors' emails are shown to other admins, who are colleagues.
 An expired session redirects to the sign-in page rather than returning a bare
 JSON 401, which would leave an admin staring at `{"error":"authentication
 required"}` with no way forward.
+
+**Creating authors.** The Authors page has an *Add author* form: email, role,
+and a temporary password entered twice. Validation errors re-render the page
+inline; the password is never echoed back or logged. The new account must
+change its password on first sign-in (see the auth model above).
 
 **Route change:** JSON author management moved from `/admin/authors` to
 `/api/admin/authors` so `/admin/*` could serve HTML.

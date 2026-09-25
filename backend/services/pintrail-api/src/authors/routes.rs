@@ -13,7 +13,7 @@ use super::auth::{
     verify_password, SESSION_COOKIE,
 };
 use super::extractors::{AuthenticatedAuthor, RequireAdmin};
-use super::model::{Author, AuthorRole, AuthorView};
+use super::model::{looks_like_email, validate_password, Author, AuthorRole, AuthorView};
 use crate::client_ip::ClientIp;
 use crate::rate_limit::{LOGIN_PER_ACCOUNT, LOGIN_PER_IP};
 use crate::error::{AppError, AppResult};
@@ -62,7 +62,7 @@ async fn login(
 
     let author = sqlx::query_as::<_, Author>(
         r#"
-        SELECT id, email, password_hash, role, is_active, created_at, updated_at
+        SELECT id, email, password_hash, role, is_active, must_change_password, created_at, updated_at
         FROM authors
         WHERE lower(email) = lower($1)
         "#,
@@ -155,7 +155,7 @@ async fn list_authors(
 ) -> AppResult<Json<Value>> {
     let authors = sqlx::query_as::<_, Author>(
         r#"
-        SELECT id, email, password_hash, role, is_active, created_at, updated_at
+        SELECT id, email, password_hash, role, is_active, must_change_password, created_at, updated_at
         FROM authors
         ORDER BY created_at
         "#,
@@ -174,6 +174,8 @@ pub struct CreateAuthorRequest {
     pub role: AuthorRole,
 }
 
+/// Creates an author with an admin-chosen password, flagged so the author
+/// must replace it on first sign-in -- the admin should not keep knowing it.
 async fn create_author(
     admin: RequireAdmin,
     State(state): State<AppState>,
@@ -181,22 +183,18 @@ async fn create_author(
 ) -> AppResult<(StatusCode, Json<Value>)> {
     let email = body.email.trim();
 
-    if email.is_empty() || !email.contains('@') {
+    if !looks_like_email(email) {
         return Err(AppError::BadRequest("a valid email is required".into()));
     }
-    if body.password.chars().count() < 12 {
-        return Err(AppError::BadRequest(
-            "password must be at least 12 characters".into(),
-        ));
-    }
+    validate_password(&body.password).map_err(AppError::BadRequest)?;
 
     let hash = hash_password(&body.password)?;
 
     let author = sqlx::query_as::<_, Author>(
         r#"
-        INSERT INTO authors (email, password_hash, role)
-        VALUES ($1, $2, $3)
-        RETURNING id, email, password_hash, role, is_active, created_at, updated_at
+        INSERT INTO authors (email, password_hash, role, must_change_password)
+        VALUES ($1, $2, $3, true)
+        RETURNING id, email, password_hash, role, is_active, must_change_password, created_at, updated_at
         "#,
     )
     .bind(email)
@@ -266,7 +264,7 @@ async fn update_author(
         SET role = COALESCE($2, role),
             is_active = COALESCE($3, is_active)
         WHERE id = $1
-        RETURNING id, email, password_hash, role, is_active, created_at, updated_at
+        RETURNING id, email, password_hash, role, is_active, must_change_password, created_at, updated_at
         "#,
     )
     .bind(id)

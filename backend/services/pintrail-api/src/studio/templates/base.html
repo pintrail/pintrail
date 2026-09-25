@@ -125,6 +125,7 @@
     <a class="brand" href="/studio"><span class="dot"></span> Pintrail Studio</a>
     <span class="spacer"></span>
     <span class="who">{{ author.email }} · {{ author.role }}</span>
+    <a class="btn-sm" href="/studio/password">Change password</a>
     <form method="post" action="/studio/logout" style="display:inline">
       <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
       <button class="btn-sm">Sign out</button>

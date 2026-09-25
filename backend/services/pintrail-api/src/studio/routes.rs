@@ -12,11 +12,11 @@ use uuid::Uuid;
 use crate::admin::csrf;
 use crate::artifacts::routes::RESOLVED_COORDS_CTE;
 use crate::authors::auth::{generate_session_token, hash_session_token, SESSION_COOKIE};
-use crate::authors::extractors::AuthenticatedAuthor;
-use crate::authors::model::{Author, AuthorRole};
+use crate::authors::extractors::{AuthenticatedAuthor, SessionAuthor};
+use crate::authors::model::{validate_password, Author, AuthorRole};
 use crate::client_ip::ClientIp;
-use crate::crypto::{verify_dummy_password, verify_password};
-use crate::error::{AppError, AppResult};
+use crate::crypto::{hash_password, verify_dummy_password, verify_password};
+use crate::error::{AppError, AppResult, PasswordChangeRequiredMarker};
 use crate::rate_limit::{LOGIN_PER_ACCOUNT, LOGIN_PER_IP};
 use crate::state::AppState;
 
@@ -36,6 +36,7 @@ fn environment() -> Environment<'static> {
         ("studio_detail.html", include_str!("templates/detail.html")),
         ("studio_form.html", include_str!("templates/form.html")),
         ("studio_attachments.html", include_str!("templates/attachments.html")),
+        ("studio_password.html", include_str!("templates/password.html")),
     ] {
         env.add_template(name, src).expect("studio template compiles");
     }
@@ -47,6 +48,7 @@ pub fn router() -> Router<AppState> {
         .route("/studio", get(home))
         .route("/studio/login", get(login_form).post(login_submit))
         .route("/studio/logout", post(logout))
+        .route("/studio/password", get(password_form).post(password_submit))
         .route("/studio/welcome", get(welcome))
         .route("/studio/tree", get(tree))
         .route("/studio/artifacts/new", get(new_form))
@@ -147,7 +149,7 @@ async fn login_submit(
     state.limiter.check(&account_key, LOGIN_PER_ACCOUNT)?;
 
     let author = sqlx::query_as::<_, Author>(
-        "SELECT id, email, password_hash, role, is_active, created_at, updated_at \
+        "SELECT id, email, password_hash, role, is_active, must_change_password, created_at, updated_at \
          FROM authors WHERE lower(email) = lower($1)",
     )
     .bind(email)
@@ -186,7 +188,96 @@ async fn login_submit(
     tracing::info!(author_id = %author.id, "author signed in to studio");
 
     let jar = jar.add(crate::authors::routes::session_cookie(token.raw, &state, token.expires_at));
-    Ok((jar, Redirect::to("/studio")).into_response())
+    let landing = if author.must_change_password { "/studio/password" } else { "/studio" };
+    Ok((jar, Redirect::to(landing)).into_response())
+}
+
+// --- password change -------------------------------------------------------
+//
+// Lives in the Studio because every author role can sign in here; the admin
+// panel is admin-only. It takes `SessionAuthor` rather than a role extractor
+// because it must serve exactly the authors those extractors refuse.
+
+fn password_ctx(author: &Author, jar: &CookieJar, error: Option<&str>) -> Value {
+    context! {
+        title => "Change password",
+        email => author.email.clone(),
+        required => author.must_change_password,
+        csrf_token => csrf::token_for_session(&session_token(jar)),
+        error => error,
+    }
+}
+
+async fn password_form(
+    SessionAuthor(author): SessionAuthor,
+    jar: CookieJar,
+) -> AppResult<Html<String>> {
+    render(&environment(), "studio_password.html", password_ctx(&author, &jar, None))
+}
+
+#[derive(Debug, Deserialize)]
+pub struct PasswordForm {
+    csrf_token: String,
+    current_password: String,
+    new_password: String,
+    new_password_confirm: String,
+}
+
+async fn password_submit(
+    SessionAuthor(author): SessionAuthor,
+    State(state): State<AppState>,
+    jar: CookieJar,
+    Form(form): Form<PasswordForm>,
+) -> AppResult<Response> {
+    require_csrf(&jar, &form.csrf_token)?;
+
+    let reject = |message: &str| -> AppResult<Response> {
+        let ctx = password_ctx(&author, &jar, Some(message));
+        Ok(render(&environment(), "studio_password.html", ctx)?.into_response())
+    };
+
+    // Shares the sign-in counter: a stolen session cookie must not become an
+    // unthrottled oracle for guessing the account's password.
+    let account_key = format!("author-login:{}", author.email.to_ascii_lowercase());
+    state.limiter.check(&account_key, LOGIN_PER_ACCOUNT)?;
+
+    if !verify_password(&form.current_password, &author.password_hash) {
+        return reject("Current password is incorrect.");
+    }
+    state.limiter.reset(&account_key);
+
+    if let Err(e) = validate_password(&form.new_password) {
+        return reject(&e);
+    }
+    if form.new_password != form.new_password_confirm {
+        return reject("The new passwords do not match.");
+    }
+    if form.new_password == form.current_password {
+        return reject("Choose a password different from the current one.");
+    }
+
+    let hash = hash_password(&form.new_password)?;
+    let current_session = hash_session_token(&session_token(&jar));
+
+    let mut tx = state.db.begin().await?;
+    sqlx::query("UPDATE authors SET password_hash = $1, must_change_password = false WHERE id = $2")
+        .bind(&hash)
+        .bind(author.id)
+        .execute(&mut *tx)
+        .await?;
+    // Same reasoning as the CLI reset: sessions opened under the old password
+    // should not outlive it. This one stays, so the author is not bounced out.
+    sqlx::query("DELETE FROM author_sessions WHERE author_id = $1 AND token_hash <> $2")
+        .bind(author.id)
+        .bind(&current_session)
+        .execute(&mut *tx)
+        .await?;
+    tx.commit().await?;
+
+    tracing::info!(author_id = %author.id, "author changed password");
+
+    let landing = if author.role == AuthorRole::Admin { "/admin" } else { "/studio" };
+    Ok(Redirect::to(landing).into_response())
 }
 
 async fn logout(
@@ -769,6 +860,9 @@ pub async fn redirect_unauthenticated(req: axum::extract::Request, next: axum::m
     let response = next.run(req).await;
     if !exempt && response.status() == StatusCode::UNAUTHORIZED {
         return Redirect::to("/studio/login").into_response();
+    }
+    if response.extensions().get::<PasswordChangeRequiredMarker>().is_some() {
+        return Redirect::to("/studio/password").into_response();
     }
     response
 }
