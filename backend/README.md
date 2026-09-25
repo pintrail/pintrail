@@ -105,6 +105,37 @@ forge its own address.
 Pointing `S3_*` at real S3 or R2 makes the MinIO services unnecessary:
 `--scale minio=0`.
 
+### Redeploying
+
+```sh
+deploy/redeploy.sh                 # deploy origin/main
+deploy/redeploy.sh --ref v1.4.0    # a tag, branch, or commit
+deploy/rollback.sh                 # redeploy whatever the last deploy replaced
+```
+
+Run on the host, from a clone of this repository, with `COMPOSE_FILE` set in
+`backend/.env` to the overlays that host uses, e.g.
+`COMPOSE_FILE=compose.yml:compose.prod.yml:compose.versity.yml`. The scripts
+refuse to run without it rather than deploying the development stack.
+
+`redeploy.sh` checks out the commit, builds the images, dumps the database to
+`backend/backups/`, runs `pintrail-api migrate` as a one-off container, then
+replaces the running containers and waits for the API healthcheck. The old
+containers keep serving until the migration has succeeded, so a failed build,
+backup, or migration leaves the site up on the previous version. The last 10
+dumps are kept (`BACKUP_KEEP`); `backups/deploy.log` records each deploy's
+previous commit, new commit, and dump.
+
+**Migrations must be additive**, so the previous release still runs against
+the new schema: add a column before code relies on it, and drop the old one a
+release later. The API ignores applied migrations it does not know about
+(`set_ignore_missing`), which is what lets `rollback.sh` roll code back
+without touching the database. `rollback.sh --restore-db` also restores the
+dump the last deploy took; it takes a safety dump first, and it discards every
+write since that deploy, so use it only when a migration damaged data.
+
+Migrations are forward-only (no down files); the dump is the undo.
+
 ## Notes on choices
 
 **Runtime-checked queries.** Queries use `sqlx::query_as` rather than the
@@ -113,9 +144,10 @@ live database or a checked-in `.sqlx` cache. If the team later wants
 compile-time verification, `cargo sqlx prepare` and a switch to the macros is
 the upgrade path.
 
-**Migrations run at startup.** Fine for a single-node deployment. If this ever
-runs multiple API replicas, move migrations to an explicit deploy step so
-replicas do not race each other.
+**Migrations run at startup, and as a deploy step.** `redeploy.sh` runs them
+explicitly so a failure stops the deploy before containers are replaced; the
+startup run is then a no-op kept for local development. With multiple API
+replicas, drop the startup run so replicas do not race each other.
 
 **`sqlx::migrate!` embeds migrations at compile time.** Adding a `.sql` file
 without recompiling means the server applies the set it was last built with
