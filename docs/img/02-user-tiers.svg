@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 470" width="900" height="470" role="img" aria-labelledby="title desc">
+  <title id="title">The three kinds of Pintrail users</title>
+  <desc id="desc">Explorers use the mobile app and sign up themselves. Authors are a small trusted group who create content in the web Studio. Admins manage authors and moderate content in the admin panel.</desc>
+  <style>
+    text { font-family: -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; fill: #1F2933; }
+    .title { font-size: 20px; font-weight: 700; }
+    .sub { font-size: 14px; fill: #52606D; }
+    .head { font-size: 18px; font-weight: 700; fill: #FFFFFF; }
+    .who { font-size: 13px; fill: #FFFFFF; }
+    .label { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; fill: #7B8794; }
+    .body { font-size: 13.5px; fill: #1F2933; }
+  </style>
+
+  <rect width="900" height="470" fill="#FFFFFF"/>
+  <text class="title" x="30" y="42">Three kinds of users, kept separate</text>
+  <text class="sub" x="30" y="66">Each tier has its own sign-in and its own tools.</text>
+
+  <!-- Explorers -->
+  <rect x="30" y="90" width="270" height="350" rx="12" fill="#F7FBF8" stroke="#2F855A" stroke-width="1.5"/>
+  <path d="M30 102 A12 12 0 0 1 42 90 H288 A12 12 0 0 1 300 102 V150 H30 Z" fill="#2F855A"/>
+  <text class="head" x="50" y="118">Explorers</text>
+  <text class="who" x="50" y="139">The public: tens of thousands</text>
+  <text class="label" x="50" y="178">USES</text>
+  <text class="body" x="50" y="198">Phone app (iOS and Android)</text>
+  <text class="label" x="50" y="232">SIGNS IN</text>
+  <text class="body" x="50" y="252">Self-service signup with</text>
+  <text class="body" x="50" y="270">email verification</text>
+  <text class="label" x="50" y="304">CAN</text>
+  <text class="body" x="50" y="324">• Get alerts near artifacts</text>
+  <text class="body" x="50" y="346">• Read, view, and listen</text>
+  <text class="body" x="50" y="368">• Comment (once verified)</text>
+  <text class="body" x="50" y="390">• Build and share trails</text>
+
+  <!-- Authors -->
+  <rect x="315" y="90" width="270" height="350" rx="12" fill="#F6F9FD" stroke="#2B6CB0" stroke-width="1.5"/>
+  <path d="M315 102 A12 12 0 0 1 327 90 H573 A12 12 0 0 1 585 102 V150 H315 Z" fill="#2B6CB0"/>
+  <text class="head" x="335" y="118">Authors</text>
+  <text class="who" x="335" y="139">Faculty, staff, and students</text>
+  <text class="label" x="335" y="178">USES</text>
+  <text class="body" x="335" y="198">The Studio, in a web browser</text>
+  <text class="label" x="335" y="232">SIGNS IN</text>
+  <text class="body" x="335" y="252">Account created by an admin;</text>
+  <text class="body" x="335" y="270">role: viewer, editor, or admin</text>
+  <text class="label" x="335" y="304">CAN</text>
+  <text class="body" x="335" y="324">• Create and edit artifacts</text>
+  <text class="body" x="335" y="346">• Place them on the map</text>
+  <text class="body" x="335" y="368">• Upload photos and PDFs</text>
+  <text class="body" x="335" y="390">• Curate official trails</text>
+
+  <!-- Admins -->
+  <rect x="600" y="90" width="270" height="350" rx="12" fill="#FEFAF2" stroke="#B7791F" stroke-width="1.5"/>
+  <path d="M600 102 A12 12 0 0 1 612 90 H858 A12 12 0 0 1 870 102 V150 H600 Z" fill="#B7791F"/>
+  <text class="head" x="620" y="118">Admins</text>
+  <text class="who" x="620" y="139">A very small group</text>
+  <text class="label" x="620" y="178">USES</text>
+  <text class="body" x="620" y="198">The admin panel, on the web</text>
+  <text class="label" x="620" y="232">SIGNS IN</text>
+  <text class="body" x="620" y="252">An author account with the</text>
+  <text class="body" x="620" y="270">admin role</text>
+  <text class="label" x="620" y="304">CAN</text>
+  <text class="body" x="620" y="324">• Add and suspend authors</text>
+  <text class="body" x="620" y="346">• Change author roles</text>
+  <text class="body" x="620" y="368">• Hide flagged comments</text>
+  <text class="body" x="620" y="390">• Take down reported trails</text>
+</svg>

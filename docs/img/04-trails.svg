@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 470" width="900" height="470" role="img" aria-labelledby="title desc">
+  <title id="title">Curated and explorer-built trails</title>
+  <desc id="desc">A curated Campus Sustainability Walk with four stops showing progress, and an explorer-built trail of three stops with a choice of private, shared by link, or public visibility.</desc>
+  <style>
+    text { font-family: -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; fill: #1F2933; }
+    .title { font-size: 20px; font-weight: 700; }
+    .sub { font-size: 14px; fill: #52606D; }
+    .tag { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; }
+    .tname { font-size: 17px; font-weight: 700; }
+    .by { font-size: 12.5px; fill: #52606D; }
+    .stop { font-size: 14px; font-weight: 600; }
+    .state { font-size: 12px; }
+    .opt { font-size: 13px; font-weight: 600; }
+    .optsub { font-size: 11.5px; fill: #52606D; }
+  </style>
+
+  <rect width="900" height="470" fill="#FFFFFF"/>
+  <text class="title" x="30" y="42">Trails: an ordered walk between artifacts</text>
+  <text class="sub" x="30" y="66">Same idea, two sources: curated by authors, or built by any explorer.</text>
+
+  <!-- curated panel -->
+  <rect x="30" y="90" width="410" height="350" rx="12" fill="#F7FBF8" stroke="#2F855A" stroke-width="1.5"/>
+  <text class="tag" x="52" y="118" fill="#2F855A">CURATED · PUBLIC</text>
+  <text class="tname" x="52" y="142">Campus Sustainability Walk</text>
+  <text class="by" x="52" y="162">by the campus sustainability office</text>
+
+  <path d="M66 198 V378" stroke="#2F855A" stroke-width="3"/>
+  <circle cx="66" cy="198" r="11" fill="#2F855A"/>
+  <path d="M60 198 L64.5 203 L72.5 193" stroke="#FFFFFF" stroke-width="2.2" fill="none"/>
+  <text class="stop" x="90" y="196">Recycling and Composting Center</text>
+  <text class="state" x="90" y="214" fill="#2F855A">visited</text>
+
+  <circle cx="66" cy="258" r="11" fill="#FFFFFF" stroke="#2F855A" stroke-width="3"/>
+  <circle cx="66" cy="258" r="5" fill="#2F855A"/>
+  <text class="stop" x="90" y="256">Elm Building Rooftop Solar Array</text>
+  <text class="state" x="90" y="274" fill="#2F855A" font-weight="700">you are here</text>
+
+  <circle cx="66" cy="318" r="11" fill="#FFFFFF" stroke="#9AA5B1" stroke-width="2"/>
+  <text class="stop" x="90" y="316">Rain Garden, Life Sciences</text>
+  <text class="state" x="90" y="334" fill="#7B8794">stormwater management</text>
+
+  <circle cx="66" cy="378" r="11" fill="#FFFFFF" stroke="#9AA5B1" stroke-width="2"/>
+  <text class="stop" x="90" y="376">Dining Commons Composting</text>
+  <text class="state" x="90" y="394" fill="#7B8794">food waste diversion</text>
+
+  <!-- explorer panel -->
+  <rect x="460" y="90" width="410" height="350" rx="12" fill="#F6F9FD" stroke="#2B6CB0" stroke-width="1.5"/>
+  <text class="tag" x="482" y="118" fill="#2B6CB0">EXPLORER-BUILT</text>
+  <text class="tname" x="482" y="142">My Favorite Quiet Spots</text>
+  <text class="by" x="482" y="162">made in the app by a student</text>
+
+  <g>
+    <rect x="482" y="180" width="366" height="34" rx="6" fill="#FFFFFF" stroke="#CBD2D9"/>
+    <text class="stop" x="498" y="202">1. Library reading nook</text>
+    <rect x="482" y="222" width="366" height="34" rx="6" fill="#FFFFFF" stroke="#CBD2D9"/>
+    <text class="stop" x="498" y="244">2. Bench by the pond</text>
+    <rect x="482" y="264" width="366" height="34" rx="6" fill="#FFFFFF" stroke="#CBD2D9"/>
+    <text class="stop" x="498" y="286">3. Rooftop garden, Life Sciences</text>
+    <text class="by" x="832" y="202" text-anchor="end">drag to reorder</text>
+  </g>
+
+  <text class="tag" x="482" y="330" fill="#7B8794">WHO CAN SEE IT</text>
+  <rect x="482" y="342" width="112" height="56" rx="8" fill="#FFFFFF" stroke="#CBD2D9"/>
+  <text class="opt" x="538" y="365" text-anchor="middle">Only me</text>
+  <text class="optsub" x="538" y="384" text-anchor="middle">private</text>
+  <rect x="609" y="342" width="112" height="56" rx="8" fill="#E8F1FB" stroke="#2B6CB0" stroke-width="2"/>
+  <text class="opt" x="665" y="365" text-anchor="middle" fill="#2B6CB0">Share by link</text>
+  <text class="optsub" x="665" y="384" text-anchor="middle">unlisted</text>
+  <rect x="736" y="342" width="112" height="56" rx="8" fill="#FFFFFF" stroke="#CBD2D9"/>
+  <text class="opt" x="792" y="365" text-anchor="middle">Public</text>
+  <text class="optsub" x="792" y="384" text-anchor="middle">anyone can find it</text>
+  <text class="by" x="482" y="422">Link sharing creates a private link to send to friends.</text>
+</svg>
