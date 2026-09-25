@@ -1,0 +1,66 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 560" width="880" height="560" role="img" aria-labelledby="title desc">
+  <title id="title">How nearby discovery works</title>
+  <desc id="desc">The phone syncs a list of artifact locations from the server, detects proximity on the device without the network, shows a notification, and only when the user taps does it fetch the artifact's details and then the media from the media store using signed links.</desc>
+  <style>
+    text { font-family: -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; fill: #1F2933; }
+    .title { font-size: 20px; font-weight: 700; }
+    .sub { font-size: 14px; fill: #52606D; }
+    .lane { font-size: 15px; font-weight: 700; }
+    .lanesub { font-size: 12px; fill: #52606D; }
+    .msg { font-size: 13px; }
+    .code { font-size: 12.5px; font-family: "SFMono-Regular", Menlo, Consolas, monospace; fill: #2B6CB0; }
+    .note { font-size: 13px; fill: #22543D; }
+    .phase { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; fill: #7B8794; }
+  </style>
+  <defs>
+    <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 Z" fill="#3E4C59"/>
+    </marker>
+  </defs>
+
+  <rect width="880" height="560" fill="#FFFFFF"/>
+  <text class="title" x="30" y="42">How "you're near this" works</text>
+  <text class="sub" x="30" y="66">The server never tracks where people are; the phone does the matching itself.</text>
+
+  <!-- lane heads -->
+  <rect x="80" y="88" width="160" height="50" rx="8" fill="#E6F4EA" stroke="#2F855A"/>
+  <text class="lane" x="160" y="110" text-anchor="middle">Phone</text>
+  <text class="lanesub" x="160" y="127" text-anchor="middle">Pintrail app</text>
+  <rect x="390" y="88" width="160" height="50" rx="8" fill="#E8F1FB" stroke="#2B6CB0"/>
+  <text class="lane" x="470" y="110" text-anchor="middle">Pintrail server</text>
+  <text class="lanesub" x="470" y="127" text-anchor="middle">pintrail-api</text>
+  <rect x="660" y="88" width="160" height="50" rx="8" fill="#F1ECFB" stroke="#6B46C1"/>
+  <text class="lane" x="740" y="110" text-anchor="middle">Media store</text>
+  <text class="lanesub" x="740" y="127" text-anchor="middle">photos, PDFs, audio</text>
+
+  <!-- lifelines -->
+  <path d="M160 138 V540 M470 138 V540 M740 138 V540" stroke="#CBD2D9" stroke-width="1.5" stroke-dasharray="5 5"/>
+
+  <!-- phase 1 -->
+  <text class="phase" x="20" y="172">SYNC</text>
+  <path d="M160 180 H466" stroke="#3E4C59" stroke-width="1.6" marker-end="url(#arr)"/>
+  <text class="code" x="176" y="172">GET /artifacts/sync?since=v</text>
+  <path d="M470 222 H164" stroke="#3E4C59" stroke-width="1.6" stroke-dasharray="6 4" marker-end="url(#arr)"/>
+  <text class="msg" x="176" y="214">every artifact that changed, location resolved</text>
+  <text class="lanesub" x="490" y="204">on app open, then</text>
+  <text class="lanesub" x="490" y="220">every few hours</text>
+
+  <!-- phase 2 -->
+  <text class="phase" x="20" y="262">WALK</text>
+  <rect x="90" y="248" width="320" height="80" rx="8" fill="#E6F4EA" stroke="#2F855A"/>
+  <text class="msg" x="106" y="272" font-weight="700">On-device geofencing</text>
+  <text class="note" x="106" y="292">Compares GPS to the cached list.</text>
+  <text class="note" x="106" y="310">No network needed, nothing sent.</text>
+  <rect x="90" y="342" width="320" height="44" rx="8" fill="#FFFFFF" stroke="#2F855A" stroke-width="1.5"/>
+  <text class="note" x="106" y="369" font-style="italic">Notification: "You're near Elm Building"</text>
+
+  <!-- phase 3 -->
+  <text class="phase" x="20" y="418">OPEN</text>
+  <path d="M160 432 H466" stroke="#3E4C59" stroke-width="1.6" marker-end="url(#arr)"/>
+  <text class="code" x="176" y="424">GET /artifacts/{id}</text>
+  <path d="M470 472 H164" stroke="#3E4C59" stroke-width="1.6" stroke-dasharray="6 4" marker-end="url(#arr)"/>
+  <text class="msg" x="176" y="464">details + short-lived signed media links</text>
+  <path d="M160 506 H736" stroke="#3E4C59" stroke-width="1.6" marker-end="url(#arr)"/>
+  <text class="msg" x="176" y="498">fetch photos and PDFs directly with the signed links</text>
+  <text class="lanesub" x="176" y="526">(the user tapped, so only now is media downloaded)</text>
+</svg>

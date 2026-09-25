@@ -1,0 +1,84 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 560" width="900" height="560" role="img" aria-labelledby="title desc">
+  <title id="title">Pintrail system architecture</title>
+  <desc id="desc">Phones and browsers reach the system over HTTPS through Caddy. Caddy forwards requests to the Pintrail server, pintrail-api, and media requests to the media store. The server stores records in Postgres and issues signed links to the media store. A separate worker takes jobs from the database and converts media.</desc>
+  <style>
+    text { font-family: -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; fill: #1F2933; }
+    .title { font-size: 20px; font-weight: 700; }
+    .sub { font-size: 14px; fill: #52606D; }
+    .name { font-size: 15px; font-weight: 700; }
+    .small { font-size: 12.5px; fill: #52606D; }
+    .edge { font-size: 12px; fill: #3E4C59; }
+    .chip { font-size: 12px; font-family: "SFMono-Regular", Menlo, Consolas, monospace; fill: #1A4E86; }
+  </style>
+  <defs>
+    <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 Z" fill="#3E4C59"/>
+    </marker>
+  </defs>
+
+  <rect width="900" height="560" fill="#FFFFFF"/>
+  <text class="title" x="30" y="42">How the pieces fit together</text>
+  <text class="sub" x="30" y="66">Two Rust programs, one database, one media store, with Caddy in front.</text>
+
+  <!-- clients -->
+  <rect x="60" y="88" width="300" height="66" rx="10" fill="#E6F4EA" stroke="#2F855A"/>
+  <text class="name" x="210" y="116" text-anchor="middle">Explorer's phone</text>
+  <text class="small" x="210" y="136" text-anchor="middle">iOS / Android app (React Native)</text>
+  <rect x="540" y="88" width="300" height="66" rx="10" fill="#E8F1FB" stroke="#2B6CB0"/>
+  <text class="name" x="690" y="116" text-anchor="middle">Author and admin browser</text>
+  <text class="small" x="690" y="136" text-anchor="middle">Studio and admin panel</text>
+
+  <path d="M210 154 V196" stroke="#3E4C59" stroke-width="1.6" marker-end="url(#arr)"/>
+  <text class="edge" x="222" y="180">HTTPS, bearer token</text>
+  <path d="M690 154 V196" stroke="#3E4C59" stroke-width="1.6" marker-end="url(#arr)"/>
+  <text class="edge" x="702" y="180">HTTPS, login cookie</text>
+
+  <!-- caddy -->
+  <rect x="60" y="200" width="780" height="42" rx="8" fill="#F5F7FA" stroke="#7B8794"/>
+  <text class="name" x="450" y="226" text-anchor="middle">Caddy: HTTPS in front of everything (pintrail.cs.umass.edu)</text>
+
+  <path d="M450 242 V282" stroke="#3E4C59" stroke-width="1.6" marker-end="url(#arr)"/>
+  <path d="M790 242 V436" stroke="#3E4C59" stroke-width="1.6" marker-end="url(#arr)"/>
+  <text class="edge" x="780" y="300" text-anchor="end">/media/…</text>
+  <text class="edge" x="780" y="316" text-anchor="end">signed links</text>
+
+  <!-- api -->
+  <rect x="200" y="286" width="500" height="112" rx="10" fill="#E8F1FB" stroke="#2B6CB0" stroke-width="1.8"/>
+  <text class="name" x="450" y="310" text-anchor="middle">Pintrail server (pintrail-api)</text>
+  <g>
+    <rect x="218" y="324" width="78" height="26" rx="5" fill="#FFFFFF" stroke="#A3C4E8"/><text class="chip" x="257" y="341" text-anchor="middle">authors</text>
+    <rect x="304" y="324" width="78" height="26" rx="5" fill="#FFFFFF" stroke="#A3C4E8"/><text class="chip" x="343" y="341" text-anchor="middle">readers</text>
+    <rect x="390" y="324" width="86" height="26" rx="5" fill="#FFFFFF" stroke="#A3C4E8"/><text class="chip" x="433" y="341" text-anchor="middle">artifacts</text>
+    <rect x="484" y="324" width="108" height="26" rx="5" fill="#FFFFFF" stroke="#A3C4E8"/><text class="chip" x="538" y="341" text-anchor="middle">attachments</text>
+    <rect x="600" y="324" width="82" height="26" rx="5" fill="#FFFFFF" stroke="#A3C4E8"/><text class="chip" x="641" y="341" text-anchor="middle">trails</text>
+    <rect x="304" y="358" width="86" height="26" rx="5" fill="#FFFFFF" stroke="#A3C4E8"/><text class="chip" x="347" y="375" text-anchor="middle">comments</text>
+    <rect x="398" y="358" width="70" height="26" rx="5" fill="#FFFFFF" stroke="#A3C4E8"/><text class="chip" x="433" y="375" text-anchor="middle">admin</text>
+    <rect x="476" y="358" width="70" height="26" rx="5" fill="#FFFFFF" stroke="#A3C4E8"/><text class="chip" x="511" y="375" text-anchor="middle">studio</text>
+  </g>
+
+  <!-- api to db / storage -->
+  <path d="M250 398 V420 H170 V436" fill="none" stroke="#3E4C59" stroke-width="1.6" marker-end="url(#arr)"/>
+  <text class="edge" x="262" y="416">reads and writes records</text>
+  <path d="M650 398 V420 H720 V436" fill="none" stroke="#3E4C59" stroke-width="1.6" marker-end="url(#arr)"/>
+  <text class="edge" x="638" y="416" text-anchor="end">issues signed links</text>
+
+  <!-- bottom row -->
+  <rect x="60" y="440" width="230" height="90" rx="10" fill="#F5F7FA" stroke="#7B8794"/>
+  <text class="name" x="175" y="466" text-anchor="middle">Database (Postgres)</text>
+  <text class="small" x="175" y="486" text-anchor="middle">artifacts, trails, comments,</text>
+  <text class="small" x="175" y="504" text-anchor="middle">accounts, and the job queue</text>
+
+  <rect x="335" y="440" width="230" height="90" rx="10" fill="#FDF3E1" stroke="#B7791F"/>
+  <text class="name" x="450" y="466" text-anchor="middle">Worker (pintrail-worker)</text>
+  <text class="small" x="450" y="486" text-anchor="middle">converts uploads for phones;</text>
+  <text class="small" x="450" y="504" text-anchor="middle">run as many copies as needed</text>
+
+  <rect x="610" y="440" width="230" height="90" rx="10" fill="#F1ECFB" stroke="#6B46C1"/>
+  <text class="name" x="725" y="466" text-anchor="middle">Media store (S3-compatible)</text>
+  <text class="small" x="725" y="486" text-anchor="middle">photos, PDFs, audio, video;</text>
+  <text class="small" x="725" y="504" text-anchor="middle">originals and converted</text>
+
+  <path d="M335 485 H294" stroke="#3E4C59" stroke-width="1.6" marker-end="url(#arr)"/>
+  <path d="M565 485 H606" stroke="#3E4C59" stroke-width="1.6" marker-end="url(#arr)" marker-start="url(#arr)"/>
+  <text class="small" x="450" y="550" text-anchor="middle">Worker takes jobs from the database (FOR UPDATE SKIP LOCKED) and reads/writes media.</text>
+</svg>
