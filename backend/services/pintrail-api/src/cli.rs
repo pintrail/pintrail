@@ -10,7 +10,7 @@ use sqlx::PgPool;
 use uuid::Uuid;
 
 use crate::authors::auth::hash_password;
-use crate::authors::model::AuthorRole;
+use crate::authors::model::{looks_like_email, validate_password, AuthorRole};
 
 pub const USAGE: &str = "\
 usage: pintrail-api [command]
@@ -91,7 +91,7 @@ pub async fn create_author(db: &PgPool, email: &str, role_str: &str) -> anyhow::
     }
 
     let password = read_password("Password for new author: ")?;
-    validate_password(&password)?;
+    validate_password(&password).map_err(|e| anyhow::anyhow!(e))?;
 
     let hash = hash_password(&password).map_err(|e| anyhow::anyhow!("{e}"))?;
 
@@ -124,7 +124,7 @@ pub async fn reset_password(db: &PgPool, email: &str) -> anyhow::Result<()> {
     let email = email.trim();
 
     let password = read_password("New password: ")?;
-    validate_password(&password)?;
+    validate_password(&password).map_err(|e| anyhow::anyhow!(e))?;
 
     let hash = hash_password(&password).map_err(|e| anyhow::anyhow!("{e}"))?;
 
@@ -169,54 +169,5 @@ fn read_password(prompt: &str) -> anyhow::Result<String> {
         let mut buf = String::new();
         std::io::stdin().read_to_string(&mut buf)?;
         Ok(buf.trim_end_matches(['\n', '\r']).to_string())
-    }
-}
-
-/// Minimum bar only. Authors are a small trusted group, so this guards against
-/// fat-fingering an empty password rather than trying to enforce a policy.
-fn validate_password(password: &str) -> anyhow::Result<()> {
-    if password.chars().count() < 12 {
-        anyhow::bail!("password must be at least 12 characters");
-    }
-    Ok(())
-}
-
-fn looks_like_email(candidate: &str) -> bool {
-    // Deliberately loose: full RFC 5322 validation rejects addresses that
-    // work in practice, and the real check is whether mail arrives.
-    match candidate.split_once('@') {
-        Some((local, domain)) => {
-            !local.is_empty() && domain.contains('.') && !domain.starts_with('.')
-                && !domain.ends_with('.')
-                && !candidate.contains(char::is_whitespace)
-        }
-        None => false,
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn accepts_plausible_addresses() {
-        assert!(looks_like_email("dean@umass.edu"));
-        assert!(looks_like_email("a.b+tag@mail.example.co.uk"));
-    }
-
-    #[test]
-    fn rejects_implausible_addresses() {
-        assert!(!looks_like_email("no-at-sign"));
-        assert!(!looks_like_email("@umass.edu"));
-        assert!(!looks_like_email("dean@umass"));
-        assert!(!looks_like_email("dean@.edu"));
-        assert!(!looks_like_email("dean @umass.edu"));
-        assert!(!looks_like_email(""));
-    }
-
-    #[test]
-    fn password_length_is_enforced() {
-        assert!(validate_password("short").is_err());
-        assert!(validate_password("exactly12chr").is_ok());
     }
 }

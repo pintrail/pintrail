@@ -34,7 +34,7 @@
              margin-bottom: 1rem; }
     form.inline { display: inline; }
     label { display: block; margin: .75rem 0; }
-    input[type=email], input[type=password] { font: inherit; padding: .4rem;
+    input[type=email], input[type=password], input[type=text], select { font: inherit; padding: .4rem;
              width: 100%; max-width: 22rem; box-sizing: border-box; }
     .muted { opacity: .65; font-size: .85rem; }
   </style>
@@ -50,6 +50,7 @@
     </nav>
     <span class="who">
       {{ author.email }} ({{ author.role }})
+      <a href="/studio/password">Change password</a>
       <form method="post" action="/admin/logout" class="inline">
         <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
         <button>Sign out</button>

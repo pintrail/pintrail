@@ -57,6 +57,41 @@ impl<R: MinRole> RequireAuthorRole<R> {
     }
 }
 
+/// Resolves the session cookie to its active author, or 401.
+///
+/// One query joins session to author and enforces expiry and activity
+/// together, so there is no window where a suspended author's existing
+/// session still works.
+async fn author_from_session(parts: &Parts, state: &AppState) -> Result<Author, AppError> {
+    let jar = CookieJar::from_headers(&parts.headers);
+    let raw_token = jar
+        .get(SESSION_COOKIE)
+        .map(|c| c.value().to_owned())
+        .ok_or(AppError::Unauthorized)?;
+
+    // The session is looked up by hash; the raw cookie value is never
+    // stored, so a database dump yields no usable sessions.
+    let token_hash = hash_session_token(&raw_token);
+
+    sqlx::query_as::<_, Author>(
+        r#"
+        SELECT a.id, a.email, a.password_hash, a.role, a.is_active, a.must_change_password,
+               a.created_at, a.updated_at
+        FROM author_sessions s
+        JOIN authors a ON a.id = s.author_id
+        WHERE s.token_hash = $1
+          AND s.expires_at > $2
+          AND a.is_active
+        "#,
+    )
+    .bind(&token_hash)
+    .bind(Utc::now())
+    .fetch_optional(&state.db)
+    .await
+    .map_err(|e| AppError::Internal(e.into()))?
+    .ok_or(AppError::Unauthorized)
+}
+
 impl<R> FromRequestParts<AppState> for RequireAuthorRole<R>
 where
     R: MinRole,
@@ -67,36 +102,13 @@ where
         parts: &mut Parts,
         state: &AppState,
     ) -> Result<Self, Self::Rejection> {
-        let jar = CookieJar::from_headers(&parts.headers);
-        let raw_token = jar
-            .get(SESSION_COOKIE)
-            .map(|c| c.value().to_owned())
-            .ok_or(AppError::Unauthorized)?;
+        let author = author_from_session(parts, state).await?;
 
-        // The session is looked up by hash; the raw cookie value is never
-        // stored, so a database dump yields no usable sessions.
-        let token_hash = hash_session_token(&raw_token);
-
-        // One query joins session to author and enforces expiry and activity
-        // together, so there is no window where a suspended author's existing
-        // session still works.
-        let author = sqlx::query_as::<_, Author>(
-            r#"
-            SELECT a.id, a.email, a.password_hash, a.role, a.is_active,
-                   a.created_at, a.updated_at
-            FROM author_sessions s
-            JOIN authors a ON a.id = s.author_id
-            WHERE s.token_hash = $1
-              AND s.expires_at > $2
-              AND a.is_active
-            "#,
-        )
-        .bind(&token_hash)
-        .bind(Utc::now())
-        .fetch_optional(&state.db)
-        .await
-        .map_err(|e| AppError::Internal(e.into()))?
-        .ok_or(AppError::Unauthorized)?;
+        // Checked here rather than at sign-in, so no route -- HTML or JSON --
+        // serves an author still holding a password an admin chose.
+        if author.must_change_password {
+            return Err(AppError::PasswordChangeRequired);
+        }
 
         // Authenticated but under-privileged is 403, not 401: retrying with
         // the same credentials will not help.
@@ -111,5 +123,22 @@ where
         }
 
         Ok(RequireAuthorRole(author, PhantomData))
+    }
+}
+
+/// Any signed-in author, including one who must still change their password.
+///
+/// Only the change-password handler should use this; everything else takes a
+/// `RequireAuthorRole`, which refuses such authors.
+pub struct SessionAuthor(pub Author);
+
+impl FromRequestParts<AppState> for SessionAuthor {
+    type Rejection = AppError;
+
+    async fn from_request_parts(
+        parts: &mut Parts,
+        state: &AppState,
+    ) -> Result<Self, Self::Rejection> {
+        author_from_session(parts, state).await.map(SessionAuthor)
     }
 }

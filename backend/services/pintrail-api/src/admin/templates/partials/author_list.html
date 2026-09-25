@@ -8,7 +8,10 @@
   <tr>
     <td>{{ a.email }}{% if a.is_self %} <span class="muted">(you)</span>{% endif %}</td>
     <td>{{ a.role }}</td>
-    <td>{% if a.is_active %}active{% else %}<span class="danger">suspended</span>{% endif %}</td>
+    <td>
+      {% if a.is_active %}active{% else %}<span class="danger">suspended</span>{% endif %}
+      {% if a.must_change_password %}<span class="tag">must change password</span>{% endif %}
+    </td>
     <td class="muted">{{ a.created_at }}</td>
     <td>
       {# No self-suspend control: the server refuses it anyway, and offering a
@@ -26,9 +29,27 @@
   {% endfor %}
 </table>
 
+<h3>Add author</h3>
+
+{% if error %}<p class="flash danger">{{ error }}</p>{% endif %}
+
+<form method="post" action="/admin/authors">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+  <label>Email<input type="email" name="email" value="{{ new_email }}" autocomplete="off" required></label>
+  <label>Role
+    <select name="role">
+      {% for r in roles %}<option value="{{ r }}" {% if r == new_role %}selected{% endif %}>{{ r }}</option>{% endfor %}
+    </select>
+  </label>
+  {# autocomplete=new-password keeps the browser from filling in the admin's
+     own saved password here. #}
+  <label>Temporary password<input type="password" name="password" minlength="12" autocomplete="new-password" required></label>
+  <label>Confirm password<input type="password" name="password_confirm" minlength="12" autocomplete="new-password" required></label>
+  <button>Create author</button>
+</form>
+
 <p class="muted">
-  New accounts are created from the command line
-  (<code>pintrail-api create-author</code>) so passwords never pass through a
-  browser form or a server log.
+  Give the new author their temporary password in person or over a trusted
+  channel. They will be asked to choose a new password when they first sign in.
 </p>
 {% endblock %}

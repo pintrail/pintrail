@@ -31,6 +31,12 @@ pub enum AppError {
     #[error("email address must be verified first")]
     EmailNotVerified,
 
+    /// The author is signed in but still holds a password an admin chose.
+    /// Distinct from `Forbidden` so the HTML tiers can send them to the
+    /// change-password page instead of a dead end.
+    #[error("password change required")]
+    PasswordChangeRequired,
+
     #[error("{0} not found")]
     NotFound(&'static str),
 
@@ -63,6 +69,7 @@ impl AppError {
             AppError::InvalidCredentials => StatusCode::UNAUTHORIZED,
             AppError::Forbidden => StatusCode::FORBIDDEN,
             AppError::EmailNotVerified => StatusCode::FORBIDDEN,
+            AppError::PasswordChangeRequired => StatusCode::FORBIDDEN,
             AppError::NotFound(_) => StatusCode::NOT_FOUND,
             AppError::Conflict(_) => StatusCode::CONFLICT,
             AppError::TooManyRequests => StatusCode::TOO_MANY_REQUESTS,
@@ -74,6 +81,7 @@ impl AppError {
 impl IntoResponse for AppError {
     fn into_response(self) -> Response {
         let status = self.status();
+        let needs_password_change = matches!(self, AppError::PasswordChangeRequired);
 
         let message = match &self {
             AppError::Internal(err) => {
@@ -83,8 +91,41 @@ impl IntoResponse for AppError {
             other => other.to_string(),
         };
 
-        (status, Json(json!({ "error": message }))).into_response()
+        let mut response = (status, Json(json!({ "error": message }))).into_response();
+        if needs_password_change {
+            response.extensions_mut().insert(PasswordChangeRequiredMarker);
+        }
+        response
     }
 }
 
+/// Response extension set on a [`AppError::PasswordChangeRequired`] response,
+/// so the HTML tiers' middleware can redirect it without parsing the body.
+#[derive(Debug, Clone, Copy)]
+pub struct PasswordChangeRequiredMarker;
+
 pub type AppResult<T> = Result<T, AppError>;
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn password_change_required_is_marked() {
+        let response = AppError::PasswordChangeRequired.into_response();
+        assert_eq!(response.status(), StatusCode::FORBIDDEN);
+        assert!(response
+            .extensions()
+            .get::<PasswordChangeRequiredMarker>()
+            .is_some());
+    }
+
+    #[test]
+    fn plain_forbidden_is_not_marked() {
+        let response = AppError::Forbidden.into_response();
+        assert!(response
+            .extensions()
+            .get::<PasswordChangeRequiredMarker>()
+            .is_none());
+    }
+}
