@@ -214,3 +214,6 @@ Icon\n
 
 # Microsoft Office lock/owner files
 ~$*
+# Database dumps and the deploy log written by backend/deploy/*.sh. They hold
+# password hashes and user content.
+backend/backups/
