@@ -20,6 +20,13 @@ PinTrail transforms how people explore and engage with sustainability at UMass A
 
 Sustainability efforts are often invisible to students and campus visitors. PinTrail makes them discoverable. By combining location-based technology with curated storytelling, we're making environmental awareness accessible, engaging, and fun—one trail at a time.
 
+## Documentation
+
+- [Pintrail overview](docs/pintrail-overview.md): what Pintrail is, who uses it, and how, with diagrams
+- [Design document](docs/DESIGN.md): data model, services, and architecture
+- [Deployment guide](docs/DEPLOYMENT.md): first-time setup, redeploys, rollbacks, and backups
+- [Backend README](backend/README.md): building and running the Rust backend locally
+
 ## Getting Involved
 
 PinTrail is a student-led project born at UMass Amherst's Earth Day Extravaganza. We welcome contributions from anyone passionate about sustainability, technology, and community engagement.

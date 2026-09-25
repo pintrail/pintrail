@@ -308,8 +308,10 @@ and explorers are different products with different auth flows:
 authors
   id              UUID PK
   email           VARCHAR UNIQUE
-  password_hash   VARCHAR         -- scrypt, "salt_hex:dk_hex"
+  password_hash   VARCHAR         -- argon2id, PHC string (see backend/README.md)
   role            author_role     -- viewer | editor | admin
+  must_change_password BOOLEAN    -- set when an admin chose the password; cleared
+                                  -- once the author picks their own
   is_active       BOOLEAN
   created_at, updated_at TIMESTAMPTZ
 
@@ -419,8 +421,9 @@ services/pintrail-api/
     error.rs
     authors/
       model.rs                # Author, AuthorRole (viewer<editor<admin), AuthorSession
-      auth.rs                 # scrypt hash/verify, cookie session issuance
-      extractors.rs           # CookieAuth<Author>, RequireAuthorRole(min)
+      auth.rs                 # argon2id hash/verify, cookie session issuance
+      extractors.rs           # CookieAuth<Author>, RequireAuthorRole(min); the role
+                                # gate refuses authors who must change their password
       routes.rs                # login/logout, admin-only author management
     readers/
       model.rs                # Reader, ReaderSession
@@ -441,6 +444,9 @@ services/pintrail-api/
                                 # comment moderation, trail takedown
       templates/                # minijinja: login.html, partials/author_list.html,
                                  # partials/comment_queue.html, partials/trail_takedown.html
+    studio/
+      routes.rs                # browser-based artifact authoring and preview (/studio),
+                                # including /studio/password for changing passwords
 ```
 
 Each module owns its own tables the same way the original Python services did by process —
@@ -513,8 +519,8 @@ attach an `Authorization` header.
 
 | Tier | Transport | Mechanism | Notes |
 |---|---|---|---|
-| Authors | httpOnly cookie (web admin + any future authoring tool) | scrypt password hash, sha256 session token | Small group, admin-provisioned, no self-service signup |
-| Readers | `Authorization: Bearer <token>` (mobile app) | scrypt or argon2 password hash (argon2 fine here — no legacy hashes to preserve for this new tier), sha256 token, email verification required before posting comments/trails | Self-service registration, rate-limited |
+| Authors | httpOnly cookie (web admin, Studio, any future authoring tool) | argon2id password hash, sha256 session token | Small group, admin-provisioned, no self-service signup. An account an admin creates with a temporary password must set its own password before any other route will serve it. |
+| Readers | `Authorization: Bearer <token>` (mobile app) | argon2id password hash (both tiers share one hasher; there were no legacy hashes to preserve), sha256 token, email verification required before posting comments/trails | Self-service registration, rate-limited |
 | Admin routes | httpOnly cookie, `RequireAuthorRole(Admin)` | same as authors, gated by role | Author/comment/trail moderation UI |
 
 ## 2.7 API surface (representative, not exhaustive)
@@ -542,10 +548,11 @@ PATCH  /attachments/{id}                    -> caption/position edits
 POST   /trails                              -> create (owner_type=author), admin/editor curated
 
 # Admin (cookie, admin role only)
-GET    /admin/authors, POST/PATCH …          -> author account management
-GET    /admin/comments?status=flagged         -> moderation queue
-PATCH  /admin/comments/{id}                    -> hide/restore
-DELETE /admin/trails/{id}                      -> takedown
+GET    /admin/authors, POST                   -> author management page, add author (HTML)
+GET    /api/admin/authors, PATCH /{id} …      -> author account management (JSON)
+GET    /admin/comments                        -> moderation queue
+POST   /admin/comments/{id}/hide | /restore   -> hide/restore
+POST   /admin/trails/{id}/delete              -> takedown
 ```
 
 ## 2.8 Rollout / v1 cut line

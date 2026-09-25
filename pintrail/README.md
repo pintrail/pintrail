@@ -1,4 +1,6 @@
-# Pintrail
+# Pintrail (legacy Python system)
+
+> **Retired.** This Python portal has been replaced by the Rust backend in [`../backend`](../backend), which now runs at `pintrail.cs.umass.edu`. This directory is kept for reference only. For the current system see [`../docs/pintrail-overview.md`](../docs/pintrail-overview.md), [`../docs/DESIGN.md`](../docs/DESIGN.md), and [`../docs/DEPLOYMENT.md`](../docs/DEPLOYMENT.md).
 
 Pintrail is a secured artifact management portal. It lets authenticated users create a hierarchical tree of artifacts (with names, descriptions, and GPS coordinates), attach images to each artifact, and view processed image galleries. Access is role-gated: viewers read, editors write, admins manage users.
 
