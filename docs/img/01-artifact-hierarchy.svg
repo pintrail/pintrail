@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 820 440" width="820" height="440" role="img" aria-labelledby="title desc">
+  <title id="title">Artifact hierarchy and location inheritance</title>
+  <desc id="desc">Elm Building is a parent artifact with its own GPS location. Its children are a rooftop solar array with its own GPS, and a room and a mural with no GPS, which use the building's location.</desc>
+  <style>
+    text { font-family: -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; fill: #1F2933; }
+    .title { font-size: 20px; font-weight: 700; }
+    .sub { font-size: 14px; fill: #52606D; }
+    .name { font-size: 16px; font-weight: 700; }
+    .kind { font-size: 12px; font-weight: 700; fill: #2F855A; letter-spacing: 0.06em; }
+    .body { font-size: 13px; fill: #3E4C59; }
+    .legend { font-size: 13px; fill: #52606D; }
+  </style>
+  <defs>
+    <g id="pin-solid">
+      <path d="M0 10 C-8 1 -8 -10 0 -10 C8 -10 8 1 0 10 Z" fill="#2F855A"/>
+      <circle cx="0" cy="-3" r="3" fill="#FFFFFF"/>
+    </g>
+    <g id="pin-hollow">
+      <path d="M0 10 C-8 1 -8 -10 0 -10 C8 -10 8 1 0 10 Z" fill="#FFFFFF" stroke="#2F855A" stroke-width="1.6" stroke-dasharray="3 2"/>
+      <circle cx="0" cy="-3" r="2.5" fill="#2F855A"/>
+    </g>
+  </defs>
+
+  <rect width="820" height="440" fill="#FFFFFF"/>
+  <text class="title" x="40" y="42">Artifacts nest inside each other</text>
+  <text class="sub" x="40" y="66">Indoor artifacts have no reliable GPS, so they use their parent building's location.</text>
+
+  <!-- tree connectors -->
+  <path d="M290 243 H350 M350 138 V348 M350 138 H420 M350 243 H420 M350 348 H420" fill="none" stroke="#9AA5B1" stroke-width="2"/>
+
+  <!-- parent -->
+  <rect x="40" y="188" width="250" height="110" rx="10" fill="#E6F4EA" stroke="#2F855A" stroke-width="2"/>
+  <text class="kind" x="60" y="216">BUILDING</text>
+  <text class="name" x="60" y="240">Elm Building</text>
+  <use href="#pin-solid" x="68" y="271"/>
+  <text class="body" x="84" y="276">Own GPS location</text>
+
+  <!-- child 1 -->
+  <rect x="420" y="95" width="360" height="86" rx="10" fill="#FFFFFF" stroke="#2F855A" stroke-width="1.5"/>
+  <text class="kind" x="440" y="119">ROOFTOP</text>
+  <text class="name" x="440" y="141">Rooftop Solar Array</text>
+  <use href="#pin-solid" x="448" y="162"/>
+  <text class="body" x="464" y="167">Own GPS location (it's outdoors)</text>
+
+  <!-- child 2 -->
+  <rect x="420" y="200" width="360" height="86" rx="10" fill="#FFFFFF" stroke="#2F855A" stroke-width="1.5"/>
+  <text class="kind" x="440" y="224">ROOM</text>
+  <text class="name" x="440" y="246">Room 214, Solar Control Room</text>
+  <use href="#pin-hollow" x="448" y="267"/>
+  <text class="body" x="464" y="272">No GPS: uses Elm Building's location</text>
+
+  <!-- child 3 -->
+  <rect x="420" y="305" width="360" height="86" rx="10" fill="#FFFFFF" stroke="#2F855A" stroke-width="1.5"/>
+  <text class="kind" x="440" y="329">ARTWORK</text>
+  <text class="name" x="440" y="351">Lobby Mural "Community Roots"</text>
+  <use href="#pin-hollow" x="448" y="372"/>
+  <text class="body" x="464" y="377">No GPS: uses Elm Building's location</text>
+
+  <!-- legend -->
+  <use href="#pin-solid" x="48" y="415"/>
+  <text class="legend" x="62" y="420">own location</text>
+  <use href="#pin-hollow" x="170" y="415"/>
+  <text class="legend" x="184" y="420">inherited from the parent, so "you're near this" still works indoors</text>
+</svg>

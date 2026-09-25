@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 430" width="900" height="430" role="img" aria-labelledby="title desc">
+  <title id="title">An explorer's journey</title>
+  <desc id="desc">Six steps: get the app, sync the map, walk, get a nearby notification, open the artifact, then comment, follow a trail, or build one.</desc>
+  <style>
+    text { font-family: -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; fill: #1F2933; }
+    .title { font-size: 20px; font-weight: 700; }
+    .sub { font-size: 14px; fill: #52606D; }
+    .num { font-size: 15px; font-weight: 700; fill: #FFFFFF; }
+    .step { font-size: 16px; font-weight: 700; }
+    .body { font-size: 13px; fill: #3E4C59; }
+    .quote { font-size: 13px; fill: #2F855A; font-style: italic; }
+  </style>
+  <defs>
+    <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 Z" fill="#7B8794"/>
+    </marker>
+  </defs>
+
+  <rect width="900" height="430" fill="#FFFFFF"/>
+  <text class="title" x="30" y="42">An explorer's walk with Pintrail</text>
+  <text class="sub" x="30" y="66">From opening the app to sharing a trail with friends.</text>
+
+  <!-- connectors -->
+  <path d="M270 150 H322" stroke="#7B8794" stroke-width="2" fill="none" marker-end="url(#arr)"/>
+  <path d="M570 150 H622" stroke="#7B8794" stroke-width="2" fill="none" marker-end="url(#arr)"/>
+  <path d="M745 205 V240 H150 V272" stroke="#7B8794" stroke-width="2" fill="none" marker-end="url(#arr)"/>
+  <path d="M270 330 H322" stroke="#7B8794" stroke-width="2" fill="none" marker-end="url(#arr)"/>
+  <path d="M570 330 H622" stroke="#7B8794" stroke-width="2" fill="none" marker-end="url(#arr)"/>
+
+  <!-- row 1 -->
+  <rect x="30" y="95" width="240" height="110" rx="10" fill="#F5F7FA" stroke="#CBD2D9"/>
+  <circle cx="54" cy="121" r="13" fill="#2F855A"/><text class="num" x="54" y="126" text-anchor="middle">1</text>
+  <text class="step" x="76" y="127">Get the app</text>
+  <text class="body" x="46" y="156">Install it, or scan a QR code at</text>
+  <text class="body" x="46" y="174">an event. Browse right away;</text>
+  <text class="body" x="46" y="192">sign up to comment and share.</text>
+
+  <rect x="330" y="95" width="240" height="110" rx="10" fill="#F5F7FA" stroke="#CBD2D9"/>
+  <circle cx="354" cy="121" r="13" fill="#2F855A"/><text class="num" x="354" y="126" text-anchor="middle">2</text>
+  <text class="step" x="376" y="127">Sync the map</text>
+  <text class="body" x="346" y="156">The app downloads a light list</text>
+  <text class="body" x="346" y="174">of artifacts and locations, and</text>
+  <text class="body" x="346" y="192">refreshes it now and then.</text>
+
+  <rect x="630" y="95" width="240" height="110" rx="10" fill="#F5F7FA" stroke="#CBD2D9"/>
+  <circle cx="654" cy="121" r="13" fill="#2F855A"/><text class="num" x="654" y="126" text-anchor="middle">3</text>
+  <text class="step" x="676" y="127">Walk</text>
+  <text class="body" x="646" y="156">The phone compares its own GPS</text>
+  <text class="body" x="646" y="174">to that list. No server calls,</text>
+  <text class="body" x="646" y="192">so patchy signal is fine.</text>
+
+  <!-- row 2 -->
+  <rect x="30" y="275" width="240" height="110" rx="10" fill="#E6F4EA" stroke="#2F855A"/>
+  <circle cx="54" cy="301" r="13" fill="#2F855A"/><text class="num" x="54" y="306" text-anchor="middle">4</text>
+  <text class="step" x="76" y="307">Get nudged</text>
+  <text class="quote" x="46" y="336">"You're near Elm Building.</text>
+  <text class="quote" x="46" y="354">Tap to see 3 artifacts here."</text>
+
+  <rect x="330" y="275" width="240" height="110" rx="10" fill="#F5F7FA" stroke="#CBD2D9"/>
+  <circle cx="354" cy="301" r="13" fill="#2F855A"/><text class="num" x="354" y="306" text-anchor="middle">5</text>
+  <text class="step" x="376" y="307">Explore</text>
+  <text class="body" x="346" y="336">Open the artifact: photos, the</text>
+  <text class="body" x="346" y="354">story, a PDF. Media loads only</text>
+  <text class="body" x="346" y="372">now, keeping the app light.</text>
+
+  <rect x="630" y="275" width="240" height="110" rx="10" fill="#F5F7FA" stroke="#CBD2D9"/>
+  <circle cx="654" cy="301" r="13" fill="#2F855A"/><text class="num" x="654" y="306" text-anchor="middle">6</text>
+  <text class="step" x="676" y="307">Engage</text>
+  <text class="body" x="646" y="336">Comment, follow a curated</text>
+  <text class="body" x="646" y="354">trail, or build your own and</text>
+  <text class="body" x="646" y="372">share it with a link.</text>
+</svg>
