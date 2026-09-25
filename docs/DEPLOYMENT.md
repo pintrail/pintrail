@@ -3,8 +3,9 @@
 How to set up the PinTrail backend on a server for the first time, redeploy it,
 roll it back, and look after its database backups.
 
-This guide covers the Rust backend in `backend/`. The legacy Python system in
-`pintrail/` is deployed separately and is not covered here.
+This guide covers the Rust backend in `backend/`, which is what runs at
+`pintrail.cs.umass.edu`. The legacy Python system in `pintrail/` has been
+replaced and is no longer deployed.
 
 **In a hurry?**
 

@@ -1,6 +1,6 @@
 # Pintrail: What It Is, Why It Exists, and How People Use It
 
-*Prepared September 2026 from the project repository (`docs/DESIGN.md`, the Rust backend, the mobile app, and the legacy system) and project correspondence.*
+*Prepared September 2026 from the project repository (`docs/DESIGN.md`, `docs/DEPLOYMENT.md`, the Rust backend, and the mobile app) and project correspondence. Last updated September 25, 2026.*
 
 ---
 
@@ -105,8 +105,8 @@ Pintrail has three kinds of users, kept as separate tiers because they are diffe
 
 ### 5.2 An author's experience (web)
 
-1. An admin creates the author's account and assigns a role: **viewer** (browse only), **editor** (create and edit), or **admin**.
-2. The author signs in on the web to the **Studio**, a browser-based authoring tool with a map, built into the backend. (The legacy system's equivalent is the portal at `pintrail.cs.umass.edu/portal`.)
+1. An admin creates the author's account in the admin panel, assigns a role (**viewer** to browse only, **editor** to create and edit, or **admin**), and gives the author a temporary password.
+2. The author signs in on the web to the **Studio** at `pintrail.cs.umass.edu/studio`, a browser-based authoring tool with a map, built into the backend. The first time they sign in, they must choose their own password before they can do anything else, so a password the admin knows never stays in use. They can change it again at any time.
 3. They create artifacts: pick the kind, write the name and description, and place it on the map. For an indoor child artifact (a room or an object) they choose the parent and leave the location blank, and it inherits the building's position.
 4. They upload attachments (see the diagram below). Files go straight to storage, and the background worker converts them into phone-friendly formats (for example, iPhone HEIC photos become resized WebP images and PDFs get a thumbnail of page one). The author sees each file's status move from queued to processed.
 5. They reorder and caption attachments, preview the artifact, and curate official trails that appear publicly in the app.
@@ -115,7 +115,7 @@ Pintrail has three kinds of users, kept as separate tiers because they are diffe
 
 ### 5.3 An admin's experience (web)
 
-1. Admins use the admin panel to add, suspend, or change the role of author accounts. Suspending an account signs it out immediately, and the system prevents removing the last active admin.
+1. Admins use the admin panel at `pintrail.cs.umass.edu/admin` to add authors (**Authors → Add author**, with a temporary password the author must replace), suspend them, or change their role. Suspending an account signs it out immediately, and the system prevents removing the last active admin.
 2. They review a moderation queue of flagged comments and hide or restore them.
 3. They can take down a user-created trail that has been reported.
 4. The very first admin account is created from the server's command line; everything after that happens in the web panel.
@@ -133,16 +133,17 @@ A few design choices shape the experience:
 - **Uploads go directly to storage** through short-lived signed links, which scales to thousands of phones.
 - **Privacy and safety are built in**: registration does not reveal whether an email is already signed up, sign-in errors do not reveal which part was wrong, sensitive actions are rate-limited, and unverified accounts can read but not post.
 
-For technical detail, see [DESIGN.md](DESIGN.md) and the [backend README](../backend/README.md).
+For technical detail, see [DESIGN.md](DESIGN.md) and the [backend README](../backend/README.md). For running the server (first-time setup, redeploys, rollbacks, and backups), see [DEPLOYMENT.md](DEPLOYMENT.md).
 
 ## 7. Where the project stands (September 2026)
 
 | Area | Status |
 |---|---|
-| Legacy Python system (portal, artifact service, worker) | Deployed at `pintrail.cs.umass.edu`; used by content contributors to upload material. A known issue with editing descriptions on child artifacts was reported in May. |
-| Rust backend rewrite | Merged: authors, readers, artifacts with coordinate inheritance and sync, attachments with presigned upload, the worker pipeline (WebP, PDF thumbnails), trails with visibility and share links, comments with rate limiting, the admin panel, the Studio, and a Docker Compose deployment. Will replace the legacy stack once at parity. |
+| Rust backend | Live at `pintrail.cs.umass.edu`, with the Studio at `/studio` and the admin panel at `/admin`. Includes authors, readers, artifacts with coordinate inheritance and sync, attachments with presigned upload, the worker pipeline (WebP, PDF thumbnails), trails with visibility and share links, comments with rate limiting, the admin panel (including adding authors with a forced password change), and the Studio. |
+| Deployment | Docker Compose on CICS infrastructure, with the Versity S3 Gateway for media storage. Scripted redeploys and rollbacks take a database backup before every deploy and run migrations before any running container is replaced (see [DEPLOYMENT.md](DEPLOYMENT.md)). |
+| Legacy Python system | Replaced by the Rust backend. The code remains in `pintrail/` for reference. |
 | Mobile app | Early: an Expo / React Native skeleton showing a map centered on campus. Discovery, detail, trail, and account screens are next. |
-| Public presence | Landing page with email signup, Instagram @pintrail.umass, debut at the April 2026 Earth Day event (table with a community collage and a pin-mapping activity). |
+| Public presence | Instagram @pintrail.umass, debut at the April 2026 Earth Day event (table with a community collage and a pin-mapping activity). |
 | Semantic search and Q&A | Under way as a Fall 2026 COMPSCI 496 independent study. |
 
 ## 8. Roadmap

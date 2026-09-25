@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 360" width="960" height="360" role="img" aria-labelledby="title desc">
   <title id="title">Pintrail timeline and roadmap</title>
-  <desc id="desc">April 2026 Earth Day launch on the Python system; July 2026 Rust rewrite merged; Fall 2026 current work on the mobile app and semantic search; version 1 as the complete app; version 2 with audio and video, BLE beacons, gamification, and new domains.</desc>
+  <desc id="desc">April 2026 Earth Day launch on the Python system; July 2026 Rust rewrite merged; September 2026 Rust backend live and the Python system retired, with the mobile app and semantic search next; version 1 as the complete app; version 2 with audio and video, BLE beacons, gamification, and new domains.</desc>
   <style>
     text { font-family: -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; fill: #1F2933; }
     .title { font-size: 20px; font-weight: 700; }
@@ -42,11 +42,11 @@
   <text class="body" x="295" y="252" text-anchor="middle">Studio, Docker deploy</text>
 
   <text class="when" x="480" y="172" text-anchor="middle" fill="#2B6CB0">FALL 2026</text>
-  <text class="what" x="480" y="194" text-anchor="middle">Build out the app</text>
-  <text class="body" x="480" y="216" text-anchor="middle">Mobile screens beyond</text>
-  <text class="body" x="480" y="234" text-anchor="middle">the map; retire Python;</text>
-  <text class="body" x="480" y="252" text-anchor="middle">semantic search and Q&amp;A</text>
-  <text class="body" x="480" y="270" text-anchor="middle">(independent study)</text>
+  <text class="what" x="480" y="194" text-anchor="middle">Rust backend live</text>
+  <text class="body" x="480" y="216" text-anchor="middle">Python retired; scripted</text>
+  <text class="body" x="480" y="234" text-anchor="middle">deploys; next: mobile</text>
+  <text class="body" x="480" y="252" text-anchor="middle">screens, semantic search</text>
+  <text class="body" x="480" y="270" text-anchor="middle">and Q&amp;A (independent study)</text>
 
   <text class="when" x="665" y="172" text-anchor="middle" fill="#52606D">VERSION 1</text>
   <text class="what" x="665" y="194" text-anchor="middle">Full campus release</text>

@@ -5,16 +5,17 @@ Postgres database and one S3-compatible bucket.
 
 | Crate | Role |
 |---|---|
-| [`services/pintrail-api`](services/pintrail-api) | axum HTTP API. Modules per concern (`authors/`, `readers/`, `artifacts/`, `attachments/`, `trails/`, `comments/`, `admin/`), each owning its own tables. |
+| [`services/pintrail-api`](services/pintrail-api) | axum HTTP API. Modules per concern (`authors/`, `readers/`, `artifacts/`, `attachments/`, `trails/`, `comments/`, `admin/`, `studio/`), each owning its own tables. |
 | [`services/pintrail-worker`](services/pintrail-worker) | Attachment processing. Claims work from Postgres with `FOR UPDATE SKIP LOCKED` — no Redis. |
 | [`libs/pintrail-storage`](libs/pintrail-storage) | S3 client shared by both binaries. |
 
 ## Relationship to `pintrail/`
 
 `pintrail/` at the repo root is the **legacy Python system** (portal/artifact/worker)
-that this rewrite replaces. It stays deployed and untouched until these services
-reach parity. The local Postgres here binds host port **5433** rather than 5432
-so both stacks can run side by side during the transition.
+that this rewrite replaced. The Rust backend is now what runs at
+`pintrail.cs.umass.edu`; the Python code is kept for reference only. The local
+Postgres here still binds host port **5433** rather than 5432, so it does not
+clash with the legacy stack if you run that locally.
 
 ## Toolchain
 
