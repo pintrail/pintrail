@@ -21,7 +21,8 @@
     {% endif %}
   </div>
 
-  {% if a.description %}<p style="margin:.75rem 0 0">{{ a.description }}</p>{% endif %}
+  {# pre-line keeps the author's paragraph breaks; the text is still autoescaped. #}
+  {% if a.description %}<p style="margin:.75rem 0 0; white-space:pre-line">{{ a.description }}</p>{% endif %}
 </div>
 
 <div class="card">
