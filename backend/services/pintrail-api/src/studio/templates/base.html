@@ -186,6 +186,52 @@
     .pin-popup .hint { margin-top: .5rem; }
     .pin-popup .tags { margin-top: .3rem; display: flex; flex-wrap: wrap; gap: .25rem; }
 
+    /* Location button and camera upload */
+    .locate-status { margin: .45rem 0 0; font-size: .82rem; color: var(--muted); min-height: 1.1rem; }
+    .locate-status.err { color: var(--danger); }
+    .btn-locate { display: inline-flex; align-items: center; gap: .35rem; }
+    input.coord { max-width: 11rem; }
+    @media (pointer: fine) { .touch-only { display: none !important; } }
+
+    /* Phones and narrow windows: the artifact list becomes a drawer opened
+       from the menu button, and the content gets the full width. */
+    .nav-toggle, .nav-close, .nav-backdrop { display: none; }
+    .phone-only { display: none; }
+    @media (max-width: 780px) {
+      header.topbar { padding: .55rem .75rem; gap: .5rem; }
+      .nav-toggle { display: grid; place-items: center; padding: .4rem; }
+      .who, .wide-only { display: none; }
+      .layout { display: block; min-height: 0; }
+      .sidebar {
+        display: block; position: fixed; z-index: 1200; top: 0; bottom: 0; left: 0;
+        width: min(86vw, 340px); border-right: 1px solid var(--line);
+        transform: translateX(-102%); transition: transform .2s ease;
+        box-shadow: 0 0 40px rgba(0,0,0,.25);
+      }
+      body.nav-open .sidebar { transform: none; }
+      body.nav-open { overflow: hidden; }
+      .nav-close { display: grid; margin: -.25rem .25rem 0 -.35rem; }
+      .nav-backdrop { position: fixed; inset: 0; z-index: 1100; background: rgba(0,0,0,.35); }
+      body.nav-open .nav-backdrop { display: block; }
+      .tree a.node { padding: .55rem .5rem; }
+      main.detail { padding: .9rem .75rem 2rem; max-width: none; }
+      .card { padding: 1rem; border-radius: .65rem; margin-bottom: .9rem; }
+      .card h1 { font-size: 1.25rem; }
+      .field-row { grid-template-columns: 1fr; gap: 0; }
+      input.coord { max-width: none; flex: 1 1 8rem; min-width: 0; }
+      .phone-only { display: inline; }
+      .welcome-actions.phone-only { display: flex; flex-direction: column; gap: .6rem; max-width: 18rem; margin: 1.25rem auto 0; }
+      .empty { padding: 2.5rem 1rem; }
+      .map { height: 260px; }
+      .map.overview { height: calc(100dvh - 13rem); min-height: 320px; }
+      .preview-img { width: 5.5rem; }
+      .map-card .push { margin-left: 0; width: 100%; }
+      .inline-filter { flex: 1; }
+      .inline-filter select { flex: 1; width: 100%; }
+      button, .btn { min-height: 2.5rem; }
+      .btn-sm { min-height: 2.25rem; }
+    }
+
     /* Leaflet controls read better on a dark theme with a slight lift. */
     .leaflet-container { font: inherit; background: var(--chip); }
   </style>
@@ -196,18 +242,25 @@
 <body>
 {% if author %}
   <header class="topbar">
+    <button type="button" class="nav-toggle" data-nav-toggle aria-controls="sidebar" aria-expanded="false" aria-label="Show artifacts">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+    </button>
     <a class="brand" href="/studio"><span class="dot"></span> Pintrail Studio</a>
     <span class="spacer"></span>
     <span class="who">{{ author.email }} · {{ author.role }}</span>
-    <a class="btn-sm" href="/studio/password">Change password</a>
+    <a class="btn-sm" href="/studio/password"><span class="wide-only">Change </span>password</a>
     <form method="post" action="/studio/logout" style="display:inline">
       <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
       <button class="btn-sm">Sign out</button>
     </form>
   </header>
   <div class="layout">
-    <aside class="sidebar">
+    <div class="nav-backdrop" data-nav-close></div>
+    <aside class="sidebar" id="sidebar">
       <div class="head">
+        <button type="button" class="icon-btn nav-close" data-nav-close aria-label="Close artifact list">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
+        </button>
         <h2>Artifacts</h2>
         <span class="push"></span>
         <button class="btn-sm" hx-get="/studio/map" hx-target="#detail" hx-push-url="true" title="Every artifact on one map">Map</button>
