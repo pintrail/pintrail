@@ -23,6 +23,11 @@
 
   {# pre-line keeps the author's paragraph breaks; the text is still autoescaped. #}
   {% if a.description %}<p style="margin:.75rem 0 0; white-space:pre-line">{{ a.description }}</p>{% endif %}
+  {% if a.tags %}
+  <ul class="tag-list" aria-label="Tags">
+    {% for t in a.tags %}<li class="tag">{{ t }}</li>{% endfor %}
+  </ul>
+  {% endif %}
 </div>
 
 <div class="card">
@@ -40,6 +45,12 @@
       {% endif %}
     </dl>
   {% endif %}
+</div>
+
+<div class="card" id="links"
+     hx-get="/studio/artifacts/{{ a.id }}/links"
+     hx-trigger="load"
+     hx-swap="innerHTML">
 </div>
 
 <div class="card" id="attachments"

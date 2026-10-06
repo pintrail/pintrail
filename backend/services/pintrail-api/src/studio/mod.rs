@@ -7,6 +7,7 @@
 //! Reuses admin::csrf and the artifacts coordinate-resolution query.
 
 pub mod assets;
+pub mod preview;
 pub mod routes;
 
 pub use routes::{redirect_unauthenticated, router};

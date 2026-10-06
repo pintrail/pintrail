@@ -112,6 +112,74 @@
     .signin { max-width: 22rem; margin: 4rem auto; }
     .signin .card { padding: 1.5rem; }
 
+
+    /* Form help */
+    .help { display: block; color: var(--muted); font-size: .8rem; margin-top: .35rem; line-height: 1.45; }
+    .field { display: block; margin: .9rem 0; }
+    .field > .lbl { display: block; font-size: .85rem; color: var(--muted); margin-bottom: .3rem; }
+    [data-kind-help] > span { display: none; }
+    [data-kind-help] > span.on { display: inline; }
+    .req-badge, .opt-badge { font-size: .7rem; border-radius: .3rem; padding: .05rem .35rem; margin-left: .35rem; vertical-align: 1px; }
+    .req-badge { color: var(--accent); border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--line)); }
+    .opt-badge { color: var(--muted); border: 1px solid var(--line); }
+    [data-artifact-form].top-level [data-loc-optional], [data-artifact-form]:not(.top-level) [data-loc-required] { display: none; }
+
+    /* Tags */
+    .tag-input { display: flex; flex-wrap: wrap; gap: .35rem; align-items: center; padding: .35rem .4rem;
+      border: 1px solid var(--line); border-radius: .5rem; background: var(--bg); cursor: text; }
+    .tag-input:focus-within { border-color: var(--accent); }
+    .tag-input .chips { display: contents; list-style: none; margin: 0; padding: 0; }
+    .tag-input input[type=text] { border: 0; background: transparent; flex: 1 1 10rem; min-width: 8rem; padding: .25rem .3rem; outline: none; }
+    .tag, .chip { display: inline-flex; align-items: center; gap: .25rem; font-size: .8rem; padding: .1rem .5rem;
+      border-radius: 999px; background: color-mix(in srgb, var(--accent) 12%, transparent); color: var(--accent); }
+    .chip button { border: 0; background: none; padding: 0 .1rem; color: inherit; font-size: 1rem; line-height: 1; cursor: pointer; }
+    .tag-list { list-style: none; padding: 0; margin: .9rem 0 0; display: flex; flex-wrap: wrap; gap: .35rem; }
+
+    /* Links */
+    .links { list-style: none; margin: 0 0 1rem; padding: 0; display: grid; gap: .6rem; }
+    .link { border: 1px solid var(--line); border-radius: .6rem; background: var(--panel); }
+    .link.dragging { opacity: .45; }
+    .link.drop-before { box-shadow: 0 -3px 0 var(--accent); }
+    .link.drop-after { box-shadow: 0 3px 0 var(--accent); }
+    .link-view { display: flex; gap: .5rem; align-items: stretch; padding: .5rem; }
+    .link.editing .link-view { display: none; }
+    .link-edit { display: none; padding: .25rem .9rem .9rem; }
+    .link.editing .link-edit { display: block; }
+    .grip { border: 0; background: none; padding: .25rem .2rem; color: var(--muted); cursor: grab; align-self: center; border-radius: .3rem; }
+    .grip:hover, .grip:focus-visible { color: var(--ink); background: var(--chip); }
+    .link-body { flex: 1; min-width: 0; }
+    .link-note { margin: .1rem .2rem .45rem; font-size: .9rem; }
+    .preview { display: flex; gap: .75rem; color: var(--ink); border: 1px solid var(--line); border-radius: .5rem; overflow: hidden; background: var(--bg); }
+    .preview:hover { border-color: var(--muted); }
+    .preview-text { flex: 1; min-width: 0; padding: .6rem .75rem; display: flex; flex-direction: column; gap: .2rem; }
+    .preview-title { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .preview-desc { color: var(--muted); font-size: .84rem; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .preview-site { color: var(--muted); font-size: .78rem; display: flex; align-items: center; gap: .35rem; margin-top: auto; }
+    .preview-site img { border-radius: 3px; }
+    .preview-img { width: 9.5rem; flex-shrink: 0; object-fit: cover; align-self: stretch; max-height: 7rem; }
+    @media (max-width: 560px) { .preview-img { width: 5.5rem; } }
+    .link-actions { display: flex; flex-direction: column; gap: .25rem; }
+    .icon-btn { border: 0; background: none; padding: .3rem; color: var(--muted); border-radius: .35rem; display: grid; place-items: center; }
+    .icon-btn:hover, .icon-btn:focus-visible { background: var(--chip); color: var(--ink); }
+    .icon-btn.danger:hover { color: var(--danger); }
+    .link-add-row { display: grid; grid-template-columns: 1.4fr 1fr auto; gap: .5rem; }
+    @media (max-width: 640px) { .link-add-row { grid-template-columns: 1fr; } }
+    .link-add .when-busy, .link-add.htmx-request .when-idle { display: none; }
+    .link-add.htmx-request .when-busy { display: inline; }
+
+    /* Map overview */
+    .map.overview { height: calc(100vh - 15rem); min-height: 360px; margin-top: 1rem; }
+    .inline-filter { display: flex; align-items: center; gap: .4rem; font-size: .85rem; color: var(--muted); }
+    .inline-filter select { width: auto; padding: .3rem .5rem; }
+    .pin-popup h4 { margin: 0 0 .1rem; font-size: .95rem; }
+    .pin-popup .kind-chip { margin-right: .3rem; }
+    .pin-popup ul { margin: .4rem 0 0; padding-left: 1rem; }
+    .pin-popup a { cursor: pointer; color: var(--accent); }
+    .leaflet-popup-content-wrapper, .leaflet-popup-tip { background: var(--panel); color: var(--ink); }
+    .leaflet-tooltip { background: var(--panel); color: var(--ink); border-color: var(--line); }
+    .pin-popup .hint { margin-top: .5rem; }
+    .pin-popup .tags { margin-top: .3rem; display: flex; flex-wrap: wrap; gap: .25rem; }
+
     /* Leaflet controls read better on a dark theme with a slight lift. */
     .leaflet-container { font: inherit; background: var(--chip); }
   </style>
@@ -136,8 +204,9 @@
       <div class="head">
         <h2>Artifacts</h2>
         <span class="push"></span>
+        <button class="btn-sm" hx-get="/studio/map" hx-target="#detail" hx-push-url="true" title="Every artifact on one map">Map</button>
         {% if can_edit %}
-        <button class="btn-sm btn-primary" hx-get="/studio/artifacts/new" hx-target="#detail">+ New</button>
+        <button class="btn-sm btn-primary" hx-get="/studio/artifacts/new" hx-target="#detail" style="margin-left:.4rem">+ New</button>
         {% endif %}
       </div>
       <div id="tree"

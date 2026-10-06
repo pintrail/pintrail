@@ -519,6 +519,25 @@ created by an admin. Any author can change their password at `/studio/password`.
 - **Leaflet** provides the location map — click to place coordinates, or leave
   blank to inherit from the parent (the indoor case). The detail view shows the
   effective location and whether it was set or inherited.
+- **Validation** happens in the form handlers, which re-render the form with
+  the problem stated and the author's input intact rather than returning a bare
+  400. A top-level artifact must have a location; a nested one may inherit.
+  Typing or pasting coordinates moves the pin, and a `lat, lng` pair pasted
+  into the latitude box (Google Maps' format) is split across both boxes.
+- **Tags** are free text in `artifact_tags`, unique per artifact ignoring case.
+  The form autocompletes from tags already in use, so one theme tends to keep
+  one spelling.
+- **Links** live in `artifact_links` with a position (drag the grip, or the
+  arrow keys on it, to reorder), an author's note, and a preview read from the
+  page's Open Graph / `<title>` metadata when the link is added or its URL
+  changes (`studio/preview.rs`). The fetch is best-effort: six-second timeout,
+  first 512 KB only, and it refuses hosts that resolve to private, loopback, or
+  link-local addresses, so it can't be used to probe the server's network.
+  Preview images and favicons are loaded by the browser from the linked site.
+- **The map** at `/studio/map` shows every artifact: one marker per artifact
+  with its own location, with the artifacts that inherit it listed in the
+  marker's popup, plus kind and tag filters. Artifacts with no location
+  anywhere up their parent chain are listed below the map.
 - **Media upload** runs from the browser against the *existing* cookie-authed
   attachment endpoints: `upload-intent` → direct PUT to storage → `complete`,
   then the gallery polls until the worker's WebP thumbnail appears. No

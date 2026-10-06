@@ -1,50 +1,79 @@
-{# Create/edit form. `action` and `submit_label` differ between the two; the
-   map picker writes into the hidden lat/lng fields, and Clear blanks them so
-   the artifact inherits its parent's location. #}
+{# Create/edit form. `action` and `submit_label` differ between the two. The
+   map and the latitude/longitude boxes stay in sync both ways (studio.js);
+   Clear blanks them so the artifact inherits its parent's location. A failed
+   save re-renders this form with `error` set and the author's input intact. #}
 <div class="card">
   <h1>{{ heading }}</h1>
-  {% if error %}<p class="flash err">{{ error }}</p>{% endif %}
+  {% if error %}<p class="flash err" role="alert">{{ error }}</p>{% endif %}
 
-  <form hx-post="{{ action }}" hx-target="#detail" hx-swap="innerHTML">
+  <form hx-post="{{ action }}" hx-target="#detail" hx-swap="innerHTML" data-artifact-form>
     <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
 
     <label class="field"><span class="lbl">Name</span>
-      <input type="text" name="name" value="{{ form.name }}" required autofocus></label>
+      <input type="text" name="name" value="{{ form.name }}" required maxlength="200" autofocus>
+      <span class="help">What people call it, e.g. <em>Old Chapel</em> or <em>Lot 49 solar canopy</em>.</span></label>
 
     <div class="field-row">
       <label class="field"><span class="lbl">Kind</span>
-        <select name="kind">
+        <select name="kind" data-kind-select>
           {% for k in kinds %}
           <option value="{{ k }}" {{ 'selected' if k == form.kind }}>{{ k }}</option>
           {% endfor %}
-        </select></label>
+        </select>
+        <span class="help" data-kind-help>
+          <span data-for="building">A whole building.</span>
+          <span data-for="room">A space inside a building: a lab, a lobby, a lecture hall.</span>
+          <span data-for="artwork">A mural, sculpture, or other piece of art.</span>
+          <span data-for="installation">Equipment or a site feature: solar arrays, batteries, rain gardens, bike racks.</span>
+          <span data-for="rooftop">A roof and what is on it: a green roof, rooftop solar.</span>
+          <span data-for="other">Anything that fits none of the above.</span>
+        </span></label>
 
       <label class="field"><span class="lbl">Inside (parent)</span>
-        <select name="parent_id">
+        <select name="parent_id" data-parent-select>
           <option value="">— none (top level) —</option>
           {% for p in parents %}
           <option value="{{ p.id }}" {{ 'selected' if p.id == form.parent_id }}>{{ p.label }}</option>
           {% endfor %}
-        </select></label>
+        </select>
+        <span class="help">Leave as <em>none</em> for a building or anything standing on its own. Choose a building for its roof, rooms, and systems.</span></label>
     </div>
 
     <label class="field"><span class="lbl">Description</span>
-      <textarea name="description">{{ form.description }}</textarea></label>
+      <textarea name="description" rows="8">{{ form.description }}</textarea>
+      <span class="help">Write for someone standing in front of it, on their phone: <strong>what</strong> it is, <strong>why</strong> it matters (with a real number if you have one), and <strong>how</strong> it works or what to notice. Press Enter twice between paragraphs. Add your sources as links after you save.</span></label>
 
     <div class="field">
-      <span class="lbl">Location <span class="hint">— click the map to place it, or leave blank to inherit from the parent</span></span>
+      <span class="lbl" id="tags-lbl">Tags</span>
+      <div class="tag-input" data-tag-input>
+        <ul class="chips" aria-labelledby="tags-lbl"></ul>
+        <input type="text" list="tag-suggestions" aria-labelledby="tags-lbl" placeholder="Add a tag, then press Enter" maxlength="60">
+        <input type="hidden" name="tags" value="{{ form.tags }}">
+      </div>
+      <datalist id="tag-suggestions">
+        {% for t in tag_suggestions %}<option value="{{ t }}">{% endfor %}
+      </datalist>
+      <span class="help">Themes people might look for: <em>solar</em>, <em>stormwater</em>, <em>energy storage</em>. Pick an existing tag from the suggestions when one fits, so the same theme isn't spelled two ways.</span>
+    </div>
+
+    <div class="field">
+      <span class="lbl">Location
+        <span class="req-badge" data-loc-required>required for a top-level artifact</span>
+        <span class="opt-badge" data-loc-optional>optional</span></span>
       <div class="map"
            data-map data-editable="true"
            data-lat="{{ form.lat }}" data-lng="{{ form.lng }}"
            data-input-lat="#f-lat" data-input-lng="#f-lng"
            data-clear-button="#f-clear"></div>
       <div class="row" style="margin-top:.6rem">
-        <input type="number" step="any" id="f-lat" name="lat" placeholder="latitude"
-               value="{{ form.lat }}" style="max-width:11rem">
-        <input type="number" step="any" id="f-lng" name="lng" placeholder="longitude"
-               value="{{ form.lng }}" style="max-width:11rem">
+        <input type="text" inputmode="decimal" id="f-lat" name="lat" placeholder="latitude"
+               aria-label="Latitude" value="{{ form.lat }}" style="max-width:11rem">
+        <input type="text" inputmode="decimal" id="f-lng" name="lng" placeholder="longitude"
+               aria-label="Longitude" value="{{ form.lng }}" style="max-width:11rem">
         <button type="button" class="btn-sm" id="f-clear">Clear (inherit)</button>
       </div>
+      <span class="help" data-loc-required>Zoom in and click the map on the exact spot, or type or paste coordinates. A pair copied from Google Maps (<em>42.3891, -72.5281</em>) can go straight into the latitude box. Check the pin sits on the right building, not the one next door.</span>
+      <span class="help" data-loc-optional>Usually leave this blank: an artifact with no location of its own uses its parent's, which is right for anything in or on the building. Only place it if it really stands somewhere else, like a rain garden across the plaza.</span>
     </div>
 
     <div class="row" style="margin-top:1rem">
