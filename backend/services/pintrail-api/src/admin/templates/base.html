@@ -1,66 +1,259 @@
 {# Layout for the admin panel. Deliberately dependency-free: no CDN, no build
-   step, one small stylesheet inline. The panel is used by a handful of people
-   and should keep working when nothing else does. #}
+   step, one stylesheet inline. The panel is used by a handful of people and
+   should keep working when nothing else does.
+
+   The colour tokens match the Studio (studio/templates/base.html) so the two
+   read as one product. Change them in both places. #}
 <!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{{ title }} — Pintrail admin</title>
+  <title>{{ title }} · Pintrail Admin</title>
   <style>
-    :root { color-scheme: light dark; }
-    body { font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
-           max-width: 60rem; margin: 0 auto; padding: 1.5rem; line-height: 1.5; }
-    header { display: flex; gap: 1rem; align-items: baseline;
-             border-bottom: 1px solid #8884; padding-bottom: .75rem; margin-bottom: 1.5rem; }
-    header h1 { font-size: 1.1rem; margin: 0; }
-    nav a { margin-right: .9rem; text-decoration: none; }
-    nav a.active { font-weight: 600; text-decoration: underline; }
-    .who { margin-left: auto; font-size: .85rem; opacity: .75; }
-    table { border-collapse: collapse; width: 100%; margin: 1rem 0; }
-    th, td { text-align: left; padding: .5rem .6rem; border-bottom: 1px solid #8883;
+    :root {
+      color-scheme: light dark;
+      --bg: #f6f7f9; --panel: #ffffff; --ink: #1c1d22; --muted: #6b6f76;
+      --line: #e5e6eb; --line-strong: #d4d6dd; --row-hover: #f8f9fb;
+      --accent: #2563eb; --accent-ink: #ffffff; --accent-soft: #eff4ff;
+      --danger: #b91c1c; --danger-soft: #fef2f2; --danger-line: #fecaca;
+      --ok: #15803d; --ok-soft: #f0fdf4; --ok-line: #bbf7d0;
+      --warn: #b45309; --warn-soft: #fffbeb; --warn-line: #fde68a;
+      --chip: #f1f2f5;
+      --radius: .625rem;
+      --shadow: 0 1px 2px rgba(16,24,40,.05), 0 8px 24px rgba(16,24,40,.04);
+      --focus: 0 0 0 3px rgba(37,99,235,.35);
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0f1013; --panel: #17181c; --ink: #e8e9ee; --muted: #9a9ea7;
+        --line: #2a2c33; --line-strong: #3a3d46; --row-hover: #1d1f24;
+        --accent: #3b82f6; --accent-ink: #ffffff; --accent-soft: #172036;
+        --danger: #f87171; --danger-soft: #2a1617; --danger-line: #5b2526;
+        --ok: #4ade80; --ok-soft: #122218; --ok-line: #1f4a2c;
+        --warn: #fbbf24; --warn-soft: #2a2110; --warn-line: #5a4416;
+        --chip: #22242b;
+        --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.3);
+        --focus: 0 0 0 3px rgba(59,130,246,.45);
+      }
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; background: var(--bg); color: var(--ink); line-height: 1.5;
+      font: 15px/1.5 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    :focus-visible { outline: none; box-shadow: var(--focus); border-radius: .375rem; }
+    code { font: .85em ui-monospace, SFMono-Regular, Menlo, monospace;
+           background: var(--chip); padding: .1rem .35rem; border-radius: .3rem; }
+
+    /* ---- top bar ------------------------------------------------------- */
+    .topbar {
+      position: sticky; top: 0; z-index: 10;
+      background: var(--panel); border-bottom: 1px solid var(--line);
+    }
+    .topbar-inner {
+      max-width: 72rem; margin: 0 auto; padding: 0 1.25rem; height: 3.5rem;
+      display: flex; align-items: center; gap: 1.5rem;
+    }
+    .brand { display: flex; align-items: center; gap: .55rem; color: var(--ink);
+             font-weight: 650; letter-spacing: -.01em; white-space: nowrap; }
+    .brand:hover { text-decoration: none; }
+    .brand svg { color: var(--accent); flex: none; }
+    .brand .badge { font-size: .7rem; font-weight: 600; letter-spacing: .04em;
+                    text-transform: uppercase; color: var(--muted);
+                    border: 1px solid var(--line); border-radius: 999px; padding: .05rem .5rem; }
+    .tabs { display: flex; gap: .25rem; height: 100%; }
+    .tabs a {
+      display: flex; align-items: center; padding: 0 .75rem; color: var(--muted);
+      font-weight: 500; border-bottom: 2px solid transparent; margin-bottom: -1px;
+    }
+    .tabs a:hover { color: var(--ink); text-decoration: none; }
+    .tabs a[aria-current="page"] { color: var(--ink); border-bottom-color: var(--accent); }
+
+    .menu { margin-left: auto; position: relative; }
+    .menu > summary {
+      list-style: none; cursor: pointer; display: flex; align-items: center; gap: .5rem;
+      padding: .3rem .5rem .3rem .3rem; border-radius: 999px; border: 1px solid var(--line);
+    }
+    .menu > summary::-webkit-details-marker { display: none; }
+    .menu > summary:hover { border-color: var(--line-strong); }
+    .avatar { width: 1.75rem; height: 1.75rem; border-radius: 50%; display: grid; place-items: center;
+              background: var(--accent-soft); color: var(--accent); font-weight: 650; font-size: .8rem;
+              text-transform: uppercase; }
+    .menu .caret { color: var(--muted); font-size: .7rem; }
+    .menu-panel {
+      position: absolute; right: 0; top: calc(100% + .4rem); min-width: 15rem;
+      background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
+      box-shadow: var(--shadow); padding: .4rem; z-index: 20;
+    }
+    .menu-head { padding: .5rem .6rem .6rem; border-bottom: 1px solid var(--line); margin-bottom: .35rem; }
+    .menu-head .email { font-weight: 600; overflow-wrap: anywhere; }
+    .menu-panel a, .menu-panel button {
+      display: block; width: 100%; text-align: left; padding: .45rem .6rem; border-radius: .4rem;
+      color: var(--ink); background: none; border: 0; font: inherit; cursor: pointer;
+    }
+    .menu-panel a:hover, .menu-panel button:hover { background: var(--chip); text-decoration: none; }
+
+    /* ---- page ---------------------------------------------------------- */
+    main { max-width: 72rem; margin: 0 auto; padding: 2rem 1.25rem 4rem; }
+    .page-head { display: flex; align-items: flex-end; justify-content: space-between;
+                 gap: 1rem; flex-wrap: wrap; margin-bottom: 1.25rem; }
+    .page-head h1 { font-size: 1.5rem; line-height: 1.25; letter-spacing: -.02em; margin: 0; }
+    .page-head p { margin: .25rem 0 0; color: var(--muted); max-width: 42rem; }
+    h2.section { font-size: 1.05rem; margin: 2.25rem 0 .75rem; letter-spacing: -.01em; }
+
+    .card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
+            box-shadow: var(--shadow); }
+    .card-body { padding: 1.25rem; }
+    /* position: relative also contains the absolutely positioned .sr-only
+       header labels, which would otherwise widen the page on a phone. */
+    .table-wrap { overflow-x: auto; position: relative; }
+
+    /* ---- tables -------------------------------------------------------- */
+    table { border-collapse: collapse; width: 100%; }
+    th, td { text-align: left; padding: .75rem 1rem; border-bottom: 1px solid var(--line);
              vertical-align: top; }
-    th { font-size: .78rem; text-transform: uppercase; letter-spacing: .04em; opacity: .7; }
-    .body-cell { max-width: 28rem; overflow-wrap: anywhere; }
-    .tag { font-size: .72rem; padding: .1rem .4rem; border-radius: .25rem;
-           border: 1px solid #8886; }
-    .tag-flagged { background: #f9731633; }
-    .tag-hidden  { background: #8881; opacity: .8; }
-    .tag-visible { background: #22c55e26; }
-    button { font: inherit; padding: .25rem .6rem; cursor: pointer; }
-    .danger { color: #b91c1c; }
-    .empty { opacity: .6; font-style: italic; padding: 1.5rem 0; }
-    .flash { padding: .6rem .8rem; border: 1px solid #8886; border-radius: .3rem;
-             margin-bottom: 1rem; }
+    th { font-size: .72rem; font-weight: 600; text-transform: uppercase; letter-spacing: .05em;
+         color: var(--muted); background: var(--panel); white-space: nowrap; }
+    tbody tr:last-child td { border-bottom: 0; }
+    tbody tr:hover td { background: var(--row-hover); }
+    td.actions { text-align: right; white-space: nowrap; width: 1%; }
+    td.nowrap { white-space: nowrap; }
+    .body-cell { max-width: 30rem; min-width: 14rem; overflow-wrap: break-word; }
+    .primary { font-weight: 550; }
+    .sub { color: var(--muted); font-size: .85rem; }
+
+    /* ---- pills --------------------------------------------------------- */
+    .pill { display: inline-flex; align-items: center; gap: .35rem; font-size: .75rem; font-weight: 550;
+            padding: .15rem .55rem; border-radius: 999px; border: 1px solid var(--line);
+            background: var(--chip); color: var(--ink); white-space: nowrap; }
+    .pill::before { content: ""; width: .4rem; height: .4rem; border-radius: 50%; background: currentColor; opacity: .8; }
+    .pill.plain::before { display: none; }
+    .pill-ok      { background: var(--ok-soft); border-color: var(--ok-line); color: var(--ok); }
+    .pill-danger  { background: var(--danger-soft); border-color: var(--danger-line); color: var(--danger); }
+    .pill-warn    { background: var(--warn-soft); border-color: var(--warn-line); color: var(--warn); }
+    .pill-muted   { color: var(--muted); }
+    .pill-accent  { background: var(--accent-soft); border-color: transparent; color: var(--accent); }
+
+    /* ---- buttons ------------------------------------------------------- */
+    button, .btn {
+      font: inherit; font-weight: 550; font-size: .875rem; line-height: 1.2;
+      display: inline-flex; align-items: center; justify-content: center; gap: .4rem;
+      padding: .5rem .9rem; border-radius: .5rem; cursor: pointer;
+      border: 1px solid var(--line-strong); background: var(--panel); color: var(--ink);
+      transition: background-color .12s, border-color .12s;
+    }
+    button:hover, .btn:hover { background: var(--chip); text-decoration: none; }
+    .btn-primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+    .btn-primary:hover { background: var(--accent); filter: brightness(1.07); }
+    .btn-danger { color: var(--danger); border-color: var(--danger-line); }
+    .btn-danger:hover { background: var(--danger-soft); }
+    .btn-sm { padding: .32rem .65rem; font-size: .8rem; }
+    .btn-block { width: 100%; }
     form.inline { display: inline; }
-    label { display: block; margin: .75rem 0; }
-    input[type=email], input[type=password], input[type=text], select { font: inherit; padding: .4rem;
-             width: 100%; max-width: 22rem; box-sizing: border-box; }
-    .muted { opacity: .65; font-size: .85rem; }
+
+    /* ---- forms --------------------------------------------------------- */
+    .field { display: block; margin: 0 0 1rem; }
+    .field > span { display: block; font-size: .85rem; font-weight: 550; margin-bottom: .35rem; }
+    .hint { display: block; color: var(--muted); font-size: .8rem; margin-top: .3rem; }
+    input[type=email], input[type=password], input[type=text], select {
+      font: inherit; width: 100%; padding: .55rem .7rem; border-radius: .5rem;
+      border: 1px solid var(--line-strong); background: var(--panel); color: var(--ink);
+    }
+    input:focus, select:focus { outline: none; border-color: var(--accent); box-shadow: var(--focus); }
+    .form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 1rem; }
+    .form-actions { display: flex; align-items: center; gap: .75rem; flex-wrap: wrap; margin-top: .25rem; }
+
+    /* ---- alerts and empty states -------------------------------------- */
+    .alert { display: flex; gap: .6rem; align-items: flex-start; padding: .75rem 1rem;
+             border-radius: var(--radius); border: 1px solid; margin: 0 0 1.25rem; }
+    .alert::before { font-weight: 700; line-height: 1.5; }
+    .alert-success { background: var(--ok-soft); border-color: var(--ok-line); color: var(--ok); }
+    .alert-success::before { content: "✓"; }
+    .alert-error { background: var(--danger-soft); border-color: var(--danger-line); color: var(--danger); }
+    .alert-error::before { content: "!"; }
+    .alert p { margin: 0; color: var(--ink); }
+    .empty { text-align: center; padding: 3rem 1rem; color: var(--muted); }
+    .empty strong { display: block; color: var(--ink); font-size: 1rem; margin-bottom: .25rem; }
+
+    /* ---- segmented filter --------------------------------------------- */
+    .segmented { display: inline-flex; padding: .2rem; gap: .2rem; border-radius: .6rem;
+                 background: var(--chip); border: 1px solid var(--line); }
+    .segmented a { padding: .35rem .8rem; border-radius: .45rem; color: var(--muted);
+                   font-size: .85rem; font-weight: 550; }
+    .segmented a:hover { color: var(--ink); text-decoration: none; }
+    .segmented a[aria-current="page"] { background: var(--panel); color: var(--ink); box-shadow: var(--shadow); }
+
+    /* ---- sign-in ------------------------------------------------------- */
+    .auth { min-height: 100vh; display: grid; place-items: center; padding: 2rem 1rem; }
+    .auth-card { width: 100%; max-width: 24rem; }
+    .auth-brand { display: flex; justify-content: center; margin-bottom: 1.5rem; }
+    .auth-card h1 { font-size: 1.35rem; margin: 0 0 .25rem; letter-spacing: -.02em; }
+    .auth-card .lead { color: var(--muted); margin: 0 0 1.5rem; }
+    .auth-foot { color: var(--muted); font-size: .8rem; text-align: center; margin: 1.25rem 0 0; }
+
+    .muted { color: var(--muted); font-size: .85rem; }
+    .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+               overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+
+    @media (max-width: 720px) {
+      /* Tabs drop to their own full-width row so the bar never overflows. */
+      .topbar-inner { flex-wrap: wrap; height: auto; gap: 0 .75rem; padding: .5rem .75rem 0; }
+      .brand .badge, .menu .who-text { display: none; }
+      .tabs { order: 3; width: 100%; height: 2.75rem; overflow-x: auto; }
+      .tabs a { padding: 0 .65rem; }
+      .page-head { align-items: flex-start; }
+      main { padding: 1.25rem .75rem 3rem; }
+      .form-grid { grid-template-columns: 1fr; }
+      th, td { padding: .6rem .75rem; }
+      /* Wide tables swipe sideways inside their card rather than crushing
+         every column; the page itself never scrolls sideways. */
+      .table-wrap table { min-width: 40rem; }
+    }
   </style>
 </head>
 <body>
+{% macro mark(size) %}<svg width="{{ size }}" height="{{ size }}" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 22s7-6.2 7-12a7 7 0 1 0-14 0c0 5.8 7 12 7 12Z" fill="currentColor" opacity=".16"/><path d="M12 22s7-6.2 7-12a7 7 0 1 0-14 0c0 5.8 7 12 7 12Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><circle cx="12" cy="10" r="2.6" fill="currentColor"/></svg>{% endmacro %}
 {% if author %}
-  <header>
-    <h1>Pintrail admin</h1>
-    <nav>
-      <a href="/admin/comments" class="{{ 'active' if section == 'comments' }}">Comments</a>
-      <a href="/admin/trails" class="{{ 'active' if section == 'trails' }}">Trails</a>
-      <a href="/admin/authors" class="{{ 'active' if section == 'authors' }}">Authors</a>
-    </nav>
-    <span class="who">
-      {{ author.email }} ({{ author.role }})
-      <a href="/studio/password">Change password</a>
-      <form method="post" action="/admin/logout" class="inline">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-        <button>Sign out</button>
-      </form>
-    </span>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <a class="brand" href="/admin/comments">{{ mark(22) }}Pintrail <span class="badge">Admin</span></a>
+      <nav class="tabs" aria-label="Admin sections">
+        <a href="/admin/comments" {% if section == 'comments' %}aria-current="page"{% endif %}>Comments</a>
+        <a href="/admin/trails" {% if section == 'trails' %}aria-current="page"{% endif %}>Trails</a>
+        <a href="/admin/authors" {% if section == 'authors' %}aria-current="page"{% endif %}>Authors</a>
+      </nav>
+      <details class="menu">
+        <summary aria-label="Account menu">
+          <span class="avatar">{{ author.email[:1] }}</span>
+          <span class="who-text muted">{{ author.email }}</span>
+          <span class="caret">▾</span>
+        </summary>
+        <div class="menu-panel">
+          <div class="menu-head">
+            <div class="email">{{ author.email }}</div>
+            <div class="muted">Signed in as {{ author.role }}</div>
+          </div>
+          <a href="/studio">Open Studio</a>
+          <a href="/studio/password">Change password</a>
+          <form method="post" action="/admin/logout">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            <button>Sign out</button>
+          </form>
+        </div>
+      </details>
+    </div>
   </header>
+  <main>
+    {% if flash %}<div class="alert alert-success" role="status"><p>{{ flash }}</p></div>{% endif %}
+    {% block content %}{% endblock %}
+  </main>
+{% else %}
+  {% block auth %}{% endblock %}
 {% endif %}
-
-{% if flash %}<p class="flash">{{ flash }}</p>{% endif %}
-
-{% block content %}{% endblock %}
 </body>
 </html>

@@ -298,6 +298,7 @@ async fn comment_queue(
         context! {
             title => "Comments",
             section => "comments",
+            status_filter => status,
             author => author_context(&admin.0),
             csrf_token => csrf::token_for_session(&session_token(&jar)),
             comments => comments,
