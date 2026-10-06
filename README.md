@@ -23,6 +23,7 @@ Sustainability efforts are often invisible to students and campus visitors. PinT
 ## Documentation
 
 - [Pintrail overview](docs/pintrail-overview.md): what Pintrail is, who uses it, and how, with diagrams
+- [Adding artifacts in the Studio](docs/adding-artifacts.md): step-by-step guide for authors, with screenshots
 - [Design document](docs/DESIGN.md): data model, services, and architecture
 - [Deployment guide](docs/DEPLOYMENT.md): first-time setup, redeploys, rollbacks, and backups
 - [Backend README](backend/README.md): building and running the Rust backend locally
