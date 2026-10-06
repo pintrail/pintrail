@@ -42,6 +42,7 @@ fn environment() -> Environment<'static> {
     ] {
         env.add_template(name, src).expect("studio template compiles");
     }
+    env.add_global("studio_js_version", super::assets::studio_js_version());
     env
 }
 
