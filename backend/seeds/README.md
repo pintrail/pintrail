@@ -1,0 +1,27 @@
+# Seed data
+
+SQL files that load sample content into a running database. They are not
+migrations: nothing runs them automatically, and they are safe to run more
+than once.
+
+| File | What it does |
+|---|---|
+| `examples.sql` | Loads two real campus buildings, each with child artifacts, as worked examples for new authors. Every name starts with `Example:`. |
+| `remove-examples.sql` | Deletes them again, children included. |
+
+The examples show what a good artifact looks like: what it is, where it is,
+why it matters, how it works, real numbers, and a source. They also show the
+hierarchy: the building has coordinates, and its features have none of their
+own because they inherit the building's location.
+
+## Running them on the server
+
+From `~/pintrail/backend` (Compose reads `COMPOSE_FILE` from `.env`):
+
+```sh
+docker compose exec -T postgres psql -U pintrail -d pintrail -v ON_ERROR_STOP=1 < seeds/examples.sql
+docker compose exec -T postgres psql -U pintrail -d pintrail -v ON_ERROR_STOP=1 < seeds/remove-examples.sql
+```
+
+No redeploy is needed: these write straight to the database, and the Studio
+shows the result on the next page load.
