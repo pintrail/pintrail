@@ -5,7 +5,12 @@
   <h3 style="margin:0">Media</h3>
   {% if can_edit %}
   <span class="push"></span>
-  <label class="btn btn-sm" style="cursor:pointer">
+  <label class="btn btn-sm touch-only" style="cursor:pointer">
+    Take photo
+    <input type="file" accept="image/*" capture="environment" style="display:none"
+           data-upload-for="{{ artifact_id }}" data-status-target="#upload-status">
+  </label>
+  <label class="btn btn-sm" style="cursor:pointer;margin-left:.4rem">
     + Upload
     <input type="file" multiple accept="image/*,application/pdf" style="display:none"
            data-upload-for="{{ artifact_id }}" data-status-target="#upload-status">

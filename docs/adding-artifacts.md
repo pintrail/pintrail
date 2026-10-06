@@ -133,6 +133,17 @@ Use **Kind** and **Tag** above the map to show only, say, installations, or only
 
 ![The map of every artifact, with a building's popup open](img/add-artifact/14-map.png)
 
+## 9. On your phone
+
+The Studio works in your phone's browser, so you can add artifacts while standing in front of them.
+
+- **The artifact list** is behind the menu button (☰) at the top left. Tap an artifact to open it, and the list closes.
+- **Use my location**, under the map in the form, puts the pin where your phone is. The first time, your phone asks whether to share your location with the site: allow it. The pin comes with a shaded circle showing how accurate the reading is. Outdoors that's usually within 5 to 15 metres. Indoors it can be much worse, so always check the pin and drag it to the exact spot.
+- **Take photo**, in the Media section, opens your camera. Each photo uploads straight away and shows *processing…* for a moment. **+ Upload** picks photos from your library instead.
+- **To scroll the page**, drag outside the map. Dragging on the map moves the map.
+
+If your phone says location access is blocked, turn it back on for the site in your browser's settings (on an iPhone: Settings → Privacy & Security → Location Services → Safari Websites), or place the pin by tapping the map.
+
 ## Writing a good description
 
 Someone will read this standing in front of the artifact, on their phone. Write for them. A good description answers:

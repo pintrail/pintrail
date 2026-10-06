@@ -65,15 +65,20 @@
            data-lat="{{ form.lat }}" data-lng="{{ form.lng }}"
            data-input-lat="#f-lat" data-input-lng="#f-lng"
            data-clear-button="#f-clear"
-           data-parent-select="#f-parent" data-inherit-note="#f-inherit-note"></div>
+           data-parent-select="#f-parent" data-inherit-note="#f-inherit-note"
+           data-locate-button="#f-locate" data-locate-status="#f-locate-status"></div>
       <p class="inherit-note" id="f-inherit-note" hidden></p>
       <div class="row" style="margin-top:.6rem">
         <input type="text" inputmode="decimal" id="f-lat" name="lat" placeholder="latitude"
-               aria-label="Latitude" value="{{ form.lat }}" style="max-width:11rem">
+               aria-label="Latitude" value="{{ form.lat }}" class="coord">
         <input type="text" inputmode="decimal" id="f-lng" name="lng" placeholder="longitude"
-               aria-label="Longitude" value="{{ form.lng }}" style="max-width:11rem">
+               aria-label="Longitude" value="{{ form.lng }}" class="coord">
         <button type="button" class="btn-sm" id="f-clear">Clear (use parent's)</button>
+        <button type="button" class="btn-sm btn-locate" id="f-locate" title="Put the pin where this device is">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>
+          Use my location</button>
       </div>
+      <p class="locate-status" id="f-locate-status" role="status" aria-live="polite"></p>
       <span class="help" data-loc-required>Zoom in and click the map on the exact spot, or type or paste coordinates. A pair copied from Google Maps (<em>42.3891, -72.5281</em>) can go straight into the latitude box. Check the pin sits on the right building, not the one next door.</span>
       <span class="help" data-loc-optional>The parent's location is right for anything in or on the building. Only give this one its own spot if it really stands somewhere else, like a rain garden across the plaza.</span>
     </div>

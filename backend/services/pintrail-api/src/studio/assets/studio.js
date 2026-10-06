@@ -66,7 +66,8 @@
     const lngIn = document.querySelector(el.dataset.inputLng);
     const parentSel = document.querySelector(el.dataset.parentSelect);
     const note = document.querySelector(el.dataset.inheritNote);
-    let own = null, ghost = null;
+    let own = null, ghost = null, accuracy = null;
+    function dropAccuracy() { if (accuracy) { map.removeLayer(accuracy); accuracy = null; } }
 
     // 6 decimals ~= 11cm, far finer than GPS; more is noise.
     function write(ll) {
@@ -95,7 +96,7 @@
       if (own) own.setLatLng(ll);
       else {
         own = L.marker(ll, { icon: pinIcon("pin-own"), draggable: true, keyboard: false }).addTo(map);
-        own.on("dragend", function () { write(own.getLatLng()); });
+        own.on("dragend", function () { dropAccuracy(); write(own.getLatLng()); });
       }
       const inh = inherited();
       say(inh ? "This artifact has its own location. Use “Clear” to go back to " + inh.source + "’s." : "");
@@ -130,6 +131,7 @@
     else showInherited(true);
 
     map.on("click", function (e) {
+      dropAccuracy();
       setOwn(e.latlng);
       write(e.latlng);
     });
@@ -138,6 +140,7 @@
     const clearBtn = document.querySelector(el.dataset.clearButton);
     if (clearBtn) {
       clearBtn.addEventListener("click", function () {
+        dropAccuracy();
         dropOwn();
         latIn.value = ""; lngIn.value = "";
         showInherited(true);
@@ -171,8 +174,82 @@
         showInherited(false);
       }
     }
-    latIn.addEventListener("input", fromInputs);
-    lngIn.addEventListener("input", fromInputs);
+    latIn.addEventListener("input", function () { dropAccuracy(); fromInputs(); });
+    lngIn.addEventListener("input", function () { dropAccuracy(); fromInputs(); });
+
+    // "Use my location": the device's GPS position. A phone's first fix is
+    // often coarse, so it keeps listening for a few seconds and keeps the
+    // most accurate reading, stopping early once it is within 10 m. The
+    // circle shows how far off the reading may be; the author still checks
+    // the pin and can drag it.
+    const locateBtn = document.querySelector(el.dataset.locateButton);
+    const status = document.querySelector(el.dataset.locateStatus);
+    function report(text, isError) {
+      if (!status) return;
+      status.textContent = text;
+      status.classList.toggle("err", !!isError);
+    }
+    if (locateBtn) {
+      locateBtn.addEventListener("click", function () {
+        if (!navigator.geolocation) {
+          report("This browser can't share its location. Place the pin on the map instead.", true);
+          return;
+        }
+        if (!window.isSecureContext) {
+          report("Location only works over https. Place the pin on the map instead.", true);
+          return;
+        }
+        let best = null, watchId = null, timer = null;
+        const started = Date.now();
+        locateBtn.disabled = true;
+        report("Finding your location…");
+
+        function finish() {
+          if (watchId !== null) navigator.geolocation.clearWatch(watchId);
+          clearTimeout(timer);
+          locateBtn.disabled = false;
+          if (best) {
+            const m = Math.round(best.coords.accuracy);
+            report("Pin placed at your location, accurate to about " + m + " m. " +
+              (m > 30 ? "That's rough (common indoors): drag the pin to the exact spot. "
+                      : "Check it's on the right spot, and drag it if not. ") +
+              "Tap the button again to retry.");
+          }
+        }
+        function use(pos) {
+          const ll = L.latLng(pos.coords.latitude, pos.coords.longitude);
+          setOwn(ll);
+          write(ll);
+          if (accuracy) accuracy.setLatLng(ll).setRadius(pos.coords.accuracy);
+          else accuracy = L.circle(ll, {
+            radius: pos.coords.accuracy, color: "#2563eb", weight: 1,
+            fillColor: "#2563eb", fillOpacity: 0.12, interactive: false,
+          }).addTo(map);
+          map.setView(ll, Math.max(map.getZoom(), 18));
+        }
+
+        watchId = navigator.geolocation.watchPosition(function (pos) {
+          if (!best || pos.coords.accuracy < best.coords.accuracy) {
+            best = pos;
+            use(pos);
+            report("Finding your location… accurate to about " + Math.round(pos.coords.accuracy) + " m so far.");
+          }
+          if (best.coords.accuracy <= 10 || Date.now() - started > 12000) finish();
+        }, function (err) {
+          if (best) { finish(); return; }
+          if (watchId !== null) navigator.geolocation.clearWatch(watchId);
+          clearTimeout(timer);
+          locateBtn.disabled = false;
+          const why = {
+            1: "Location access is blocked. Allow it for this site in your browser settings, or place the pin on the map.",
+            2: "Your location isn't available right now. Try again outside, or place the pin on the map.",
+            3: "Finding your location took too long. Try again, or place the pin on the map.",
+          }[err.code] || "Couldn't get your location. Place the pin on the map instead.";
+          report(why, true);
+        }, { enableHighAccuracy: true, maximumAge: 0, timeout: 20000 });
+        timer = setTimeout(finish, 15000);
+      });
+    }
   }
 
   // --- media upload --------------------------------------------------------
@@ -512,6 +589,22 @@
       setTimeout(function () { map.invalidateSize(); }, 50);
     });
   }
+
+  // --- artifact list as a drawer on phones -----------------------------------
+  function setNav(open) {
+    document.body.classList.toggle("nav-open", open);
+    const t = document.querySelector("[data-nav-toggle]");
+    if (t) t.setAttribute("aria-expanded", open ? "true" : "false");
+  }
+  document.addEventListener("click", function (e) {
+    if (e.target.closest("[data-nav-toggle]")) { setNav(!document.body.classList.contains("nav-open")); return; }
+    if (e.target.closest("[data-nav-close]")) { setNav(false); return; }
+    // Picking an artifact, Map, or + New in the drawer shows it, so close.
+    if (e.target.closest(".sidebar a.node, .sidebar .head button")) setNav(false);
+  });
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape" && document.body.classList.contains("nav-open")) setNav(false);
+  });
 
   function enhance(root) {
     root = root || document;
