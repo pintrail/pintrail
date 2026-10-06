@@ -33,6 +33,7 @@ The Studio has two parts:
 
 - **The sidebar on the left** lists every artifact. Artifacts that sit inside another one are indented beneath it. Click any artifact to open it.
 - **The main area** shows the artifact you opened, or the form when you create or edit one.
+- **Map**, at the top of the sidebar, shows every artifact on one map (see [step 8](#8-see-everything-on-the-map)).
 
 ![The Studio, with the example artifacts in the sidebar](img/add-artifact/03-studio-home.png)
 
@@ -51,7 +52,7 @@ Please **don't edit or delete the examples**. Everyone uses them as a reference.
 
 ## 4. Add an artifact
 
-Click **+ New** at the top of the sidebar. Then fill in the form:
+Click **+ New** at the top of the sidebar. Then fill in the form. Each field has a short note under it explaining what goes there.
 
 | Field | What to enter |
 |---|---|
@@ -59,13 +60,18 @@ Click **+ New** at the top of the sidebar. Then fill in the form:
 | **Kind** | One of `building`, `room`, `artwork`, `installation`, `rooftop`, or `other`. Use `installation` for equipment and site features (solar arrays, batteries, rain gardens, bike racks). |
 | **Inside (parent)** | Leave as **none (top level)** for a building or anything standing on its own. To put it inside another artifact, choose that artifact (see step 5). |
 | **Description** | The heart of the artifact. See [Writing a good description](#writing-a-good-description) below. |
-| **Location** | Click the map where the artifact is, and a pin appears. Zoom in first (the **+** button, or scroll) so you can place it precisely. The latitude and longitude boxes fill in for you. |
+| **Tags** | Themes someone might look for, such as *solar*, *stormwater*, or *energy storage*. Type a tag and press **Enter**; click **×** on a tag to remove it. As you type, existing tags are suggested: pick one when it fits, so the same theme isn't spelled two ways. |
+| **Location** | **Required for a top-level artifact.** Click the map where the artifact is, and a pin appears. Zoom in first (the **+** button, or scroll) so you can place it precisely. The latitude and longitude boxes fill in for you. You can also type or paste coordinates into the boxes and the pin moves to match. A pair copied from Google Maps, like `42.3891, -72.5281`, can be pasted straight into the latitude box. |
 
 ![Filling in a new artifact, with the pin placed on the map](img/add-artifact/06-new-artifact-form.png)
 
 **Check the pin before you save.** Zoom in and make sure it sits on the right building or spot, not on the one next door. The pin is what the app uses to tell someone they're nearby.
 
 Click **Create**. The artifact opens, and it now appears in the sidebar.
+
+If something is missing, the form stays open with a red note at the top saying what to fix, and everything you typed is kept. The most common one: a top-level artifact with no location. Place it on the map, or choose the artifact it sits inside.
+
+![The note shown when a top-level artifact has no location](img/add-artifact/13-location-required.png)
 
 ![The saved artifact](img/add-artifact/07-saved-artifact.png)
 
@@ -81,21 +87,51 @@ Many sustainability features belong to a building: its roof, its heating system,
 
 ![A new artifact being added inside the Integrative Learning Center](img/add-artifact/08-nested-form.png)
 
-**Usually, leave the location blank.** An artifact with no location of its own takes its parent's location, which is right for anything in or on the building. Only click the map if the feature really is somewhere else, such as a rain garden across the plaza.
+**Usually, leave the location as it is.** The map opens on the parent's location, marked with a hollow, dashed pin, and the coordinate boxes show the parent's numbers in grey. That's the location this artifact uses, which is right for anything in or on the building.
 
-After you save, the page shows where the location came from: **inherited from** the parent.
+![The location of a nested artifact, showing its parent's location](img/add-artifact/10-inherited-location.png)
+
+If the feature really is somewhere else, such as a rain garden across the plaza, **drag the pin** to the right spot, or click the map. The pin turns solid, and the artifact now has its own location. **Clear (use parent's)** puts it back.
+
+Leaving it on the parent's location matters: if someone later corrects the building's pin, everything inside it moves with it. After you save, the page shows where the location came from: **inherited from** the parent.
 
 ![A nested artifact using its building's location](img/add-artifact/09-nested-saved.png)
 
 If you put something in the wrong parent, click **Edit** and change **Inside (parent)**.
 
-## 6. Add photos and PDFs
+## 6. Add links to your sources
+
+Every fact should come from somewhere a reader can check. On an artifact's page, the **Links** section takes web addresses:
+
+1. Paste the address into the first box. You can leave off `https://`.
+2. Optionally, say what the link is in the second box, for example *Source for the energy figures*.
+3. Click **+ Add link**. Pintrail reads the page and shows a preview with its title, summary, and image, like a link pasted into Notion or Slack. This takes a few seconds.
+
+![The Links section with two sources added](img/add-artifact/11-links.png)
+
+- **To edit** a link's address or its note, click the pencil. Change the address and Pintrail reads the new page for a fresh preview.
+- **To reorder**, drag a link by the grip (the six dots) on its left. You can also click the grip and use the up and down arrow keys. Put the most important source first.
+- **To remove** a link, click **×**.
+
+![Editing a link](img/add-artifact/12-edit-link.png)
+
+Some sites don't offer a preview. The link still works; it just shows the address instead of a title.
+
+## 7. Add photos and PDFs
 
 On an artifact's page, the **Media** section has a **+ Upload** button. You can pick several photos and PDFs at once.
 
 - New uploads show **processing…** for a moment while Pintrail makes thumbnails. The page updates by itself.
 - If one shows **failed**, remove it with the **✕** and try again. If it keeps failing, tell your instructor.
 - Use photos you took yourself, or that you have permission to use. A clear photo of the thing itself is worth more than several distant ones.
+
+## 8. See everything on the map
+
+Click **Map** at the top of the sidebar to see every artifact on one map. Each marker is an artifact with its own location; click it to see its name and tags, and the artifacts nested inside it. Click any name to open that artifact.
+
+Use **Kind** and **Tag** above the map to show only, say, installations, or only artifacts tagged *solar*. It's a quick way to spot a pin in the wrong place, or a part of campus nobody has covered yet.
+
+![The map of every artifact, with a building's popup open](img/add-artifact/14-map.png)
 
 ## Writing a good description
 
@@ -104,7 +140,7 @@ Someone will read this standing in front of the artifact, on their phone. Write 
 - **What it is.** One or two sentences a visitor would understand.
 - **Why it matters.** The sustainability story, with a real number where you have one: megawatts, gallons, percent saved, the year it opened.
 - **How it works**, or what to notice when you're standing there.
-- **Source.** Where each fact came from, with a link. Until artifacts support links of their own, put the web address at the end of the description.
+- **Sources.** Add the pages your facts come from as [links](#6-add-links-to-your-sources), not inside the description.
 
 Some tips:
 
@@ -113,7 +149,7 @@ Some tips:
 - **Only write what you can source.** If you aren't sure of a number, leave it out or ask Ezra Small (Campus Sustainability).
 - **Keep it readable on a phone.** A few short paragraphs beats one long one.
 
-The example artifacts follow this pattern. Compare yours with them.
+The example artifacts follow this pattern, including their tags and source links. Compare yours with them.
 
 ## Deleting
 
@@ -122,8 +158,6 @@ The example artifacts follow this pattern. Compare yours with them.
 ## Coming soon
 
 - **Trails:** grouping artifacts into a walking route.
-- **Tags:** labels such as *solar* or *stormwater*, so artifacts can be found by theme.
-- **Links:** proper links on an artifact, so sources don't have to sit inside the description.
 
 ## Getting help
 

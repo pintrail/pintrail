@@ -1,0 +1,40 @@
+{# Every artifact on one map. One marker per artifact with its own location;
+   the artifacts nested inside it are listed in that marker's popup. The data
+   rides along as JSON (escaped in routes.rs for a <script> block) and studio.js
+   draws the markers and applies the filters. #}
+<div class="card map-card">
+  <div class="row">
+    <div>
+      <h1>All artifacts</h1>
+      <p class="subtitle" style="margin:0"><span data-map-count>{{ placed }}</span> places · {{ total }} artifacts in all</p>
+    </div>
+    <div class="push row">
+      <label class="inline-filter">Kind
+        <select data-map-filter="kind">
+          <option value="">all</option>
+          {% for k in kinds %}<option value="{{ k }}">{{ k }}</option>{% endfor %}
+        </select></label>
+      <label class="inline-filter">Tag
+        <select data-map-filter="tag">
+          <option value="">all</option>
+          {% for t in all_tags %}<option value="{{ t | lower }}">{{ t }}</option>{% endfor %}
+        </select></label>
+    </div>
+  </div>
+  <div class="map overview" data-overview-map></div>
+  <script type="application/json" data-map-data>{{ map_data }}</script>
+  <p class="hint" style="margin:.6rem 0 0">A marker is an artifact with its own location. Click it to see it and everything nested inside it.</p>
+</div>
+
+{% if unplaced %}
+<div class="card">
+  <h3>No location</h3>
+  <p class="hint" style="margin-top:0">These have no location of their own and no parent with one, so they won't appear in the app until they get one.</p>
+  <ul class="tree">
+    {% for u in unplaced %}
+    <li><a class="node" hx-get="/studio/artifacts/{{ u.id }}" hx-target="#detail" hx-push-url="true">
+      <span class="kind-chip">{{ u.kind }}</span><span>{{ u.name or "(untitled)" }}</span></a></li>
+    {% endfor %}
+  </ul>
+</div>
+{% endif %}
