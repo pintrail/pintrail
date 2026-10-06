@@ -18,6 +18,22 @@ const LEAFLET_JS: &str = include_str!("assets/leaflet.js");
 const LEAFLET_CSS: &str = include_str!("assets/leaflet.css");
 const STUDIO_JS: &str = include_str!("assets/studio.js");
 
+/// A fingerprint of studio.js, appended to its URL as `?v=...`.
+///
+/// Every asset here is cached as immutable for a year. That is right for the
+/// vendored htmx and Leaflet, which never change, but studio.js changes with
+/// the Studio itself: under a fixed URL, a browser that loaded the old script
+/// keeps running it after a deploy, against templates that expect the new
+/// one. Putting the content hash in the URL gives each version its own
+/// address, so a deploy is picked up on the next page load and the long
+/// cache stays safe.
+pub fn studio_js_version() -> &'static str {
+    use sha2::{Digest, Sha256};
+    use std::sync::OnceLock;
+    static VERSION: OnceLock<String> = OnceLock::new();
+    VERSION.get_or_init(|| hex::encode(&Sha256::digest(STUDIO_JS.as_bytes())[..6]))
+}
+
 pub fn router() -> Router<AppState> {
     Router::new()
         .route("/studio/assets/htmx.min.js", get(htmx))
@@ -30,8 +46,8 @@ async fn studio_js() -> Response {
     immutable("application/javascript; charset=utf-8", STUDIO_JS)
 }
 
-/// Vendored third-party assets are versioned in their filename and never
-/// change under a given URL, so they can be cached hard.
+/// Cached hard. The vendored third-party files never change; studio.js does,
+/// so its URL carries a content hash (see `studio_js_version`).
 fn immutable(content_type: &str, body: &'static str) -> Response {
     (
         [
