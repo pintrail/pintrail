@@ -39,57 +39,140 @@
           radius: 8, color: "#2563eb", fillColor: "#2563eb", fillOpacity: 0.7,
         }).addTo(map);
       }
-      if (hasLoc) place([lat, lng]);
+      if (hasLoc && !editable) place([lat, lng]);
 
-      if (editable) {
-        const latIn = document.querySelector(el.dataset.inputLat);
-        const lngIn = document.querySelector(el.dataset.inputLng);
-
-        map.on("click", function (e) {
-          place(e.latlng);
-          // 6 decimals ~= 11cm, far finer than GPS; more is noise.
-          latIn.value = e.latlng.lat.toFixed(6);
-          lngIn.value = e.latlng.lng.toFixed(6);
-        });
-
-        // A "clear location" control blanks the fields so the artifact inherits
-        // its parent's coordinates -- the indoor case.
-        const clearBtn = document.querySelector(el.dataset.clearButton);
-        if (clearBtn) {
-          clearBtn.addEventListener("click", function () {
-            if (marker) { map.removeLayer(marker); marker = null; }
-            latIn.value = ""; lngIn.value = "";
-          });
-        }
-
-        // Typing (or pasting) coordinates moves the pin, so an author can
-        // check a pasted position against the map before saving. A pair
-        // pasted whole into the latitude box, the way Google Maps copies one,
-        // is split across both boxes.
-        function fromInputs() {
-          const pair = latIn.value.split(",");
-          if (pair.length === 2 && lngIn.value.trim() === "") {
-            latIn.value = pair[0].trim();
-            lngIn.value = pair[1].trim();
-          }
-          const la = parseFloat(latIn.value), ln = parseFloat(lngIn.value);
-          const ok = isFinite(la) && isFinite(ln) && Math.abs(la) <= 90 && Math.abs(ln) <= 180
-            && /^\s*-?[\d.]+\s*$/.test(latIn.value) && /^\s*-?[\d.]+\s*$/.test(lngIn.value);
-          if (ok) {
-            place([la, ln]);
-            map.setView([la, ln], Math.max(map.getZoom(), 17));
-          } else if (latIn.value.trim() === "" && lngIn.value.trim() === "" && marker) {
-            map.removeLayer(marker); marker = null;
-          }
-        }
-        latIn.addEventListener("input", fromInputs);
-        lngIn.addEventListener("input", fromInputs);
-      }
+      if (editable) initEditableMap(el, map, hasLoc ? [lat, lng] : null);
 
       // A fragment swapped into a hidden or zero-size container measures wrong;
       // recompute once it is visible.
       setTimeout(function () { map.invalidateSize(); }, 50);
     });
+  }
+
+  // --- the location picker in the artifact form -------------------------------
+  //
+  // Two kinds of pin. A solid one is this artifact's own location, and its
+  // coordinates are in the boxes. A hollow, dashed one is the location it
+  // inherits from its parent: shown so the author starts from the right spot,
+  // with the coordinates only as placeholders, because saving them would stop
+  // the artifact following its parent if the parent's pin is later corrected.
+  // Dragging the hollow pin, or clicking the map, turns it into its own.
+  function pinIcon(cls) {
+    return L.divIcon({ className: "pin " + cls, iconSize: [22, 22], iconAnchor: [11, 11] });
+  }
+
+  function initEditableMap(el, map, initial) {
+    const latIn = document.querySelector(el.dataset.inputLat);
+    const lngIn = document.querySelector(el.dataset.inputLng);
+    const parentSel = document.querySelector(el.dataset.parentSelect);
+    const note = document.querySelector(el.dataset.inheritNote);
+    let own = null, ghost = null;
+
+    // 6 decimals ~= 11cm, far finer than GPS; more is noise.
+    function write(ll) {
+      latIn.value = ll.lat.toFixed(6);
+      lngIn.value = ll.lng.toFixed(6);
+    }
+    function say(text) {
+      if (!note) return;
+      note.textContent = text || "";
+      note.hidden = !text;
+    }
+    function dropGhost() { if (ghost) { map.removeLayer(ghost); ghost = null; } }
+    function dropOwn() { if (own) { map.removeLayer(own); own = null; } }
+
+    function inherited() {
+      const opt = parentSel && parentSel.selectedOptions[0];
+      if (!opt || !opt.dataset.lat) return null;
+      return {
+        latlng: L.latLng(parseFloat(opt.dataset.lat), parseFloat(opt.dataset.lng)),
+        source: opt.dataset.source || "the parent",
+      };
+    }
+
+    function setOwn(ll) {
+      dropGhost();
+      if (own) own.setLatLng(ll);
+      else {
+        own = L.marker(ll, { icon: pinIcon("pin-own"), draggable: true, keyboard: false }).addTo(map);
+        own.on("dragend", function () { write(own.getLatLng()); });
+      }
+      const inh = inherited();
+      say(inh ? "This artifact has its own location. Use “Clear” to go back to " + inh.source + "’s." : "");
+    }
+
+    function showInherited(pan) {
+      if (own) return;
+      const inh = inherited();
+      dropGhost();
+      if (!inh) {
+        latIn.placeholder = "latitude";
+        lngIn.placeholder = "longitude";
+        say("");
+        return;
+      }
+      latIn.placeholder = inh.latlng.lat.toFixed(6);
+      lngIn.placeholder = inh.latlng.lng.toFixed(6);
+      ghost = L.marker(inh.latlng, { icon: pinIcon("pin-inherited"), draggable: true, keyboard: false })
+        .bindTooltip("Location of " + inh.source)
+        .addTo(map);
+      ghost.on("dragend", function () {
+        const ll = ghost.getLatLng();
+        setOwn(ll);
+        write(ll);
+      });
+      say("Showing the location of " + inh.source + ", which this artifact uses. " +
+          "To give it a spot of its own, drag the pin or click the map.");
+      if (pan) map.setView(inh.latlng, 18);
+    }
+
+    if (initial) setOwn(L.latLng(initial[0], initial[1]));
+    else showInherited(true);
+
+    map.on("click", function (e) {
+      setOwn(e.latlng);
+      write(e.latlng);
+    });
+
+    // "Clear" blanks the boxes so the artifact goes back to inheriting.
+    const clearBtn = document.querySelector(el.dataset.clearButton);
+    if (clearBtn) {
+      clearBtn.addEventListener("click", function () {
+        dropOwn();
+        latIn.value = ""; lngIn.value = "";
+        showInherited(true);
+      });
+    }
+
+    if (parentSel) {
+      parentSel.addEventListener("change", function () {
+        if (own) setOwn(own.getLatLng()); // refresh the note's parent name
+        else showInherited(true);
+      });
+    }
+
+    // Typing (or pasting) coordinates moves the pin, so an author can check a
+    // pasted position against the map before saving. A pair pasted whole
+    // into the latitude box, the way Google Maps copies one, is split across
+    // both boxes.
+    function fromInputs() {
+      const pair = latIn.value.split(",");
+      if (pair.length === 2 && lngIn.value.trim() === "") {
+        latIn.value = pair[0].trim();
+        lngIn.value = pair[1].trim();
+      }
+      const num = /^\s*-?\d+(\.\d+)?\s*$/;
+      const la = parseFloat(latIn.value), ln = parseFloat(lngIn.value);
+      if (num.test(latIn.value) && num.test(lngIn.value) && Math.abs(la) <= 90 && Math.abs(ln) <= 180) {
+        setOwn(L.latLng(la, ln));
+        map.setView([la, ln], Math.max(map.getZoom(), 17));
+      } else if (latIn.value.trim() === "" && lngIn.value.trim() === "") {
+        dropOwn();
+        showInherited(false);
+      }
+    }
+    latIn.addEventListener("input", fromInputs);
+    lngIn.addEventListener("input", fromInputs);
   }
 
   // --- media upload --------------------------------------------------------

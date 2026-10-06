@@ -87,9 +87,13 @@ Many sustainability features belong to a building: its roof, its heating system,
 
 ![A new artifact being added inside the Integrative Learning Center](img/add-artifact/08-nested-form.png)
 
-**Usually, leave the location blank.** An artifact with no location of its own takes its parent's location, which is right for anything in or on the building. Only click the map if the feature really is somewhere else, such as a rain garden across the plaza.
+**Usually, leave the location as it is.** The map opens on the parent's location, marked with a hollow, dashed pin, and the coordinate boxes show the parent's numbers in grey. That's the location this artifact uses, which is right for anything in or on the building.
 
-After you save, the page shows where the location came from: **inherited from** the parent.
+![The location of a nested artifact, showing its parent's location](img/add-artifact/10-inherited-location.png)
+
+If the feature really is somewhere else, such as a rain garden across the plaza, **drag the pin** to the right spot, or click the map. The pin turns solid, and the artifact now has its own location. **Clear (use parent's)** puts it back.
+
+Leaving it on the parent's location matters: if someone later corrects the building's pin, everything inside it moves with it. After you save, the page shows where the location came from: **inherited from** the parent.
 
 ![A nested artifact using its building's location](img/add-artifact/09-nested-saved.png)
 

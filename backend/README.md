@@ -524,6 +524,11 @@ created by an admin. Any author can change their password at `/studio/password`.
   400. A top-level artifact must have a location; a nested one may inherit.
   Typing or pasting coordinates moves the pin, and a `lat, lng` pair pasted
   into the latitude box (Google Maps' format) is split across both boxes.
+  For a nested artifact with no location of its own, the form shows the
+  location it inherits as a hollow, draggable pin with the coordinates only as
+  placeholders. They are deliberately not copied into the fields: a saved copy
+  would stop the artifact following its parent if the parent's pin is later
+  corrected. Dragging the pin or clicking the map gives it its own location.
 - **Tags** are free text in `artifact_tags`, unique per artifact ignoring case.
   The form autocompletes from tags already in use, so one theme tends to keep
   one spelling.

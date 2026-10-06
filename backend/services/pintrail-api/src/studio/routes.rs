@@ -1378,19 +1378,31 @@ struct OptionRow {
     id: Uuid,
     name: String,
     kind: String,
+    effective_lat: Option<f64>,
+    effective_lng: Option<f64>,
+    source_name: Option<String>,
 }
 
-/// Parent choices for the form. Excludes the artifact itself; the cycle trigger
-/// in the database rejects a deeper cycle, which the handler surfaces as a 400.
+/// Parent choices for the form, each with the location a child placed inside
+/// it would inherit (its own, or the nearest ancestor's), so the map can show
+/// that spot before the author refines it. Excludes the artifact itself; the
+/// cycle trigger in the database rejects a deeper cycle, which the handler
+/// surfaces in the form.
 async fn load_parent_options(state: &AppState, exclude: Option<Uuid>) -> AppResult<Value> {
-    let rows = sqlx::query_as::<_, OptionRow>(
-        "SELECT id, name, kind::text AS kind FROM artifacts \
-         WHERE deleted_at IS NULL AND ($1::uuid IS NULL OR id <> $1) \
-         ORDER BY name",
-    )
-    .bind(exclude)
-    .fetch_all(&state.db)
-    .await?;
+    let sql = format!(
+        r#"
+        {RESOLVED_COORDS_CTE}
+        SELECT a.id, a.name, a.kind::text AS kind, r.effective_lat, r.effective_lng,
+               (SELECT s.name FROM artifacts s WHERE s.id = r.location_source_id) AS source_name
+        FROM artifacts a JOIN resolved r ON r.id = a.id
+        WHERE a.deleted_at IS NULL AND ($1::uuid IS NULL OR a.id <> $1)
+        ORDER BY a.name
+        "#
+    );
+    let rows = sqlx::query_as::<_, OptionRow>(&sql)
+        .bind(exclude)
+        .fetch_all(&state.db)
+        .await?;
 
     let opts: Vec<serde_json::Value> = rows
         .iter()
@@ -1398,6 +1410,9 @@ async fn load_parent_options(state: &AppState, exclude: Option<Uuid>) -> AppResu
             serde_json::json!({
                 "id": r.id.to_string(),
                 "label": format!("{} ({})", r.name, r.kind),
+                "lat": r.effective_lat.map(|v| v.to_string()).unwrap_or_default(),
+                "lng": r.effective_lng.map(|v| v.to_string()).unwrap_or_default(),
+                "source": r.source_name.clone().unwrap_or_default(),
             })
         })
         .collect();

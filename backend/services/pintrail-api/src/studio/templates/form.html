@@ -30,10 +30,10 @@
         </span></label>
 
       <label class="field"><span class="lbl">Inside (parent)</span>
-        <select name="parent_id" data-parent-select>
+        <select name="parent_id" id="f-parent" data-parent-select>
           <option value="">— none (top level) —</option>
           {% for p in parents %}
-          <option value="{{ p.id }}" {{ 'selected' if p.id == form.parent_id }}>{{ p.label }}</option>
+          <option value="{{ p.id }}" data-lat="{{ p.lat }}" data-lng="{{ p.lng }}" data-source="{{ p.source }}" {{ 'selected' if p.id == form.parent_id }}>{{ p.label }}</option>
           {% endfor %}
         </select>
         <span class="help">Leave as <em>none</em> for a building or anything standing on its own. Choose a building for its roof, rooms, and systems.</span></label>
@@ -59,21 +59,23 @@
     <div class="field">
       <span class="lbl">Location
         <span class="req-badge" data-loc-required>required for a top-level artifact</span>
-        <span class="opt-badge" data-loc-optional>optional</span></span>
+        <span class="opt-badge" data-loc-optional>uses the parent's unless you set one</span></span>
       <div class="map"
            data-map data-editable="true"
            data-lat="{{ form.lat }}" data-lng="{{ form.lng }}"
            data-input-lat="#f-lat" data-input-lng="#f-lng"
-           data-clear-button="#f-clear"></div>
+           data-clear-button="#f-clear"
+           data-parent-select="#f-parent" data-inherit-note="#f-inherit-note"></div>
+      <p class="inherit-note" id="f-inherit-note" hidden></p>
       <div class="row" style="margin-top:.6rem">
         <input type="text" inputmode="decimal" id="f-lat" name="lat" placeholder="latitude"
                aria-label="Latitude" value="{{ form.lat }}" style="max-width:11rem">
         <input type="text" inputmode="decimal" id="f-lng" name="lng" placeholder="longitude"
                aria-label="Longitude" value="{{ form.lng }}" style="max-width:11rem">
-        <button type="button" class="btn-sm" id="f-clear">Clear (inherit)</button>
+        <button type="button" class="btn-sm" id="f-clear">Clear (use parent's)</button>
       </div>
       <span class="help" data-loc-required>Zoom in and click the map on the exact spot, or type or paste coordinates. A pair copied from Google Maps (<em>42.3891, -72.5281</em>) can go straight into the latitude box. Check the pin sits on the right building, not the one next door.</span>
-      <span class="help" data-loc-optional>Usually leave this blank: an artifact with no location of its own uses its parent's, which is right for anything in or on the building. Only place it if it really stands somewhere else, like a rain garden across the plaza.</span>
+      <span class="help" data-loc-optional>The parent's location is right for anything in or on the building. Only give this one its own spot if it really stands somewhere else, like a rain garden across the plaza.</span>
     </div>
 
     <div class="row" style="margin-top:1rem">

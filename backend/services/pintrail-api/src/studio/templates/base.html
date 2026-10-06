@@ -167,6 +167,12 @@
     .link-add .when-busy, .link-add.htmx-request .when-idle { display: none; }
     .link-add.htmx-request .when-busy { display: inline; }
 
+
+    /* Location picker pins (divIcons, so no marker images are needed) */
+    .pin { border-radius: 50%; box-sizing: border-box; cursor: grab; }
+    .pin-own { background: #2563eb; border: 3px solid #fff; box-shadow: 0 0 0 1px #2563eb, 0 1px 4px rgba(0,0,0,.4); }
+    .pin-inherited { background: rgba(255,255,255,.85); border: 3px dashed #2563eb; box-shadow: 0 1px 4px rgba(0,0,0,.35); }
+    .inherit-note { margin: .5rem 0 0; font-size: .82rem; color: var(--muted); }
     /* Map overview */
     .map.overview { height: calc(100vh - 15rem); min-height: 360px; margin-top: 1rem; }
     .inline-filter { display: flex; align-items: center; gap: .4rem; font-size: .85rem; color: var(--muted); }
