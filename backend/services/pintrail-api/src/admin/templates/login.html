@@ -1,16 +1,27 @@
 {% extends "base.html" %}
-{% block content %}
-<h2>Sign in</h2>
+{% block auth %}
+<div class="auth">
+  <div class="auth-card">
+    <div class="auth-brand"><span class="brand"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 22s7-6.2 7-12a7 7 0 1 0-14 0c0 5.8 7 12 7 12Z" fill="currentColor" opacity=".16"/><path d="M12 22s7-6.2 7-12a7 7 0 1 0-14 0c0 5.8 7 12 7 12Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><circle cx="12" cy="10" r="2.6" fill="currentColor"/></svg>Pintrail <span class="badge">Admin</span></span></div>
+    <div class="card">
+      <div class="card-body">
+        <h1>Sign in</h1>
+        <p class="lead">Moderate comments and trails, and manage author accounts.</p>
 
-{# One message for every failure, matching the JSON API: distinguishing
-   "no such account" from "wrong password" enumerates valid accounts. #}
-{% if error %}<p class="flash danger">{{ error }}</p>{% endif %}
+        {# One message for every failure, matching the JSON API: distinguishing
+           "no such account" from "wrong password" enumerates valid accounts. #}
+        {% if error %}<div class="alert alert-error" role="alert"><p>{{ error }}</p></div>{% endif %}
 
-<form method="post" action="/admin/login">
-  <label>Email<input type="email" name="email" autocomplete="username" required autofocus></label>
-  <label>Password<input type="password" name="password" autocomplete="current-password" required></label>
-  <button>Sign in</button>
-</form>
-
-<p class="muted">This panel is for admins. Accounts are created by an existing admin, or by the <code>create-author</code> command for the first one.</p>
+        <form method="post" action="/admin/login">
+          <label class="field"><span>Email</span>
+            <input type="email" name="email" autocomplete="username" required autofocus></label>
+          <label class="field"><span>Password</span>
+            <input type="password" name="password" autocomplete="current-password" required></label>
+          <button class="btn-primary btn-block">Sign in</button>
+        </form>
+      </div>
+    </div>
+    <p class="auth-foot">For admins only. Accounts are created by an existing admin, or with the <code>create-author</code> command for the first one.</p>
+  </div>
+</div>
 {% endblock %}

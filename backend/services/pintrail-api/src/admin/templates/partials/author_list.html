@@ -1,55 +1,84 @@
 {% extends "base.html" %}
 {% block content %}
-<h2>Authors</h2>
+<div class="page-head">
+  <div>
+    <h1>Authors</h1>
+    <p>People who can sign in to the Studio. Viewers can look, editors can write artifacts and trails, admins can also use this panel.</p>
+  </div>
+  <a class="btn btn-primary" href="#add-author">Add author</a>
+</div>
 
-<table>
-  <tr><th>Email</th><th>Role</th><th>Status</th><th>Created</th><th></th></tr>
-  {% for a in authors %}
-  <tr>
-    <td>{{ a.email }}{% if a.is_self %} <span class="muted">(you)</span>{% endif %}</td>
-    <td>{{ a.role }}</td>
-    <td>
-      {% if a.is_active %}active{% else %}<span class="danger">suspended</span>{% endif %}
-      {% if a.must_change_password %}<span class="tag">must change password</span>{% endif %}
-    </td>
-    <td class="muted">{{ a.created_at }}</td>
-    <td>
-      {# No self-suspend control: the server refuses it anyway, and offering a
-         button that always errors is worse than not offering one. #}
-      {% if not a.is_self %}
-        <form method="post" action="/admin/authors/{{ a.id }}/toggle" class="inline">
-          <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-          <button {% if a.is_active %}class="danger"{% endif %}>
-            {% if a.is_active %}Suspend{% else %}Reactivate{% endif %}
-          </button>
-        </form>
-      {% endif %}
-    </td>
-  </tr>
-  {% endfor %}
-</table>
+<div class="card table-wrap">
+  <table>
+    <thead>
+      <tr><th>Author</th><th>Role</th><th>Status</th><th>Created</th><th><span class="sr-only">Actions</span></th></tr>
+    </thead>
+    <tbody>
+    {% for a in authors %}
+      <tr>
+        <td>
+          <div class="primary">{{ a.email }}</div>
+          {% if a.is_self %}<div class="sub">This is you</div>{% endif %}
+        </td>
+        <td>
+          <span class="pill plain {{ 'pill-accent' if a.role == 'admin' }}">{{ a.role }}</span>
+        </td>
+        <td>
+          {% if a.is_active %}<span class="pill pill-ok">Active</span>{% else %}<span class="pill pill-danger">Suspended</span>{% endif %}
+          {% if a.must_change_password %}<span class="pill pill-warn">Must change password</span>{% endif %}
+        </td>
+        <td class="nowrap sub">{{ a.created_at }}</td>
+        <td class="actions">
+          {# No self-suspend control: the server refuses it anyway, and offering a
+             button that always errors is worse than not offering one. #}
+          {% if not a.is_self %}
+            <form method="post" action="/admin/authors/{{ a.id }}/toggle" class="inline">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+              {% if a.is_active %}
+                <button class="btn-sm btn-danger">Suspend</button>
+              {% else %}
+                <button class="btn-sm">Reactivate</button>
+              {% endif %}
+            </form>
+          {% endif %}
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
 
-<h3>Add author</h3>
+<h2 class="section" id="add-author">Add author</h2>
 
-{% if error %}<p class="flash danger">{{ error }}</p>{% endif %}
+<div class="card">
+  <div class="card-body">
+    {% if error %}<div class="alert alert-error" role="alert"><p>{{ error }}</p></div>{% endif %}
 
-<form method="post" action="/admin/authors">
-  <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-  <label>Email<input type="email" name="email" value="{{ new_email }}" autocomplete="off" required></label>
-  <label>Role
-    <select name="role">
-      {% for r in roles %}<option value="{{ r }}" {% if r == new_role %}selected{% endif %}>{{ r }}</option>{% endfor %}
-    </select>
-  </label>
-  {# autocomplete=new-password keeps the browser from filling in the admin's
-     own saved password here. #}
-  <label>Temporary password<input type="password" name="password" minlength="12" autocomplete="new-password" required></label>
-  <label>Confirm password<input type="password" name="password_confirm" minlength="12" autocomplete="new-password" required></label>
-  <button>Create author</button>
-</form>
-
-<p class="muted">
-  Give the new author their temporary password in person or over a trusted
-  channel. They will be asked to choose a new password when they first sign in.
-</p>
+    <form method="post" action="/admin/authors">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <div class="form-grid">
+        <label class="field"><span>Email</span>
+          <input type="email" name="email" value="{{ new_email }}" autocomplete="off" required></label>
+        <label class="field"><span>Role</span>
+          <select name="role">
+            {% for r in roles %}<option value="{{ r }}" {% if r == new_role %}selected{% endif %}>{{ r }}</option>{% endfor %}
+          </select>
+          <span class="hint">Students get editor.</span>
+        </label>
+        {# autocomplete=new-password keeps the browser from filling in the admin's
+           own saved password here. #}
+        <label class="field"><span>Temporary password</span>
+          <input type="password" name="password" minlength="12" autocomplete="new-password" required>
+          <span class="hint">At least 12 characters.</span>
+        </label>
+        <label class="field"><span>Confirm password</span>
+          <input type="password" name="password_confirm" minlength="12" autocomplete="new-password" required></label>
+      </div>
+      <div class="form-actions">
+        <button class="btn-primary">Create author</button>
+        <span class="muted">Give them the temporary password in person or over a trusted channel. They choose their own when they first sign in.</span>
+      </div>
+    </form>
+  </div>
+</div>
 {% endblock %}
