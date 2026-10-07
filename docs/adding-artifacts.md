@@ -34,6 +34,8 @@ The Studio has two parts:
 - **The sidebar on the left** lists every artifact. Artifacts that sit inside another one are indented beneath it. Click any artifact to open it.
 - **The main area** shows the artifact you opened, or the form when you create or edit one.
 - **Map**, at the top of the sidebar, shows every artifact on one map (see [step 8](#8-see-everything-on-the-map)).
+- **Only mine**, above the list, shows just the artifacts you added.
+- The **coloured dot** next to each artifact is its review status: grey for draft, orange for ready for review, green for approved (see [step 10](#10-submit-your-artifact-for-review)).
 
 ![The Studio, with the example artifacts in the sidebar](img/add-artifact/03-studio-home.png)
 
@@ -48,7 +50,7 @@ At the bottom of a building's page, **Nested inside** lists the artifacts inside
 
 ![An example building, with its nested artifacts listed at the bottom](img/add-artifact/05-nested-list.png)
 
-Please **don't edit or delete the examples**. Everyone uses them as a reference.
+The examples are approved and belong to no student, so you can read them but not edit or delete them. Everyone uses them as a reference.
 
 ## 4. Add an artifact
 
@@ -129,7 +131,7 @@ On an artifact's page, the **Media** section has a **+ Upload** button. You can 
 
 Click **Map** at the top of the sidebar to see every artifact on one map. Each marker is an artifact with its own location; click it to see its name and tags, and the artifacts nested inside it. Click any name to open that artifact.
 
-Use **Kind** and **Tag** above the map to show only, say, installations, or only artifacts tagged *solar*. It's a quick way to spot a pin in the wrong place, or a part of campus nobody has covered yet.
+Use **Kind**, **Status**, and **Tag** above the map to show only, say, installations, or only artifacts tagged *solar*. It's a quick way to spot a pin in the wrong place, or a part of campus nobody has covered yet.
 
 ![The map of every artifact, with a building's popup open](img/add-artifact/14-map.png)
 

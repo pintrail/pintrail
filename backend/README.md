@@ -250,7 +250,9 @@ the cache can evict. A *first* sync (`since=0`) omits them — nothing is cached
 yet, so shipping every historical deletion is pure waste.
 
 **Deleting a parent deletes the subtree.** A child left behind would inherit
-coordinates from a deleted ancestor.
+coordinates from a deleted ancestor. An admin can restore a deleted subtree
+from `/studio/deleted`; clearing `deleted_at` is an ordinary update, so it bumps
+`sync_version` and the artifact reaches phones again on their next sync.
 
 **Moving a parent dirties everything that inherits from it.** This is the
 subtle one. An artifact with NULL coordinates reports its ancestor's position,
@@ -510,7 +512,8 @@ wrong. **Set it to true in any deployment behind Caddy.**
 
 A server-rendered UI at `/studio` for viewing and authoring artifacts while the
 mobile app is built. Cookie-authenticated on the author tier — viewers browse,
-editors and admins write. Sign in at `/studio/login` with an author account
+editors write their own artifacts (and may add artifacts inside anyone's), and
+admins write everything (see *Authorship and review* below). Sign in at `/studio/login` with an author account
 created by an admin. Any author can change their password at `/studio/password`.
 
 - **htmx** drives every interaction as a fragment swap: selecting an artifact,
@@ -658,6 +661,8 @@ revisiting, not an accident:
 | Added `attachments.claimed_at` / `attempts` | Needed by the sweep that re-queues jobs abandoned by a worker that died mid-processing (DESIGN.md §2.5 calls for the sweep but not the columns it requires). |
 | Case-insensitive unique email on both identity tables | `Tim@umass.edu` and `tim@umass.edu` are one person; treating them as two accounts is a support ticket at best. |
 | Triggers enforce trail owner integrity | `owner_type` + `owner_id` cannot have a declarative foreign key. Triggers validate the owner exists on write and delete a user's trails when the user is deleted — what `ON DELETE CASCADE` would have done. |
+| Added `artifacts.created_by`, `updated_by`, `status`, `submitted_at`, `reviewed_by`, `reviewed_at`, `review_note` | Authorship and review (migration `20261007000001`). The design has no notion of who wrote an artifact or whether it has been checked, and a class of student authors needs both. `status` is an `artifact_status` enum: `draft`, `ready`, `approved`. |
+| Added `artifact_history` | A complete, append-only record of every change to an artifact, written by triggers so no write path can skip it. No foreign key to `artifacts`, so the record outlives a hard delete. |
 | Trigger enforces an acyclic artifact tree | Coordinate inheritance walks up `parent_id`; a cycle would loop forever. Also caps chain depth at 64. |
 
 ## Local services
@@ -683,3 +688,6 @@ to end before the next began.
 8. ✅ `trails/` — stops, visibility, share tokens
 9. ✅ `comments/` — create, list, rate limiting
 10. ✅ `admin/` — minijinja moderation UI
+
+Since then, in the Studio: tags, source links with previews, the map of every
+artifact, the phone layout, and authorship, review, and change history.
