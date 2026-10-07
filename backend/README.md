@@ -607,6 +607,20 @@ created by an admin. Any author can change their password at `/studio/password`.
   link is part of the artifact's content, so changing one needs the right to
   change the artifact (and sends an approved artifact back to review), not the
   topic.
+- **The manual** at `/studio/help`: the Studio's own how-to and reference,
+  for signed-in authors only. Pages are Markdown in `studio/help/`, compiled
+  into the binary with `pulldown-cmark`; `studio/help.rs` holds the table of
+  contents (`MANUAL`), so a new page is one file plus one line. Headings get
+  ids from their text, and a blockquote opening with **Example**, **Tip**,
+  **Note**, or **Watch out** becomes a callout. Each page renders in the main
+  area with the contents alongside, or with `?panel=1` in a panel that slides
+  in from the right. The `help(page, tip, anchor)` macro in `macros.html`
+  draws a "?" that shows `tip` on hover and opens that page (at `#anchor`) in
+  the panel, so a half-filled form isn't lost; any element with `data-tip`
+  gets the same hover tip. **Help** in the top bar and the `?` key open the
+  manual; its front page searches every page in the browser. Tests check that
+  every link between pages, and every "?" in the templates, resolves to a
+  real page and heading.
 - **Profiles.** Authors have a full name (required before the Studio opens:
   `/studio` sends anyone without one to `/studio/profile`), display name,
   pronouns, affiliation, bio, and a photo (migration `..._author_profiles`).

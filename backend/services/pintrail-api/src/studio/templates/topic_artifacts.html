@@ -1,6 +1,7 @@
+{% from "studio_macros.html" import help %}
 {# Linked artifacts card on a topic's page: every artifact that links to it,
    all on one map. Re-rendered whole after every change. #}
-<h3>Linked artifacts</h3>
+<h3>Linked artifacts{{ help("linking-topics", "Every artifact this topic is about, on one map") }}</h3>
 {% if error %}<p class="flash err" role="alert">{{ error }}</p>{% endif %}
 
 {% if linked %}
@@ -24,7 +25,7 @@
       </div>
       {% if a.can_edit %}
       <div class="link-actions">
-        <button type="button" class="icon-btn danger" title="Unlink" aria-label="Unlink {{ a.name }}"
+        <button type="button" class="icon-btn danger" data-tip="Unlink" aria-label="Unlink {{ a.name }}"
                 hx-post="/studio/topics/{{ topic_id }}/artifacts/{{ a.id }}/delete" hx-vals='{"csrf_token": "{{ csrf_token }}"}'
                 hx-target="#topic-artifacts" hx-swap="innerHTML" hx-confirm="Unlink “{{ a.name }}” from this topic? The artifact itself is not affected.">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>

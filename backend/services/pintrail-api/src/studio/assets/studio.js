@@ -712,6 +712,143 @@
     });
   }
 
+  // --- tooltips ------------------------------------------------------------------
+  // Anything with data-tip shows it in one floating box on hover or keyboard
+  // focus. Positioned by script rather than CSS so a card's edge or the map
+  // can't clip it.
+  const tip = document.getElementById("tip-pop");
+  let tipFor = null;
+  function showTip(el) {
+    if (!tip || !el.dataset.tip) return;
+    tipFor = el;
+    tip.textContent = el.dataset.tip;
+    tip.hidden = false;
+    const r = el.getBoundingClientRect(), t = tip.getBoundingClientRect(), pad = 8;
+    let top = r.top - t.height - 8;
+    if (top < pad) top = r.bottom + 8;
+    let left = r.left + r.width / 2 - t.width / 2;
+    left = Math.max(pad, Math.min(left, window.innerWidth - t.width - pad));
+    tip.style.top = top + "px";
+    tip.style.left = left + "px";
+  }
+  function hideTip() { if (tip) tip.hidden = true; tipFor = null; }
+  if (tip) {
+    document.addEventListener("mouseover", function (e) {
+      const el = e.target.closest("[data-tip]");
+      if (el && el !== tipFor) showTip(el);
+      else if (!el && tipFor) hideTip();
+    });
+    document.addEventListener("focusin", function (e) {
+      const el = e.target.closest("[data-tip]");
+      if (el && el.matches(":focus-visible")) showTip(el); else hideTip();
+    });
+    document.addEventListener("focusout", hideTip);
+    window.addEventListener("scroll", hideTip, true);
+    document.addEventListener("click", hideTip, true);
+  }
+
+  // --- the help panel -------------------------------------------------------------
+  // A "?" (data-help="page" or "page#heading") opens that manual page in a
+  // panel over the right of the screen; links inside it stay in the panel.
+  const panel = document.getElementById("help-panel");
+  let panelOpener = null;
+  function openHelp(target, opener) {
+    if (!panel) return;
+    const hash = target.indexOf("#") >= 0 ? target.slice(target.indexOf("#") + 1) : "";
+    const page = target.split("#")[0];
+    panelOpener = opener || document.activeElement;
+    htmx.ajax("GET", "/studio/help/" + page + "?panel=1", { target: "#help-panel-body", swap: "innerHTML" }).then(function () {
+      panel.hidden = false;
+      const at = hash && document.getElementById("help-panel-body").querySelector("[id='" + hash + "']");
+      panel.scrollTop = 0;
+      if (at) at.scrollIntoView({ block: "start" });
+      panel.focus({ preventScroll: true });
+    });
+  }
+  function closeHelp() {
+    if (!panel || panel.hidden) return;
+    panel.hidden = true;
+    if (panelOpener && document.body.contains(panelOpener)) panelOpener.focus();
+  }
+  document.addEventListener("click", function (e) {
+    const q = e.target.closest("[data-help]");
+    if (q) { e.preventDefault(); openHelp(q.dataset.help, q); return; }
+    if (e.target.closest("[data-help-close]")) { closeHelp(); return; }
+    const navBtn = e.target.closest("[data-help-nav-toggle]");
+    if (navBtn) {
+      const open = navBtn.parentElement.classList.toggle("open");
+      navBtn.setAttribute("aria-expanded", open ? "true" : "false");
+      return;
+    }
+    // Inside the panel, a link to another manual page loads in the panel.
+    const a = e.target.closest("#help-panel-body [data-help-panel-links] a[href^='/studio/help/']");
+    if (a) { e.preventDefault(); openHelp(a.getAttribute("href").replace("/studio/help/", ""), panelOpener); }
+    // The panel stays open while the author works underneath it; the close
+    // button or Escape shuts it.
+  });
+
+  // Keyboard: ? opens the manual, Escape closes the panel.
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape") { closeHelp(); hideTip(); return; }
+    if (e.key !== "?" || e.ctrlKey || e.metaKey || e.altKey) return;
+    const el = document.activeElement;
+    if (el && (el.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName))) return;
+    e.preventDefault();
+    htmx.ajax("GET", "/studio/help", { target: "#detail", swap: "innerHTML" }).then(function () {
+      history.pushState({}, "", "/studio/help");
+    });
+  });
+
+  // --- searching the manual ---------------------------------------------------------
+  function initHelpSearch(root) {
+    root.querySelectorAll("[data-help-search]").forEach(function (input) {
+      if (input.dataset.ready) return;
+      input.dataset.ready = "1";
+      const card = input.closest(".help-hero");
+      const pages = JSON.parse(card.querySelector("[data-help-index]").textContent);
+      const out = card.querySelector("[data-help-results]");
+      const sections = document.querySelector("[data-help-sections]");
+      const esc = function (t) { return t.replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); };
+      function snippet(text, words) {
+        const lower = text.toLowerCase();
+        let at = -1;
+        words.forEach(function (w) { const i = lower.indexOf(w); if (i >= 0 && (at < 0 || i < at)) at = i; });
+        if (at < 0) return "";
+        const start = Math.max(0, at - 60), end = Math.min(text.length, at + 140);
+        let s = esc((start ? "…" : "") + text.slice(start, end) + (end < text.length ? "…" : ""));
+        words.forEach(function (w) {
+          s = s.replace(new RegExp("(" + w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + ")", "gi"), "<mark>$1</mark>");
+        });
+        return s;
+      }
+      function run() {
+        const words = input.value.toLowerCase().split(/\s+/).filter(function (w) { return w.length > 1; });
+        if (!words.length) { out.innerHTML = ""; sections.hidden = false; return; }
+        const hits = pages.map(function (p) {
+          const title = p.title.toLowerCase(), body = (p.summary + " " + p.text).toLowerCase();
+          let score = 0;
+          for (const w of words) {
+            if (title.indexOf(w) >= 0) score += 10;
+            else if (body.indexOf(w) >= 0) score += 1 + Math.min(4, body.split(w).length - 1) / 2;
+            else return null;
+          }
+          return { p: p, score: score };
+        }).filter(Boolean).sort(function (a, b) { return b.score - a.score; }).slice(0, 12);
+        sections.hidden = true;
+        out.innerHTML = hits.length
+          ? '<ul class="help-results">' + hits.map(function (h) {
+              return '<li><a href="/studio/help/' + h.p.slug + '">' + esc(h.p.title) + '</a> <span class="hint">' + esc(h.p.section) +
+                '</span><span class="snippet">' + (snippet(h.p.text, words) || esc(h.p.summary)) + "</span></li>";
+            }).join("") + "</ul>"
+          : '<p class="hint">Nothing matches. Try another word, or browse the sections below.</p>';
+        if (!hits.length) sections.hidden = false;
+        htmx.process(out);
+      }
+      input.addEventListener("input", run);
+      input.focus();
+    });
+  }
+
   function enhance(root) {
     root = root || document;
     localTimes(root);
@@ -720,6 +857,7 @@
     initSortable(root);
     initOverview(root);
     initTrailMaps(root);
+    initHelpSearch(root);
   }
 
   document.addEventListener("DOMContentLoaded", function () { enhance(document); });

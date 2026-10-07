@@ -1,7 +1,8 @@
+{% from "studio_macros.html" import help %}
 {# Topics card on an artifact's page: the shared pages this artifact links to,
    each with its description, which explorers see here too. Re-rendered whole
    after every change. #}
-<h3>Topics</h3>
+<h3>Topics{{ help("topics", "A topic is one shared page, like LEED certification, that many artifacts link to. Its description shows here.") }}</h3>
 {% if error %}<p class="flash err" role="alert">{{ error }}</p>{% endif %}
 
 {% if linked %}
@@ -20,10 +21,10 @@
       </div>
       {% if can_edit %}
       <div class="link-actions">
-        <button type="button" class="icon-btn" data-edit-link title="Edit note" aria-label="Edit the note for {{ t.name }}">
+        <button type="button" class="icon-btn" data-edit-link data-tip="Edit note" aria-label="Edit the note for {{ t.name }}">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
         </button>
-        <button type="button" class="icon-btn danger" title="Unlink" aria-label="Unlink {{ t.name }}"
+        <button type="button" class="icon-btn danger" data-tip="Unlink" aria-label="Unlink {{ t.name }}"
                 hx-post="/studio/artifacts/{{ artifact_id }}/topics/{{ t.id }}/delete" hx-vals='{"csrf_token": "{{ csrf_token }}"}'
                 hx-target="#topics" hx-swap="innerHTML" hx-confirm="Unlink “{{ t.name }}” from this artifact? The topic itself is not affected.">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>

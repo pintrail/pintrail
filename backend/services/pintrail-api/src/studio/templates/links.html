@@ -1,8 +1,9 @@
+{% from "studio_macros.html" import help %}
 {# Links card on the artifact page: sources, project pages, news stories.
    Each shows a preview read from the page itself (title, summary, image),
    plus the author's own note. Editors can add, edit, delete, and drag the
    grip to reorder; studio.js posts the new order. #}
-<h3>Links</h3>
+<h3>Links{{ help("links", "The pages your facts come from. Put the most important one first.") }}</h3>
 {% if error %}<p class="flash err" role="alert">{{ error }}</p>{% endif %}
 
 {% if links %}
@@ -11,7 +12,7 @@
   <li class="link {{ 'editing' if l.id == edit_id }}" data-id="{{ l.id }}">
     <div class="link-view">
       {% if can_edit %}
-      <button type="button" class="grip" title="Drag to reorder (or use the arrow keys)" aria-label="Reorder {{ l.title or l.host }}">
+      <button type="button" class="grip" data-tip="Drag to reorder (or use the arrow keys)" aria-label="Reorder {{ l.title or l.host }}">
         <svg width="12" height="18" viewBox="0 0 12 18" aria-hidden="true"><g fill="currentColor"><circle cx="3" cy="3" r="1.6"/><circle cx="9" cy="3" r="1.6"/><circle cx="3" cy="9" r="1.6"/><circle cx="9" cy="9" r="1.6"/><circle cx="3" cy="15" r="1.6"/><circle cx="9" cy="15" r="1.6"/></g></svg>
       </button>
       {% endif %}
@@ -31,10 +32,10 @@
       </div>
       {% if can_edit %}
       <div class="link-actions">
-        <button type="button" class="icon-btn" data-edit-link title="Edit link" aria-label="Edit link">
+        <button type="button" class="icon-btn" data-edit-link data-tip="Edit link" aria-label="Edit link">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
         </button>
-        <button type="button" class="icon-btn danger" title="Remove link" aria-label="Remove link"
+        <button type="button" class="icon-btn danger" data-tip="Remove link" aria-label="Remove link"
                 hx-post="/studio/links/{{ l.id }}/delete"
                 hx-vals='{"csrf_token": "{{ csrf_token }}"}'
                 hx-target="#links" hx-swap="innerHTML"

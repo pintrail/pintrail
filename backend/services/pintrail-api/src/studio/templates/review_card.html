@@ -1,8 +1,8 @@
-{% from "studio_macros.html" import who %}
+{% from "studio_macros.html" import help, who %}
 {# Review status and the actions this author may take on it. Owners submit
    and withdraw; admins approve or send back with a note. #}
 <div class="card review-card status-border-{{ a.status }}">
-  <h3>Review</h3>
+  <h3>Review{{ help("review-and-the-app", "Only approved artifacts appear in the Pintrail app") }}</h3>
   {% if a.status == "draft" %}
     {% if a.review_note %}
     <div class="review-note">

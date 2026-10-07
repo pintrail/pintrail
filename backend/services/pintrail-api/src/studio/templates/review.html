@@ -1,4 +1,4 @@
-{% from "studio_macros.html" import avatar %}
+{% from "studio_macros.html" import help, avatar %}
 {# Admin review queue. #}
 {% macro item(r, note) %}
 <li>
@@ -15,7 +15,7 @@
 {% endmacro %}
 
 <div class="card">
-  <h1>Review</h1>
+  <h1>Review{{ help("reviewing", "Artifacts students have submitted, waiting for you to approve or send back") }}</h1>
   <p class="subtitle" style="margin:0">
     <span class="status-chip status-ready">{{ n_ready }} waiting</span>
     <span class="status-chip status-draft">{{ n_draft }} draft</span>
