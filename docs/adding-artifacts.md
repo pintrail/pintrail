@@ -152,7 +152,8 @@ Every artifact starts as a **Draft**. When it's finished, with a good descriptio
 
 - Changed your mind? Click **Withdraw** to take it back and keep working.
 - If it comes back **sent back for changes**, the note at the top of the Review card says what to fix. Fix it, then click **Submit for review** again.
-- Once it's **Approved**, it's done. If you edit it after that, it goes back to **Ready for review** so the change gets checked too.
+- Only **approved** artifacts appear in the Pintrail app. Drafts and artifacts waiting for review are visible only here in the Studio. An artifact inside a building that isn't approved yet stays out of the app until the building is approved too.
+- Once it's **Approved**, it's done. If you edit it after that, it goes back to **Ready for review** so the change gets checked too, and it leaves the app until it's approved again.
 
 The coloured dot next to each artifact in the list shows its status: grey for draft, orange for ready for review, green for approved. The map's **Status** filter shows the same thing.
 

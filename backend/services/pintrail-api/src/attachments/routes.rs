@@ -122,6 +122,7 @@ async fn list_for_artifact_route(
     State(state): State<AppState>,
     Path(artifact_id): Path<Uuid>,
 ) -> AppResult<Json<Value>> {
+    crate::artifacts::routes::ensure_visible(&state, &identity, artifact_id).await?;
     // Readers see finished media; authors also see intents still awaiting
     // bytes, which they need in order to manage a half-finished upload.
     let attachments = list_for_artifact(&state, artifact_id, identity.is_author()).await?;
@@ -289,7 +290,7 @@ async fn complete_upload(
 }
 
 async fn detail(
-    _identity: Identity,
+    identity: Identity,
     State(state): State<AppState>,
     Path(id): Path<Uuid>,
 ) -> AppResult<Json<Value>> {
@@ -300,6 +301,9 @@ async fn detail(
     .fetch_optional(&state.db)
     .await?
     .ok_or(AppError::NotFound("attachment"))?;
+    crate::artifacts::routes::ensure_visible(&state, &identity, row.artifact_id)
+        .await
+        .map_err(|_| AppError::NotFound("attachment"))?;
 
     Ok(Json(json!({ "attachment": to_view(&state, row).await? })))
 }

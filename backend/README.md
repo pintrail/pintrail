@@ -254,6 +254,18 @@ coordinates from a deleted ancestor. An admin can restore a deleted subtree
 from `/studio/deleted`; clearing `deleted_at` is an ordinary update, so it bumps
 `sync_version` and the artifact reaches phones again on their next sync.
 
+**Readers see only published artifacts.** An artifact is published when it
+and every artifact above it are approved and not deleted, so a draft building
+hides the approved rooms inside it. Authors (cookie) still see everything.
+This applies to sync, list, detail, media, comments, and trail stops (a stop
+at an unpublished artifact comes back `available: false`, like a deleted
+one). In an incremental sync an artifact that stops being published travels
+as a tombstone (`deleted: true`), and migration `..._artifact_publication`
+marks the whole subtree dirty when an artifact's status or parent changes, so
+the phone hears about every descendant. One consequence worth knowing: when a
+student edits an approved artifact it goes back to "ready", which takes it off
+phones until an admin approves it again.
+
 **Moving a parent dirties everything that inherits from it.** This is the
 subtle one. An artifact with NULL coordinates reports its ancestor's position,
 so moving a building changes the effective location of every room inside it —
@@ -662,6 +674,7 @@ revisiting, not an accident:
 | Case-insensitive unique email on both identity tables | `Tim@umass.edu` and `tim@umass.edu` are one person; treating them as two accounts is a support ticket at best. |
 | Triggers enforce trail owner integrity | `owner_type` + `owner_id` cannot have a declarative foreign key. Triggers validate the owner exists on write and delete a user's trails when the user is deleted — what `ON DELETE CASCADE` would have done. |
 | Added `artifacts.created_by`, `updated_by`, `status`, `submitted_at`, `reviewed_by`, `reviewed_at`, `review_note` | Authorship and review (migration `20261007000001`). The design has no notion of who wrote an artifact or whether it has been checked, and a class of student authors needs both. `status` is an `artifact_status` enum: `draft`, `ready`, `approved`. |
+| Readers see only published artifacts | Approval has to mean something to the people using the app. `artifact_is_published(id)` and the `published` column of the shared coordinates CTE both define it the same way: approved and not deleted, all the way up the parent chain. |
 | Added `artifact_history` | A complete, append-only record of every change to an artifact, written by triggers so no write path can skip it. No foreign key to `artifacts`, so the record outlives a hard delete. |
 | Trigger enforces an acyclic artifact tree | Coordinate inheritance walks up `parent_id`; a cycle would loop forever. Also caps chain depth at 64. |
 

@@ -27,12 +27,17 @@ pub fn router() -> Router<AppState> {
 /// a query per row. Because the `artifacts_latlng_paired` constraint keeps
 /// lat and lng either both set or both null, coalescing them independently
 /// cannot mix one artifact's latitude with another's longitude.
+///
+/// `published` is true when the artifact and every ancestor are approved and
+/// not deleted: what the phone app may show (migration
+/// `..._artifact_publication`, and [`ensure_visible`]).
 pub(crate) const RESOLVED_COORDS_CTE: &str = r#"
 WITH RECURSIVE resolved AS (
     SELECT id, parent_id, lat, lng,
            lat AS effective_lat,
            lng AS effective_lng,
-           CASE WHEN lat IS NULL THEN NULL ELSE id END AS location_source_id
+           CASE WHEN lat IS NULL THEN NULL ELSE id END AS location_source_id,
+           (status = 'approved' AND deleted_at IS NULL) AS published
     FROM artifacts
     WHERE parent_id IS NULL
 
@@ -41,11 +46,26 @@ WITH RECURSIVE resolved AS (
     SELECT a.id, a.parent_id, a.lat, a.lng,
            COALESCE(a.lat, r.effective_lat),
            COALESCE(a.lng, r.effective_lng),
-           CASE WHEN a.lat IS NOT NULL THEN a.id ELSE r.location_source_id END
+           CASE WHEN a.lat IS NOT NULL THEN a.id ELSE r.location_source_id END,
+           r.published AND a.status = 'approved' AND a.deleted_at IS NULL
     FROM artifacts a
     JOIN resolved r ON a.parent_id = r.id
 )
 "#;
+
+/// 404s a reader asking about an artifact that isn't published. Authors see
+/// every artifact, drafts included. 404 rather than 403, so a draft's
+/// existence isn't disclosed.
+pub(crate) async fn ensure_visible(state: &AppState, identity: &Identity, id: Uuid) -> AppResult<()> {
+    if identity.is_author() {
+        return Ok(());
+    }
+    let published: bool = sqlx::query_scalar("SELECT artifact_is_published($1)")
+        .bind(id)
+        .fetch_one(&state.db)
+        .await?;
+    if published { Ok(()) } else { Err(AppError::NotFound("artifact")) }
+}
 
 #[derive(Debug, Deserialize)]
 pub struct SyncParams {
@@ -59,7 +79,7 @@ pub struct SyncParams {
 /// Returns every artifact changed since the client's cursor, with coordinates
 /// already resolved so the device never has to walk the parent chain itself.
 async fn sync(
-    _identity: Identity,
+    identity: Identity,
     State(state): State<AppState>,
     Query(params): Query<SyncParams>,
 ) -> AppResult<Json<Value>> {
@@ -70,6 +90,11 @@ async fn sync(
     // them.
     let include_deleted = since > 0;
 
+    // Readers see only published artifacts. For them, an artifact that stops
+    // being published (sent back, withdrawn, or under an unapproved parent)
+    // goes out as a tombstone so the phone evicts it, exactly like a delete.
+    let reader = !identity.is_author();
+
     let sql = format!(
         r#"
         {RESOLVED_COORDS_CTE}
@@ -77,11 +102,11 @@ async fn sync(
                r.effective_lat AS lat,
                r.effective_lng AS lng,
                a.beacon_id, a.sync_version,
-               (a.deleted_at IS NOT NULL) AS deleted
+               (a.deleted_at IS NOT NULL OR ($3 AND NOT r.published)) AS deleted
         FROM artifacts a
         JOIN resolved r ON r.id = a.id
         WHERE a.sync_version > $1
-          AND ($2 OR a.deleted_at IS NULL)
+          AND ($2 OR (a.deleted_at IS NULL AND (NOT $3 OR r.published)))
         ORDER BY a.sync_version
         "#
     );
@@ -89,6 +114,7 @@ async fn sync(
     let entries = sqlx::query_as::<_, SyncEntry>(&sql)
         .bind(since)
         .bind(include_deleted)
+        .bind(reader)
         .fetch_all(&state.db)
         .await?;
 
@@ -125,7 +151,7 @@ fn default_limit() -> i64 {
 }
 
 async fn list(
-    _identity: Identity,
+    identity: Identity,
     State(state): State<AppState>,
     Query(params): Query<ListParams>,
 ) -> AppResult<Json<Value>> {
@@ -145,6 +171,7 @@ async fn list(
         WHERE a.deleted_at IS NULL
           AND ($1::uuid IS NULL OR a.parent_id = $1)
           AND (NOT $2 OR a.parent_id IS NULL)
+          AND (NOT $5 OR r.published)
         ORDER BY a.name, a.id
         LIMIT $3 OFFSET $4
         "#
@@ -155,6 +182,7 @@ async fn list(
         .bind(params.roots_only)
         .bind(limit)
         .bind(offset)
+        .bind(!identity.is_author())
         .fetch_all(&state.db)
         .await?;
 
@@ -176,11 +204,13 @@ async fn detail(
         FROM artifacts a
         JOIN resolved r ON r.id = a.id
         WHERE a.id = $1 AND a.deleted_at IS NULL
+          AND (NOT $2 OR r.published)
         "#
     );
 
     let artifact = sqlx::query_as::<_, ArtifactDetail>(&sql)
         .bind(id)
+        .bind(!identity.is_author())
         .fetch_optional(&state.db)
         .await?
         .ok_or(AppError::NotFound("artifact"))?;
