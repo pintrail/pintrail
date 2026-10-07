@@ -17,8 +17,8 @@
     {% for a in authors %}
       <tr>
         <td>
-          {% if a.full_name %}<div class="primary">{{ a.full_name }}</div><div class="sub">{{ a.email }}</div>
-          {% else %}<div class="primary">{{ a.email }}</div><div class="sub">No name yet; they're asked on first sign-in</div>{% endif %}
+          {% if a.full_name %}<div class="primary"><a href="/admin/authors/{{ a.id }}">{{ a.full_name }}</a></div><div class="sub">{{ a.email }}</div>
+          {% else %}<div class="primary"><a href="/admin/authors/{{ a.id }}">{{ a.email }}</a></div><div class="sub">No name yet; they're asked on first sign-in</div>{% endif %}
           {% if a.is_self %}<div class="sub">This is you</div>{% endif %}
         </td>
         <td>
@@ -30,6 +30,7 @@
         </td>
         <td class="nowrap sub">{{ a.created_at }}</td>
         <td class="actions">
+          <a class="btn btn-sm" href="/admin/authors/{{ a.id }}">Edit</a>
           {# No self-suspend control: the server refuses it anyway, and offering a
              button that always errors is worse than not offering one. #}
           {% if not a.is_self %}

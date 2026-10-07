@@ -47,6 +47,11 @@ fn environment() -> Environment<'static> {
         include_str!("templates/partials/author_list.html"),
     )
     .expect("author list template");
+    env.add_template(
+        "author_edit.html",
+        include_str!("templates/partials/author_edit.html"),
+    )
+    .expect("author edit template");
 
     env
 }
@@ -63,9 +68,10 @@ pub fn router() -> Router<AppState> {
         .route("/admin/trails/{id}/delete", post(delete_trail))
         .route("/admin/authors", get(author_list).post(create_author))
         .route("/admin/authors/{id}/toggle", post(toggle_author))
+        .merge(super::author_edit::router())
 }
 
-fn render(name: &str, ctx: minijinja::Value) -> AppResult<Html<String>> {
+pub(super) fn render(name: &str, ctx: minijinja::Value) -> AppResult<Html<String>> {
     let env = environment();
     let template = env
         .get_template(name)
@@ -79,14 +85,14 @@ fn render(name: &str, ctx: minijinja::Value) -> AppResult<Html<String>> {
 }
 
 /// Pulls the raw session cookie, which the CSRF token is derived from.
-fn session_token(jar: &CookieJar) -> String {
+pub(super) fn session_token(jar: &CookieJar) -> String {
     jar.get(SESSION_COOKIE)
         .map(|c| c.value().to_string())
         .unwrap_or_default()
 }
 
 /// Rejects a form post whose token does not match the caller's session.
-fn require_csrf(jar: &CookieJar, submitted: &str) -> AppResult<()> {
+pub(super) fn require_csrf(jar: &CookieJar, submitted: &str) -> AppResult<()> {
     if csrf::verify(&session_token(jar), submitted) {
         Ok(())
     } else {
@@ -457,6 +463,8 @@ async fn delete_trail(
 pub struct AuthorListQuery {
     /// Email of an account just created, for the confirmation message.
     created: Option<String>,
+    /// Email of an account just deleted.
+    deleted: Option<String>,
 }
 
 async fn author_list(
@@ -465,12 +473,13 @@ async fn author_list(
     jar: CookieJar,
     Query(query): Query<AuthorListQuery>,
 ) -> AppResult<Html<String>> {
-    let flash = query.created.map(|email| {
+    let deleted = query.deleted.map(|email| format!("Deleted {email}. Their artifacts and trails were kept."));
+    let flash = deleted.or(query.created.map(|email| {
         format!(
             "Created {email}. They will be asked to choose a new password \
              when they first sign in."
         )
-    });
+    }));
 
     render_author_list(&admin.0, &state, &jar, flash, None, None).await
 }
@@ -630,7 +639,7 @@ async fn create_author(
 
 /// Percent-encodes a query value. Emails are mostly safe characters, but `+`
 /// and `&` are legal in them and would otherwise corrupt the query string.
-fn url_encode(value: &str) -> String {
+pub(super) fn url_encode(value: &str) -> String {
     value
         .bytes()
         .map(|b| match b {
@@ -643,12 +652,20 @@ fn url_encode(value: &str) -> String {
 }
 
 /// Suspends or reactivates an author.
+#[derive(Debug, Deserialize)]
+pub struct ToggleForm {
+    pub csrf_token: String,
+    /// "edit" when submitted from the author's own page, to return there.
+    #[serde(default)]
+    pub back: String,
+}
+
 async fn toggle_author(
     admin: RequireAdmin,
     State(state): State<AppState>,
     jar: CookieJar,
     Path(id): Path<Uuid>,
-    Form(form): Form<CsrfForm>,
+    Form(form): Form<ToggleForm>,
 ) -> AppResult<Redirect> {
     require_csrf(&jar, &form.csrf_token)?;
 
@@ -692,10 +709,14 @@ async fn toggle_author(
     tx.commit().await?;
 
     tracing::info!(actor = %admin.0.id, target = %id, now_active, "author toggled");
+    if form.back == "edit" {
+        let saved = if now_active { "reactivated" } else { "suspended" };
+        return Ok(Redirect::to(&format!("/admin/authors/{id}?saved={saved}")));
+    }
     Ok(Redirect::to("/admin/authors"))
 }
 
-fn author_context(author: &Author) -> minijinja::Value {
+pub(super) fn author_context(author: &Author) -> minijinja::Value {
     context! {
         email => author.email.clone(),
         role => author.role.as_str(),

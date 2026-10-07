@@ -241,7 +241,8 @@ Run all of these from `~/pintrail/backend`. Compose picks up `COMPOSE_FILE` from
 | Follow the worker logs | `docker compose logs -f worker` |
 | See outgoing emails (while `MAILER=log`) | `docker compose logs api \| grep -i mail` |
 | Create an author | `docker compose run --rm api create-author <email> <viewer\|editor\|admin>` (or use the admin panel) |
-| Reset a password (also signs the author out everywhere) | `docker compose run --rm api reset-password <email>` |
+| Reset a password (also signs the author out everywhere) | In the admin panel: **Authors → Edit → Reset password**, which also makes them choose their own on next sign-in. From the command line: `docker compose run --rm api reset-password <email>` (doesn't force a change; use it for your own account or when the panel is unavailable) |
+| Change an author's email, name, or role; suspend or delete them | Admin panel: **Authors → Edit** |
 | Which commit is deployed | `git log --oneline -1` or `tail -1 backups/deploy.log` |
 | Restart one service | `docker compose restart api` |
 | Open a SQL shell | `docker compose exec postgres psql -U pintrail -d pintrail` |
