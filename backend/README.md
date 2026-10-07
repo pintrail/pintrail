@@ -172,7 +172,9 @@ Thereafter admins create and manage accounts in the browser at
 that way has a password the admin chose, so it is flagged
 `must_change_password` and the author must pick their own at
 `/studio/password` before anything else will serve them. CLI-created accounts
-are not flagged: the operator typing the password is its owner.
+are not flagged: the operator typing the password is its owner. Neither path
+needs a name: an author with no full name is sent to `/studio/profile` when
+they open the Studio, and fills it in themselves.
 
 ## Auth model (author tier)
 
@@ -650,8 +652,10 @@ An expired session redirects to the sign-in page rather than returning a bare
 JSON 401, which would leave an admin staring at `{"error":"authentication
 required"}` with no way forward.
 
-**Creating authors.** The Authors page has an *Add author* form: email, role,
-and a temporary password entered twice. Validation errors re-render the page
+**Creating authors.** The Authors page has an *Add author* form: email, an
+optional full name, role, and a temporary password entered twice. The list
+shows each author by full name with the email beneath, or by email with a
+"no name yet" note for anyone who hasn't filled in a profile. Validation errors re-render the page
 inline; the password is never echoed back or logged. The new account must
 change its password on first sign-in (see the auth model above).
 
