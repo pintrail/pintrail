@@ -201,6 +201,7 @@ async fn create(
 ) -> AppResult<(StatusCode, Json<Value>)> {
     validate_coords(body.lat, body.lng)?;
 
+    let mut tx = crate::audit::begin_as(&state.db, editor.0.id).await?;
     let artifact = sqlx::query_as::<_, Artifact>(
         r#"
         INSERT INTO artifacts (kind, name, description, lat, lng, parent_id, beacon_id)
@@ -216,9 +217,10 @@ async fn create(
     .bind(body.lng)
     .bind(body.parent_id)
     .bind(body.beacon_id.as_deref())
-    .fetch_one(&state.db)
+    .fetch_one(&mut *tx)
     .await
     .map_err(map_artifact_error)?;
+    tx.commit().await?;
 
     tracing::info!(actor = %editor.0.id, artifact_id = %artifact.id, "artifact created");
 
@@ -250,6 +252,8 @@ async fn update(
         ));
     }
 
+    let mut tx = crate::audit::begin_as(&state.db, editor.0.id).await?;
+    crate::audit::ensure_can_modify(&mut *tx, &editor.0, id).await?;
     let artifact = sqlx::query_as::<_, Artifact>(
         r#"
         UPDATE artifacts SET
@@ -276,10 +280,12 @@ async fn update(
     .bind(body.parent_id.flatten())
     .bind(body.beacon_id.is_some())
     .bind(body.beacon_id.clone().flatten())
-    .fetch_optional(&state.db)
+    .fetch_optional(&mut *tx)
     .await
     .map_err(map_artifact_error)?
     .ok_or(AppError::NotFound("artifact"))?;
+    crate::audit::reopen_if_approved(&mut tx, &editor.0, id).await?;
+    tx.commit().await?;
 
     tracing::info!(actor = %editor.0.id, artifact_id = %artifact.id, "artifact updated");
 
@@ -297,7 +303,7 @@ async fn remove(
     State(state): State<AppState>,
     Path(id): Path<Uuid>,
 ) -> AppResult<Json<Value>> {
-    let mut tx = state.db.begin().await?;
+    let mut tx = crate::audit::begin_as(&state.db, editor.0.id).await?;
 
     let exists: Option<Uuid> =
         sqlx::query_scalar("SELECT id FROM artifacts WHERE id = $1 AND deleted_at IS NULL")
@@ -307,6 +313,9 @@ async fn remove(
 
     if exists.is_none() {
         return Err(AppError::NotFound("artifact"));
+    }
+    if !crate::audit::can_delete(&mut *tx, &editor.0, id).await? {
+        return Err(AppError::Forbidden);
     }
 
     let deleted = sqlx::query(

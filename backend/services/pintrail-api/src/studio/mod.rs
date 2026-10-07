@@ -8,6 +8,7 @@
 
 pub mod assets;
 pub mod preview;
+pub mod review;
 pub mod routes;
 
 pub use routes::{redirect_unauthenticated, router};

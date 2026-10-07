@@ -141,15 +141,8 @@ async fn upload_intent(
     let media = classify(&body.mime_type)?;
     let filename = sanitize_filename(&body.filename);
 
-    let artifact_exists: Option<Uuid> =
-        sqlx::query_scalar("SELECT id FROM artifacts WHERE id = $1 AND deleted_at IS NULL")
-            .bind(artifact_id)
-            .fetch_optional(&state.db)
-            .await?;
-
-    if artifact_exists.is_none() {
-        return Err(AppError::NotFound("artifact"));
-    }
+    // Also checks the artifact exists. Only its owner (or an admin) adds media.
+    crate::audit::ensure_can_modify(&state.db, &editor.0, artifact_id).await?;
 
     let attachment_id = Uuid::new_v4();
 
@@ -237,6 +230,8 @@ async fn complete_upload(
     .await?
     .ok_or(AppError::NotFound("attachment"))?;
 
+    crate::audit::ensure_can_modify(&state.db, &editor.0, row.artifact_id).await?;
+
     // Idempotent: a client retrying after a dropped response should not
     // re-queue work that is already underway or finished.
     if row.status != ProcessingStatus::PendingUpload {
@@ -274,11 +269,15 @@ async fn complete_upload(
     }
 
     // Only now does the row become visible to the worker's SKIP LOCKED poll.
+    // Attributed, so the artifact's history records who added the photo.
+    let mut tx = crate::audit::begin_as(&state.db, editor.0.id).await?;
     sqlx::query("UPDATE attachments SET status = 'queued', size_bytes = $2 WHERE id = $1")
         .bind(id)
         .bind(size)
-        .execute(&state.db)
+        .execute(&mut *tx)
         .await?;
+    crate::audit::touch(&mut tx, &editor.0, row.artifact_id).await?;
+    tx.commit().await?;
 
     tracing::info!(actor = %editor.0.id, attachment_id = %id, size, "upload completed, queued");
 
@@ -306,7 +305,7 @@ async fn detail(
 }
 
 async fn update(
-    _editor: RequireEditor,
+    editor: RequireEditor,
     State(state): State<AppState>,
     Path(id): Path<Uuid>,
     Json(body): Json<UpdateAttachmentRequest>,
@@ -321,6 +320,13 @@ async fn update(
         return Err(AppError::BadRequest("position must not be negative".into()));
     }
 
+    let artifact_id: Uuid = sqlx::query_scalar("SELECT artifact_id FROM attachments WHERE id = $1")
+        .bind(id)
+        .fetch_optional(&state.db)
+        .await?
+        .ok_or(AppError::NotFound("attachment"))?;
+    let mut tx = crate::audit::begin_as(&state.db, editor.0.id).await?;
+    crate::audit::ensure_can_modify(&mut *tx, &editor.0, artifact_id).await?;
     let row = sqlx::query_as::<_, Attachment>(&format!(
         r#"
         UPDATE attachments SET
@@ -334,9 +340,11 @@ async fn update(
     .bind(body.caption.is_some())
     .bind(body.caption.clone().flatten())
     .bind(body.position)
-    .fetch_optional(&state.db)
+    .fetch_optional(&mut *tx)
     .await?
     .ok_or(AppError::NotFound("attachment"))?;
+    crate::audit::touch(&mut tx, &editor.0, artifact_id).await?;
+    tx.commit().await?;
 
     Ok(Json(json!({ "attachment": to_view(&state, row).await? })))
 }
@@ -351,13 +359,22 @@ async fn remove(
     State(state): State<AppState>,
     Path(id): Path<Uuid>,
 ) -> AppResult<Json<Value>> {
+    let artifact_id: Uuid = sqlx::query_scalar("SELECT artifact_id FROM attachments WHERE id = $1")
+        .bind(id)
+        .fetch_optional(&state.db)
+        .await?
+        .ok_or(AppError::NotFound("attachment"))?;
+    let mut tx = crate::audit::begin_as(&state.db, editor.0.id).await?;
+    crate::audit::ensure_can_modify(&mut *tx, &editor.0, artifact_id).await?;
     let row = sqlx::query_as::<_, Attachment>(&format!(
         "DELETE FROM attachments WHERE id = $1 RETURNING {SELECT_COLUMNS}"
     ))
     .bind(id)
-    .fetch_optional(&state.db)
+    .fetch_optional(&mut *tx)
     .await?
     .ok_or(AppError::NotFound("attachment"))?;
+    crate::audit::touch(&mut tx, &editor.0, artifact_id).await?;
+    tx.commit().await?;
 
     for key in [Some(row.original_storage_key), row.processed_storage_key]
         .into_iter()

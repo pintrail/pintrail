@@ -541,8 +541,28 @@ created by an admin. Any author can change their password at `/studio/password`.
   Preview images and favicons are loaded by the browser from the linked site.
 - **The map** at `/studio/map` shows every artifact: one marker per artifact
   with its own location, with the artifacts that inherit it listed in the
-  marker's popup, plus kind and tag filters. Artifacts with no location
+  marker's popup, plus kind, status, and tag filters (the ring colour is the
+  review status). Artifacts with no location
   anywhere up their parent chain are listed below the map.
+- **Authorship and review.** Each artifact records who created it and who
+  last edited it. Editors change only artifacts they created (in the Studio
+  and the JSON API); anyone with editor rights may add an artifact *inside*
+  someone else's; admins change anything and can reassign the owner on the
+  edit form. Status runs draft → ready for review (the owner submits or
+  withdraws) → approved (an admin approves, or sends it back to draft with a
+  required note). An owner who edits an approved artifact sends it back to
+  "ready". Admins get `/studio/review` (queue, with a count badge in the
+  sidebar) and `/studio/deleted` (restore an artifact and everything deleted
+  with it). An editor may delete only a subtree that is entirely theirs and
+  not approved. Status shows in the tree, on the artifact, and on the map.
+- **Change history.** Every change is written to `artifact_history` by
+  database triggers (migration `20261007000001`): creation, field edits with
+  before and after values, status changes and review notes, owner changes,
+  tags, links, media, delete and restore. Writes learn who is acting through
+  a transaction-local `pintrail.actor_id` set by `audit::begin_as`; a write
+  without it (seed scripts, psql, the worker) is recorded as "system". The
+  table has no foreign key, so a record outlives even a hard delete. The
+  artifact page shows it under **History**.
 - **Media upload** runs from the browser against the *existing* cookie-authed
   attachment endpoints: `upload-intent` → direct PUT to storage → `complete`,
   then the gallery polls until the worker's WebP thumbnail appears. No

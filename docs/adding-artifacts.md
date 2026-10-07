@@ -144,6 +144,20 @@ The Studio works in your phone's browser, so you can add artifacts while standin
 
 If your phone says location access is blocked, turn it back on for the site in your browser's settings (on an iPhone: Settings → Privacy & Security → Location Services → Safari Websites), or place the pin by tapping the map.
 
+## 10. Submit your artifact for review
+
+Every artifact starts as a **Draft**. When it's finished, with a good description, its sources, and a photo, open it and click **Submit for review** in the Review card. Its status changes to **Ready for review**, and your instructor sees it in their review list.
+
+- Changed your mind? Click **Withdraw** to take it back and keep working.
+- If it comes back **sent back for changes**, the note at the top of the Review card says what to fix. Fix it, then click **Submit for review** again.
+- Once it's **Approved**, it's done. If you edit it after that, it goes back to **Ready for review** so the change gets checked too.
+
+The coloured dot next to each artifact in the list shows its status: grey for draft, orange for ready for review, green for approved. The map's **Status** filter shows the same thing.
+
+**Whose artifacts you can change.** You can edit and delete only the artifacts you added. You can still add an artifact *inside* someone else's, like a room in a building a classmate created. Tick **Only mine** at the top of the artifact list to see just yours.
+
+**History.** At the bottom of every artifact, **History** lists every change: who made it, when, and what it was before and after. Nothing is lost by editing.
+
 ## Writing a good description
 
 Someone will read this standing in front of the artifact, on their phone. Write for them. A good description answers:
@@ -164,7 +178,9 @@ The example artifacts follow this pattern, including their tags and source links
 
 ## Deleting
 
-**Delete** asks you to confirm, and **it also deletes everything nested inside the artifact**, along with its photos. If you want to keep a nested artifact, first edit it to move it to a different parent.
+**Delete** asks you to confirm, and **it also deletes everything nested inside the artifact**. If you want to keep a nested artifact, first edit it to move it to a different parent.
+
+You can delete only artifacts you added, and only if nothing inside them belongs to someone else and none of them has been approved. If you delete something by mistake, ask your instructor: a deleted artifact can be restored, with everything that was inside it and its photos.
 
 ## Coming soon
 

@@ -3,11 +3,11 @@
    the sidebar. #}
 <div class="empty">
   <p style="font-size:1.1rem;margin-bottom:.5rem">Select an artifact to view it.</p>
-  <p class="wide-only">{% if can_edit %}Or create one with <strong>+ New</strong> in the sidebar.{% else %}You have read-only access.{% endif %}</p>
+  <p class="wide-only">{% if can_create %}Or create one with <strong>+ New</strong> in the sidebar.{% else %}You have read-only access.{% endif %}</p>
   <div class="phone-only welcome-actions">
     <button type="button" class="btn" data-nav-toggle>Browse artifacts</button>
     <button type="button" class="btn" hx-get="/studio/map" hx-target="#detail" hx-push-url="true">Map</button>
-    {% if can_edit %}
+    {% if can_create %}
     <button type="button" class="btn btn-primary" hx-get="/studio/artifacts/new" hx-target="#detail">+ New artifact</button>
     {% endif %}
   </div>

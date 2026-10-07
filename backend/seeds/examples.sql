@@ -133,4 +133,9 @@ INSERT INTO artifact_links (id, artifact_id, url, note, position,
  'Massachusetts ACES Demonstration Project In December 2017, UMass Amherst was awarded a $1.1 million state grant from the Advancing Commonwealth Energy Storage (ACES) program to work with an energy storage company to construct a large battery at the Central Heating Plant on campus. UMass Amherst wil…', 'https://www.umass.edu/static/branding/images/og_default_image.png', 'Center for Agriculture, Food, and the Environment at UMass Amherst', now())
 ON CONFLICT (id) DO NOTHING;
 
+-- Review status -------------------------------------------------------------
+-- The examples are reference material, so they load already approved.
+UPDATE artifacts SET status = 'approved', reviewed_at = COALESCE(reviewed_at, now())
+WHERE id::text LIKE '5eed0000-0000-4000-8000-%' AND status <> 'approved';
+
 COMMIT;

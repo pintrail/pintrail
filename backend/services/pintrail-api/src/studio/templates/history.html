@@ -1,0 +1,30 @@
+{# The change history, newest first. Loaded when the History section opens. #}
+{% if entries %}
+<ol class="history">
+  {% for e in entries %}
+  <li>
+    <div class="h-head">
+      <strong>{{ e.title }}</strong>
+      <span class="hint">{% if e.system %}system{% else %}{{ e.who }}{% endif %} ·
+        <time data-local datetime="{{ e.at }}">{{ e.at[:16] | replace("T", " ") }}</time></span>
+    </div>
+    {% if e.lines %}
+    <dl class="h-lines">
+      {% for l in e.lines %}
+        {% if l.text %}
+        <dd class="full">{{ l.text }}</dd>
+        {% elif l.value is defined %}
+        <dt>{{ l.label }}</dt><dd class="{{ 'long' if l.long }}">{{ l.value }}</dd>
+        {% else %}
+        <dt>{{ l.label }}</dt>
+        <dd class="{{ 'long' if l.long }}"><del>{{ l.from }}</del> <span aria-hidden="true">→</span><span class="sr-only">changed to</span> <ins>{{ l.to }}</ins></dd>
+        {% endif %}
+      {% endfor %}
+    </dl>
+    {% endif %}
+  </li>
+  {% endfor %}
+</ol>
+{% else %}
+<p class="hint">No changes recorded yet.</p>
+{% endif %}

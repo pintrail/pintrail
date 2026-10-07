@@ -1,0 +1,27 @@
+{# Admin: recently deleted artifacts, with Restore. #}
+<div class="card">
+  <h1>Recently deleted</h1>
+  <p class="subtitle" style="margin:0">Restoring brings back the artifact and everything that was deleted with it. Its history is kept either way.</p>
+</div>
+<div class="card">
+  {% if items %}
+  <ul class="tree queue">
+    {% for d in items %}
+    <li class="row deleted-row">
+      <div>
+        <span class="kind-chip">{{ d.kind }}</span> <strong>{{ d.name or "(untitled)" }}</strong>
+        <div class="hint q-meta">
+          deleted {% if d.deleted_by %}by {{ d.deleted_by }} {% endif %}<time data-local datetime="{{ d.deleted_at }}">{{ d.deleted_at[:10] }}</time>
+          {% if d.parent_name %} · was inside {{ d.parent_name }}{% endif %}
+          {% if d.nested %} · {{ d.nested }} nested artifact{{ "s" if d.nested != 1 }} with it{% endif %}
+        </div>
+      </div>
+      <button class="btn-sm push" hx-post="/studio/artifacts/{{ d.id }}/restore"
+              hx-vals='{"csrf_token": "{{ csrf_token }}"}' hx-target="#detail" hx-push-url="/studio/artifacts/{{ d.id }}">Restore</button>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="hint" style="margin:0">Nothing has been deleted.</p>
+  {% endif %}
+</div>
