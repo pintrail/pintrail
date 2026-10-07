@@ -60,22 +60,27 @@ The examples are approved and belong to no student, so you can read them but not
 
 ## 4. Add an artifact
 
-Click **+ New** at the top of the sidebar. Then fill in the form. Each field has a short note under it explaining what goes there.
+Adding an artifact takes two steps. First you create it with just its name and where it is. Then you fill in everything else on its page.
+
+**Step 1: create it.** Click **+ New** at the top of the sidebar. The form asks for three things:
 
 | Field | What to enter |
 |---|---|
 | **Name** | What people call it, for example *Old Chapel* or *Lot 49 solar canopy*. |
-| **Kind** | One of `building`, `room`, `artwork`, `installation`, `rooftop`, or `other`. Use `installation` for equipment and site features (solar arrays, batteries, rain gardens, bike racks). |
 | **Inside (parent)** | Leave as **none (top level)** for a building or anything standing on its own. To put it inside another artifact, choose that artifact (see step 5). |
-| **Description** | The heart of the artifact. See [Writing a good description](#writing-a-good-description) below. |
-| **Tags** | Themes someone might look for, such as *solar*, *stormwater*, or *energy storage*. Type a tag and press **Enter**; click **×** on a tag to remove it. As you type, existing tags are suggested: pick one when it fits, so the same theme isn't spelled two ways. |
 | **Location** | **Required for a top-level artifact.** Click the map where the artifact is, and a pin appears. Zoom in first (the **+** button, or scroll) so you can place it precisely. The latitude and longitude boxes fill in for you. You can also type or paste coordinates into the boxes and the pin moves to match. A pair copied from Google Maps, like `42.3891, -72.5281`, can be pasted straight into the latitude box. |
 
-![Filling in a new artifact, with the pin placed on the map](img/add-artifact/06-new-artifact-form.png)
+**Step 2: fill it in.** Click **Create**. The artifact opens, appears in the sidebar, and shows a checklist of what to add next. Click **Edit** to add:
 
-**Check the pin before you save.** Zoom in and make sure it sits on the right building or spot, not on the one next door. The pin is what the app uses to tell someone they're nearby.
+| Field | What to enter |
+|---|---|
+| **Kind** | One of `building`, `room`, `artwork`, `installation`, `rooftop`, or `other`. Use `installation` for equipment and site features (solar arrays, batteries, rain gardens, bike racks). A new artifact starts as `other` until you choose. |
+| **Description** | The heart of the artifact. See [Writing a good description](#writing-a-good-description) below. |
+| **Tags** | Themes someone might look for, such as *solar*, *stormwater*, or *energy storage*. Type a tag and press **Enter**; click **×** on a tag to remove it. As you type, existing tags are suggested: pick one when it fits, so the same theme isn't spelled two ways. |
 
-Click **Create**. The artifact opens, and it now appears in the sidebar.
+Then add your sources under **Links** (step 6) and a photo under **Media** (step 7), right on the artifact's page. The checklist ticks each one off, and goes away once everything is there.
+
+**Check the pin before you click Create.** Zoom in and make sure it sits on the right building or spot, not on the one next door. The pin is what the app uses to tell someone they're nearby.
 
 If something is missing, the form stays open with a red note at the top saying what to fix, and everything you typed is kept. The most common one: a top-level artifact with no location. Place it on the map, or choose the artifact it sits inside.
 
