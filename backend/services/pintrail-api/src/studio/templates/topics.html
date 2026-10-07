@@ -1,0 +1,36 @@
+{% from "studio_macros.html" import avatar %}
+{# Every topic. #}
+<div class="card">
+  <div class="row">
+    <div>
+      <h1>Topics</h1>
+      <p class="subtitle" style="margin:0">A topic is one shared page that many artifacts link to, like <em>LEED certification</em> or <em>Valley Bike Share</em>. Write it once; every linked artifact shows it, and the topic's page puts all of them on one map.</p>
+    </div>
+    {% if can_create %}
+    <div class="push"><button class="btn-primary" hx-get="/studio/topics/new" hx-target="#detail" hx-push-url="true">+ New topic</button></div>
+    {% endif %}
+  </div>
+</div>
+
+<div class="card">
+  {% if topics %}
+  <ul class="trail-list">
+    {% for t in topics %}
+    <li>
+      <a class="trail-item" hx-get="/studio/artifacts/{{ t.id }}" hx-target="#detail" hx-push-url="true">
+        <span class="trail-title">{{ t.name or "(untitled)" }}</span>
+        {% if t.status != "approved" %}<span class="status-chip status-{{ t.status }}">{{ status_labels[t.status] }}</span>{% endif %}
+        <span class="hint">{{ t.linked }} linked artifact{{ "s" if t.linked != 1 }}</span>
+      </a>
+      <div class="hint q-meta">
+        {% if t.owner %}<span class="h-who">{{ avatar(t.owner) }} {{ t.owner.name }}</span> · {% endif %}
+        updated <time data-local datetime="{{ t.updated_at }}">{{ t.updated_at[:10] }}</time>
+      </div>
+      {% if t.description %}<p class="trail-desc">{{ t.description }}</p>{% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="hint" style="margin:0">No topics yet.{% if can_create %} Use <strong>+ New topic</strong> to start one.{% endif %}</p>
+  {% endif %}
+</div>

@@ -6,7 +6,7 @@ use serde::Deserialize;
 use serde_json::{json, Value};
 use uuid::Uuid;
 
-use super::model::{Artifact, ArtifactDetail, CreateArtifact, SyncEntry, UpdateArtifact};
+use super::model::{Artifact, ArtifactDetail, CreateArtifact, SyncEntry, TopicLink, UpdateArtifact};
 use crate::authors::extractors::RequireEditor;
 use crate::error::{AppError, AppResult};
 use crate::identity::Identity;
@@ -101,7 +101,12 @@ async fn sync(
         SELECT a.id, a.kind, a.name, a.parent_id,
                r.effective_lat AS lat,
                r.effective_lng AS lng,
-               a.beacon_id, a.sync_version,
+               a.beacon_id, a.is_topic,
+               ARRAY(SELECT l.topic_id FROM artifact_topics l JOIN artifacts t ON t.id = l.topic_id
+                     WHERE l.artifact_id = a.id AND t.deleted_at IS NULL
+                       AND (NOT $3 OR (t.status = 'approved'))
+                     ORDER BY lower(t.name), t.id) AS topic_ids,
+               a.sync_version,
                (a.deleted_at IS NOT NULL OR ($3 AND NOT r.published)) AS deleted
         FROM artifacts a
         JOIN resolved r ON r.id = a.id
@@ -138,8 +143,13 @@ async fn sync(
 pub struct ListParams {
     pub parent_id: Option<Uuid>,
     /// List direct children of nothing, i.e. top-level artifacts only.
+    /// Topics have no parent but aren't places, so they're left out.
     #[serde(default)]
     pub roots_only: bool,
+    /// `true` lists only topics, `false` only places; absent lists both.
+    pub topics: Option<bool>,
+    /// Only the artifacts linked to this topic.
+    pub topic_id: Option<Uuid>,
     #[serde(default = "default_limit")]
     pub limit: i64,
     #[serde(default)]
@@ -165,13 +175,16 @@ async fn list(
         SELECT a.id, a.kind, a.name, a.description,
                a.lat, a.lng,
                r.effective_lat, r.effective_lng, r.location_source_id,
-               a.parent_id, a.beacon_id, a.created_at, a.updated_at
+               a.parent_id, a.beacon_id, a.is_topic, a.created_at, a.updated_at
         FROM artifacts a
         JOIN resolved r ON r.id = a.id
         WHERE a.deleted_at IS NULL
           AND ($1::uuid IS NULL OR a.parent_id = $1)
-          AND (NOT $2 OR a.parent_id IS NULL)
+          AND (NOT $2 OR (a.parent_id IS NULL AND NOT a.is_topic))
           AND (NOT $5 OR r.published)
+          AND ($6::bool IS NULL OR a.is_topic = $6)
+          AND ($7::uuid IS NULL OR EXISTS (
+                SELECT 1 FROM artifact_topics l WHERE l.artifact_id = a.id AND l.topic_id = $7))
         ORDER BY a.name, a.id
         LIMIT $3 OFFSET $4
         "#
@@ -183,6 +196,8 @@ async fn list(
         .bind(limit)
         .bind(offset)
         .bind(!identity.is_author())
+        .bind(params.topics)
+        .bind(params.topic_id)
         .fetch_all(&state.db)
         .await?;
 
@@ -200,7 +215,7 @@ async fn detail(
         SELECT a.id, a.kind, a.name, a.description,
                a.lat, a.lng,
                r.effective_lat, r.effective_lng, r.location_source_id,
-               a.parent_id, a.beacon_id, a.created_at, a.updated_at
+               a.parent_id, a.beacon_id, a.is_topic, a.created_at, a.updated_at
         FROM artifacts a
         JOIN resolved r ON r.id = a.id
         WHERE a.id = $1 AND a.deleted_at IS NULL
@@ -221,7 +236,26 @@ async fn detail(
     let attachments =
         crate::attachments::list_for_artifact(&state, id, identity.is_author()).await?;
 
-    Ok(Json(json!({ "artifact": artifact, "attachments": attachments })))
+    // The other ends of its topic links: an artifact's topics, or a topic's
+    // artifacts. A reader sees only the published ones.
+    let reader = !identity.is_author();
+    let sql = if artifact.is_topic {
+        "SELECT a.id, a.name, l.note FROM artifact_topics l JOIN artifacts a ON a.id = l.artifact_id \
+         WHERE l.topic_id = $1 AND a.deleted_at IS NULL AND (NOT $2 OR artifact_is_published(a.id)) \
+         ORDER BY lower(a.name), a.id"
+    } else {
+        "SELECT t.id, t.name, l.note FROM artifact_topics l JOIN artifacts t ON t.id = l.topic_id \
+         WHERE l.artifact_id = $1 AND t.deleted_at IS NULL AND (NOT $2 OR artifact_is_published(t.id)) \
+         ORDER BY lower(t.name), t.id"
+    };
+    let links = sqlx::query_as::<_, TopicLink>(sql)
+        .bind(id)
+        .bind(reader)
+        .fetch_all(&state.db)
+        .await?;
+    let key = if artifact.is_topic { "linked_artifacts" } else { "topics" };
+
+    Ok(Json(json!({ "artifact": artifact, "attachments": attachments, key: links })))
 }
 
 async fn create(
@@ -234,8 +268,8 @@ async fn create(
     let mut tx = crate::audit::begin_as(&state.db, editor.0.id).await?;
     let artifact = sqlx::query_as::<_, Artifact>(
         r#"
-        INSERT INTO artifacts (kind, name, description, lat, lng, parent_id, beacon_id)
-        VALUES ($1, $2, $3, $4, $5, $6, $7)
+        INSERT INTO artifacts (kind, name, description, lat, lng, parent_id, beacon_id, is_topic)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
         RETURNING id, kind, name, description, lat, lng, parent_id, beacon_id,
                   sync_version, deleted_at, created_at, updated_at
         "#,
@@ -247,6 +281,7 @@ async fn create(
     .bind(body.lng)
     .bind(body.parent_id)
     .bind(body.beacon_id.as_deref())
+    .bind(body.is_topic)
     .fetch_one(&mut *tx)
     .await
     .map_err(map_artifact_error)?;

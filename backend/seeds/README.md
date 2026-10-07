@@ -6,7 +6,7 @@ than once.
 
 | File | What it does |
 |---|---|
-| `examples.sql` | Loads two real campus buildings, each with child artifacts, tags, and source links, as worked examples for new authors. Every name starts with `Example:`. They load **approved** and with no owner, so only an admin can change or delete them. |
+| `examples.sql` | Loads two real campus buildings, each with child artifacts, tags, and source links, plus one topic (*Example: LEED certification*, linked from the Integrative Learning Center), as worked examples for new authors. Every name starts with `Example:`. They load **approved** and with no owner, so only an admin can change or delete them. |
 | `remove-examples.sql` | Deletes them again, children, tags, and links included. Their entries in `artifact_history` stay, by design. |
 
 The examples show what a good artifact looks like: what it is, where it is,

@@ -52,8 +52,20 @@ pub struct ArtifactDetail {
     pub location_source_id: Option<Uuid>,
     pub parent_id: Option<Uuid>,
     pub beacon_id: Option<String>,
+    /// A shared page many artifacts link to (LEED certification, a bike
+    /// share system), not a place. Never has coordinates or a parent.
+    pub is_topic: bool,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+}
+
+/// One end of an artifact-topic link, as listed on the other end's detail.
+#[derive(Debug, Serialize, sqlx::FromRow)]
+pub struct TopicLink {
+    pub id: Uuid,
+    pub name: String,
+    /// How the topic applies to this artifact, e.g. "Gold, 2019".
+    pub note: String,
 }
 
 /// One entry in the `/artifacts/sync` manifest.
@@ -70,6 +82,10 @@ pub struct SyncEntry {
     pub lat: Option<f64>,
     pub lng: Option<f64>,
     pub beacon_id: Option<String>,
+    pub is_topic: bool,
+    /// The topics this artifact links to (empty for a topic). The topic's
+    /// own entry carries its name; its description comes with its detail.
+    pub topic_ids: Vec<Uuid>,
     pub sync_version: i64,
     /// A tombstone. The client evicts this id from its local cache; without
     /// it, a deleted artifact would keep geofencing forever.
@@ -78,7 +94,12 @@ pub struct SyncEntry {
 
 #[derive(Debug, Deserialize)]
 pub struct CreateArtifact {
+    #[serde(default = "default_kind")]
     pub kind: ArtifactKind,
+    /// Create a topic rather than a place. A topic takes no coordinates,
+    /// parent, or beacon.
+    #[serde(default)]
+    pub is_topic: bool,
     #[serde(default)]
     pub name: String,
     #[serde(default)]
@@ -108,4 +129,8 @@ pub struct UpdateArtifact {
     pub parent_id: Option<Option<Uuid>>,
     #[serde(default, deserialize_with = "crate::serde_util::present")]
     pub beacon_id: Option<Option<String>>,
+}
+
+fn default_kind() -> ArtifactKind {
+    ArtifactKind::Other
 }

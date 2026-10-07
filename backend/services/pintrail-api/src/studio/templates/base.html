@@ -266,6 +266,8 @@
     .h-lines ins { color: var(--ok); text-decoration: none; }
     .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
     .admin-links { display: flex; gap: .4rem; margin-bottom: .6rem; }
+    .view-links { display: flex; gap: .4rem; margin-bottom: .6rem; }
+    .view-links .btn-sm { flex: 1; }
     .admin-links .count { background: #d97706; color: #fff; border-radius: 1rem; padding: 0 .4rem; font-size: .72rem; margin-left: .2rem; }
     .mine-toggle { display: flex; align-items: center; gap: .4rem; font-size: .85rem; color: var(--muted); margin: 0 0 .5rem .2rem; }
     .mine-toggle input { width: auto; }
@@ -296,6 +298,12 @@
     .vis-choice input { width: auto; margin-top: .3rem; }
     .vis-choice label.disabled { opacity: .55; cursor: not-allowed; }
     .trail-map { height: 300px; margin-bottom: 1rem; }
+    .topic-chip { background: color-mix(in srgb, #8b5cf6 14%, transparent); color: #8b5cf6; border-color: color-mix(in srgb, #8b5cf6 40%, var(--line)); }
+    .topic-pin { background: #7c3aed; }
+    .topic-shared { margin: .35rem .2rem 0; white-space: pre-line; color: var(--muted); font-size: .92rem; border-left: 3px solid color-mix(in srgb, #7c3aed 40%, var(--line)); padding-left: .6rem; }
+    .topic-add-row { display: grid; grid-template-columns: 1.3fr 1fr auto; gap: .5rem; align-items: end; }
+    .topic-add-row .field { margin: 0; }
+    @media (max-width: 640px) { .topic-add-row { grid-template-columns: 1fr; } }
     .stop-pin { background: #2563eb; color: #fff; border: 2px solid #fff; border-radius: 50%; box-shadow: 0 1px 4px rgba(0,0,0,.4); display: grid; place-items: center; font: 600 .78rem/1 system-ui, sans-serif; }
     .stops { counter-reset: none; padding-left: 0; }
     .stop-num { width: 1.6rem; height: 1.6rem; border-radius: 50%; background: #2563eb; color: #fff; display: inline-grid; place-items: center; font-weight: 650; font-size: .8rem; flex-shrink: 0; margin-top: .1rem; }
@@ -353,12 +361,15 @@
         </button>
         <h2>Artifacts</h2>
         <span class="push"></span>
-        <button class="btn-sm" hx-get="/studio/map" hx-target="#detail" hx-push-url="true" title="Every artifact on one map">Map</button>
-        <button class="btn-sm" hx-get="/studio/trails" hx-target="#detail" hx-push-url="true" title="Walks through artifacts, in order" style="margin-left:.4rem">Trails</button>
         {% if can_create %}
-        <button class="btn-sm btn-primary" hx-get="/studio/artifacts/new" hx-target="#detail" style="margin-left:.4rem">+ New</button>
+        <button class="btn-sm btn-primary" hx-get="/studio/artifacts/new" hx-target="#detail">+ New</button>
         {% endif %}
       </div>
+      <nav class="view-links" aria-label="Views">
+        <button class="btn-sm" hx-get="/studio/map" hx-target="#detail" hx-push-url="true" title="Every artifact on one map">Map</button>
+        <button class="btn-sm" hx-get="/studio/trails" hx-target="#detail" hx-push-url="true" title="Walks through artifacts, in order">Trails</button>
+        <button class="btn-sm" hx-get="/studio/topics" hx-target="#detail" hx-push-url="true" title="Shared pages many artifacts link to">Topics</button>
+      </nav>
       {% if is_admin %}
       <div class="admin-links">
         <button class="btn-sm" hx-get="/studio/review" hx-target="#detail" hx-push-url="true">Review

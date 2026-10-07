@@ -1,0 +1,73 @@
+{# Topics card on an artifact's page: the shared pages this artifact links to,
+   each with its description, which explorers see here too. Re-rendered whole
+   after every change. #}
+<h3>Topics</h3>
+{% if error %}<p class="flash err" role="alert">{{ error }}</p>{% endif %}
+
+{% if linked %}
+<ul class="links">
+  {% for t in linked %}
+  <li class="link topic-link">
+    <div class="link-view">
+      <div class="link-body">
+        <div class="stop-head">
+          <a class="stop-name" hx-get="/studio/artifacts/{{ t.id }}" hx-target="#detail" hx-push-url="true">{{ t.name or "(untitled)" }}</a>
+          {% if t.status != "approved" %}<span class="status-chip status-{{ t.status }}">{{ status_labels[t.status] }}</span>{% endif %}
+        </div>
+        {% if t.note %}<p class="link-note stop-note">{{ t.note }}</p>{% endif %}
+        {% if t.description %}<p class="topic-shared">{{ t.description }}</p>
+        {% else %}<p class="hint" style="margin:.2rem 0 0">This topic has no description yet.</p>{% endif %}
+      </div>
+      {% if can_edit %}
+      <div class="link-actions">
+        <button type="button" class="icon-btn" data-edit-link title="Edit note" aria-label="Edit the note for {{ t.name }}">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+        </button>
+        <button type="button" class="icon-btn danger" title="Unlink" aria-label="Unlink {{ t.name }}"
+                hx-post="/studio/artifacts/{{ artifact_id }}/topics/{{ t.id }}/delete" hx-vals='{"csrf_token": "{{ csrf_token }}"}'
+                hx-target="#topics" hx-swap="innerHTML" hx-confirm="Unlink “{{ t.name }}” from this artifact? The topic itself is not affected.">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+      {% endif %}
+    </div>
+    {% if can_edit %}
+    <form class="link-edit" hx-post="/studio/artifacts/{{ artifact_id }}/topics/{{ t.id }}" hx-target="#topics" hx-swap="innerHTML">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <label class="field"><span class="lbl">How {{ t.name }} applies here <span class="hint">(optional)</span></span>
+        <input type="text" name="note" maxlength="200" value="{{ t.note }}" placeholder="e.g. Gold, 2019"></label>
+      <div class="row">
+        <button class="btn-primary btn-sm" type="submit">Save</button>
+        <button class="btn-sm" type="button" data-cancel-edit>Cancel</button>
+      </div>
+    </form>
+    {% endif %}
+  </li>
+  {% endfor %}
+</ul>
+{% elif not can_edit %}
+<p class="hint" style="margin:0">Not linked to any topic.</p>
+{% endif %}
+
+{% if can_edit %}
+{% if choices %}
+<form class="topic-add" hx-post="/studio/artifacts/{{ artifact_id }}/topics" hx-target="#topics" hx-swap="innerHTML">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+  <div class="topic-add-row">
+    <label class="field"><span class="lbl">Link to a topic</span>
+      <select name="other_id" required>
+        <option value="">Choose a topic…</option>
+        {% for c in choices %}<option value="{{ c.id }}">{{ c.name }}</option>{% endfor %}
+      </select></label>
+    <label class="field"><span class="lbl">Note <span class="hint">(optional)</span></span>
+      <input type="text" name="note" maxlength="200" placeholder="e.g. Gold, 2019"></label>
+    <button class="btn-primary" type="submit">Link</button>
+  </div>
+</form>
+{% endif %}
+<p class="help" style="margin:.5rem 0 0">
+  {% if not choices and not linked %}No topics yet. {% endif %}
+  A topic is a page shared by many artifacts, like <em>LEED certification</em>: its description shows up here, so you only write it once.
+  <a hx-get="/studio/topics/new" hx-target="#detail" hx-push-url="true" style="cursor:pointer">Start a new topic</a>.
+</p>
+{% endif %}

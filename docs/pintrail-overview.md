@@ -11,6 +11,7 @@ Pintrail is a location-triggered discovery platform. It connects a phone in some
 It is built around two ideas:
 
 - **Artifacts** are the things worth knowing about. An artifact can be a building, a room inside a building, a painting on a wall, a rooftop solar array, a rain garden, or a composting station. Each artifact has a name, a description, a kind (building, room, artwork, installation, rooftop, other), a location, and a set of attachments (photos, PDFs, and later audio and video) that explain what it is and why it matters.
+- **Topics** are shared pages that many artifacts link to: "LEED certification," "Valley Bike Share." A topic explains something true of all of them once, and each linked artifact shows it. A topic has no location of its own, so it never appears on the map as a pin, but its page can show every linked artifact on the map at once.
 - **Trails** are ordered sequences of artifacts with their own title and theme, meant to be walked in order. "Campus Sustainability Walk," "Museum Highlights," and "Admitted Students Walk" are all trails: the same underlying thing, pointed at different artifacts, with different framing. The same artifact can appear on several trails.
 
 Artifacts nest. A building contains rooms and features, and a room contains objects:
@@ -109,8 +110,9 @@ Pintrail has three kinds of users, kept as separate tiers because they are diffe
 2. The author signs in on the web to the **Studio** at `pintrail.cs.umass.edu/studio`, a browser-based authoring tool with a map, built into the backend. The first time they sign in, they must choose their own password before they can do anything else, so a password the admin knows never stays in use. They can change it again at any time. They then fill in a profile (full name, display name, pronouns, affiliation, a short bio, and a photo), and the Studio names them by it everywhere.
 3. They create artifacts: pick the kind, write the name and description, and place it on the map. For an indoor child artifact (a room or an object) they choose the parent and leave the location blank, and it inherits the building's position.
 4. They upload attachments (see the diagram below). Files go straight to storage, and the background worker converts them into phone-friendly formats (for example, iPhone HEIC photos become resized WebP images and PDFs get a thumbnail of page one). The author sees each file's status move from queued to processed.
-5. They reorder and caption attachments, preview the artifact, and build trails in the Studio: a title and description, stops chosen from the artifacts in walking order with a note at each, and a map of the route. Trails stay private or are shared by link while they're built; an admin makes a finished trail public in the app.
-6. When an artifact is finished, they submit it for review. An admin approves it or sends it back with a note saying what to change. Only approved artifacts appear in the app. Editors can change only the artifacts they created, though anyone can add an artifact inside someone else's building. Every change to an artifact is kept in its history, with who made it and when.
+5. When the same information is true of many artifacts (every bike share station, every LEED building), they write it once as a topic and link the artifacts to it, each link with an optional note such as the building's LEED level.
+6. They reorder and caption attachments, preview the artifact, and build trails in the Studio: a title and description, stops chosen from the artifacts in walking order with a note at each, and a map of the route. Trails stay private or are shared by link while they're built; an admin makes a finished trail public in the app.
+7. When an artifact is finished, they submit it for review. An admin approves it or sends it back with a note saying what to change. Only approved artifacts appear in the app. Editors can change only the artifacts they created, though anyone can add an artifact inside someone else's building. Every change to an artifact is kept in its history, with who made it and when.
 
 ![From upload to phone-ready media](img/05-upload-pipeline.svg)
 
@@ -176,6 +178,7 @@ For technical detail, see [DESIGN.md](DESIGN.md) and the [backend README](../bac
 |---|---|
 | Artifact | A single thing that can be visited and learned about: a building, room, object, or feature |
 | Attachment | A piece of media on an artifact: image, audio, video, or PDF |
+| Topic | A shared page many artifacts link to, such as LEED certification; it has no location of its own |
 | Trail | An ordered sequence of artifacts, curated by an author or built by an explorer |
 | Explorer | A regular app user who reads, comments, and builds trails (called a "reader" in the code) |
 | Author | A trusted account holder who creates and edits artifacts |

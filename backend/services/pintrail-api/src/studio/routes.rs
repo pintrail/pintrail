@@ -48,6 +48,9 @@ pub(super) fn environment() -> Environment<'static> {
         ("studio_trail.html", include_str!("templates/trail.html")),
         ("studio_trail_form.html", include_str!("templates/trail_form.html")),
         ("studio_trail_stops.html", include_str!("templates/trail_stops.html")),
+        ("studio_topics.html", include_str!("templates/topics.html")),
+        ("studio_artifact_topics.html", include_str!("templates/artifact_topics.html")),
+        ("studio_topic_artifacts.html", include_str!("templates/topic_artifacts.html")),
         (
             "studio_avatar.html",
             r#"{% from "studio_macros.html" import avatar %}{{ avatar(me) }}"#,
@@ -96,6 +99,7 @@ pub fn router() -> Router<AppState> {
         .merge(super::review::router())
         .merge(super::profile::router())
         .merge(super::trails::router())
+        .merge(super::topics::router())
 }
 
 // --- rendering helpers -----------------------------------------------------
@@ -474,9 +478,22 @@ async fn new_form(
     Query(q): Query<NewQuery>,
 ) -> AppResult<Html<String>> {
     require_editor(&author.0)?;
+    // Started from a topic's page ("+ Add an artifact linked here"): the new
+    // artifact is linked to that topic when it's created.
+    let link_topic: Option<(Uuid, String)> = match q.topic {
+        Some(t) => sqlx::query_as(
+            "SELECT id, name FROM artifacts WHERE id = $1 AND is_topic AND deleted_at IS NULL",
+        )
+        .bind(t)
+        .fetch_optional(&state.db)
+        .await?,
+        None => None,
+    };
     let form = context! {
         name => "", kind => "building", description => "", tags => "",
         parent_id => q.parent.map(|u| u.to_string()).unwrap_or_default(), lat => "", lng => "",
+        link_topic => link_topic.as_ref().map(|(id, _)| id.to_string()).unwrap_or_default(),
+        link_topic_name => link_topic.map(|(_, name)| name).unwrap_or_default(),
     };
     render_form(&state, &author.0, &jar, &headers, None, form, None).await
 }
@@ -484,6 +501,8 @@ async fn new_form(
 #[derive(Debug, Deserialize)]
 pub struct NewQuery {
     parent: Option<Uuid>,
+    /// A topic to link the new artifact to.
+    topic: Option<Uuid>,
 }
 
 async fn edit_form(
@@ -508,6 +527,7 @@ async fn edit_form(
         lat => d.row.lat.map(|v| v.to_string()).unwrap_or_default(),
         lng => d.row.lng.map(|v| v.to_string()).unwrap_or_default(),
         owner_id => d.row.created_by.map(|u| u.to_string()).unwrap_or_default(),
+        is_topic => d.row.is_topic,
     };
     render_form(&state, &author.0, &jar, &headers, Some(id), form, None).await
 }
@@ -515,7 +535,7 @@ async fn edit_form(
 /// Renders the create (`edit_id` None) or edit form. Shared by the GET
 /// handlers and by a failed submission, which re-renders the author's own
 /// input with the problem stated above it rather than losing their work.
-async fn render_form(
+pub(super) async fn render_form(
     state: &AppState,
     author: &Author,
     jar: &CookieJar,
@@ -524,7 +544,9 @@ async fn render_form(
     form: Value,
     error: Option<&str>,
 ) -> AppResult<Html<String>> {
-    let parents = load_parent_options(state, edit_id).await?;
+    // A topic has no kind, parent, or location, so its form has none either.
+    let topic = form.get_attr("is_topic").map(|v| v.is_true()).unwrap_or(false);
+    let parents = if topic { Value::from(()) } else { load_parent_options(state, edit_id).await? };
     let tag_suggestions = load_tag_suggestions(state).await?;
     // Admins can hand an artifact to another author (or claim one that
     // predates authorship). Everyone else owns what they create.
@@ -533,9 +555,11 @@ async fn render_form(
     } else {
         Value::from(())
     };
-    let (title, heading, action, submit_label) = match edit_id {
-        Some(id) => ("Edit", "Edit artifact", format!("/studio/artifacts/{id}"), "Save changes"),
-        None => ("New artifact", "New artifact", "/studio/artifacts".to_string(), "Create"),
+    let (title, heading, action, submit_label) = match (edit_id, topic) {
+        (Some(id), false) => ("Edit", "Edit artifact", format!("/studio/artifacts/{id}"), "Save changes"),
+        (Some(id), true) => ("Edit", "Edit topic", format!("/studio/artifacts/{id}"), "Save changes"),
+        (None, false) => ("New artifact", "New artifact", "/studio/artifacts".to_string(), "Create"),
+        (None, true) => ("New topic", "New topic", "/studio/artifacts".to_string(), "Create topic"),
     };
     let ctx = context! {
         title => title,
@@ -558,6 +582,7 @@ async fn render_form(
 pub struct ArtifactForm {
     csrf_token: String,
     name: String,
+    #[serde(default)]
     kind: String,
     #[serde(default)]
     description: String,
@@ -572,6 +597,14 @@ pub struct ArtifactForm {
     /// Admin-only, on the edit form: the artifact's owner.
     #[serde(default)]
     owner_id: Option<String>,
+    /// Present on the topic form. On an edit the database decides, not this.
+    #[serde(default)]
+    is_topic: Option<String>,
+    /// A topic to link a new artifact to (from "+ Add an artifact linked here").
+    #[serde(default)]
+    link_topic: Option<String>,
+    #[serde(default)]
+    link_topic_name: Option<String>,
 }
 
 /// A form submission that passed validation.
@@ -593,18 +626,33 @@ impl ArtifactForm {
             description => self.description.clone(), tags => self.tags.clone(),
             parent_id => self.parent_id.clone(), lat => self.lat.clone(), lng => self.lng.clone(),
             owner_id => self.owner_id.clone().unwrap_or_default(),
+            is_topic => self.is_topic.is_some(),
+            link_topic => self.link_topic.clone().unwrap_or_default(),
+            link_topic_name => self.link_topic_name.clone().unwrap_or_default(),
         }
     }
 
     /// Checks everything the database would otherwise reject with an opaque
     /// error, and returns a message an author can act on.
-    fn validate(&self, self_id: Option<Uuid>) -> Result<ValidArtifact, String> {
+    fn validate(&self, self_id: Option<Uuid>, topic: bool) -> Result<ValidArtifact, String> {
         let name = self.name.trim();
         if name.is_empty() {
-            return Err("Give the artifact a name.".into());
+            return Err(if topic { "Give the topic a name." } else { "Give the artifact a name." }.into());
         }
         if name.chars().count() > 200 {
             return Err("The name is too long (200 characters at most).".into());
+        }
+        if topic {
+            // Not a place: no kind, parent, or location to check.
+            return Ok(ValidArtifact {
+                kind: "other".into(),
+                name: name.to_string(),
+                description: self.description.trim().to_string(),
+                tags: parse_tags(&self.tags)?,
+                parent: None,
+                lat: None,
+                lng: None,
+            });
         }
         let kind = self.kind.trim();
         if !KINDS.contains(&kind) {
@@ -742,7 +790,8 @@ async fn create(
     require_editor(&author.0)?;
     require_csrf(&jar, &form.csrf_token)?;
 
-    let v = match form.validate(None) {
+    let topic = form.is_topic.is_some();
+    let v = match form.validate(None, topic) {
         Ok(v) => v,
         Err(msg) => {
             return Ok(render_form(&state, &author.0, &jar, &headers, None, form.echo(), Some(&msg))
@@ -753,8 +802,8 @@ async fn create(
 
     let mut tx = crate::audit::begin_as(&state.db, author.0.id).await?;
     let inserted: Result<Uuid, sqlx::Error> = sqlx::query_scalar(
-        "INSERT INTO artifacts (kind, name, description, lat, lng, parent_id) \
-         VALUES ($1::artifact_kind, $2, $3, $4, $5, $6) RETURNING id",
+        "INSERT INTO artifacts (kind, name, description, lat, lng, parent_id, is_topic) \
+         VALUES ($1::artifact_kind, $2, $3, $4, $5, $6, $7) RETURNING id",
     )
     .bind(&v.kind)
     .bind(&v.name)
@@ -762,6 +811,7 @@ async fn create(
     .bind(v.lat)
     .bind(v.lng)
     .bind(v.parent)
+    .bind(topic)
     .fetch_one(&mut *tx)
     .await;
     let id = match inserted {
@@ -774,9 +824,22 @@ async fn create(
         }
     };
     replace_tags(&mut tx, id, &v.tags).await?;
+    let link_topic = form.link_topic.as_deref().and_then(|s| Uuid::parse_str(s.trim()).ok());
+    if let (Some(t), false) = (link_topic, topic) {
+        // The topic was deleted meanwhile: the artifact is still worth
+        // keeping, just without the link.
+        sqlx::query(
+            "INSERT INTO artifact_topics (artifact_id, topic_id) \
+             SELECT $1, id FROM artifacts WHERE id = $2 AND is_topic AND deleted_at IS NULL",
+        )
+        .bind(id)
+        .bind(t)
+        .execute(&mut *tx)
+        .await?;
+    }
     tx.commit().await?;
 
-    tracing::info!(actor = %author.0.id, artifact_id = %id, "artifact created in studio");
+    tracing::info!(actor = %author.0.id, artifact_id = %id, topic, "artifact created in studio");
     detail_after_change(&state, &author.0, &jar, &headers, id).await
 }
 
@@ -791,8 +854,12 @@ async fn update(
     require_editor(&author.0)?;
     require_csrf(&jar, &form.csrf_token)?;
     crate::audit::ensure_can_modify(&state.db, &author.0, id).await?;
+    let topic: bool = sqlx::query_scalar("SELECT is_topic FROM artifacts WHERE id = $1")
+        .bind(id)
+        .fetch_one(&state.db)
+        .await?;
 
-    let v = match form.validate(Some(id)) {
+    let v = match form.validate(Some(id), topic) {
         Ok(v) => v,
         Err(msg) => {
             return Ok(render_form(&state, &author.0, &jar, &headers, Some(id), form.echo(), Some(&msg))
@@ -983,7 +1050,7 @@ async fn map_view(
                          FROM artifact_tags t WHERE t.artifact_id = a.id), '{{}}') AS tags,
                a.status::text AS status
         FROM artifacts a JOIN resolved r ON r.id = a.id
-        WHERE a.deleted_at IS NULL
+        WHERE a.deleted_at IS NULL AND NOT a.is_topic
         ORDER BY a.name, a.id
         "#
     );
@@ -1354,13 +1421,16 @@ struct TreeRow {
     name: String,
     parent_id: Option<Uuid>,
     status: String,
+    #[sqlx(default)]
+    is_topic: bool,
 }
 
 /// Loads every artifact and nests it into a root->children forest for the
 /// sidebar. One query, assembled in memory, rather than a query per level.
 async fn load_tree(state: &AppState, mine: Option<Uuid>) -> AppResult<Value> {
     let rows = sqlx::query_as::<_, TreeRow>(
-        "SELECT id, kind::text AS kind, name, parent_id, status::text AS status \
+        "SELECT id, CASE WHEN is_topic THEN 'topic' ELSE kind::text END AS kind, name, parent_id, \
+                status::text AS status, is_topic \
          FROM artifacts WHERE deleted_at IS NULL ORDER BY name, id",
     )
     .fetch_all(&state.db)
@@ -1390,7 +1460,8 @@ async fn load_tree(state: &AppState, mine: Option<Uuid>) -> AppResult<Value> {
     // Build child lists keyed by parent.
     use std::collections::HashMap;
     let mut children: HashMap<Option<Uuid>, Vec<&TreeRow>> = HashMap::new();
-    for row in &rows {
+    // Topics live on the Topics page, not in the place hierarchy.
+    for row in rows.iter().filter(|r| !r.is_topic) {
         children.entry(row.parent_id).or_default().push(row);
     }
 
@@ -1439,6 +1510,7 @@ struct DetailRow {
     reviewed_at: Option<chrono::DateTime<Utc>>,
     reviewed_by: Option<Uuid>,
     review_note: String,
+    is_topic: bool,
 }
 
 /// A loaded artifact plus its direct children. Keeps the typed row around so
@@ -1477,6 +1549,7 @@ impl Detail {
             "reviewed_at": self.row.reviewed_at.map(|t| t.to_rfc3339()),
             "reviewed_by": self.row.reviewed_by.and_then(|id| self.people.get(&id)),
             "review_note": self.row.review_note,
+            "is_topic": self.row.is_topic,
         }))
     }
 }
@@ -1494,7 +1567,7 @@ async fn load_detail(state: &AppState, id: Uuid) -> AppResult<Detail> {
                a.created_at, a.updated_at, a.status::text AS status, a.submitted_at,
                a.reviewed_at,
                a.reviewed_by,
-               a.review_note
+               a.review_note, a.is_topic
         FROM artifacts a JOIN resolved r ON r.id = a.id
         WHERE a.id = $1 AND a.deleted_at IS NULL
         "#
@@ -1565,7 +1638,7 @@ async fn load_parent_options(state: &AppState, exclude: Option<Uuid>) -> AppResu
         SELECT a.id, a.name, a.kind::text AS kind, r.effective_lat, r.effective_lng,
                (SELECT s.name FROM artifacts s WHERE s.id = r.location_source_id) AS source_name
         FROM artifacts a JOIN resolved r ON r.id = a.id
-        WHERE a.deleted_at IS NULL AND ($1::uuid IS NULL OR a.id <> $1)
+        WHERE a.deleted_at IS NULL AND NOT a.is_topic AND ($1::uuid IS NULL OR a.id <> $1)
         ORDER BY a.name
         "#
     );

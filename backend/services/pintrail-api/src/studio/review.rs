@@ -178,7 +178,7 @@ async fn review_queue(
     require_admin(&author.0)?;
     let rows = sqlx::query_as::<_, QueueRow>(
         r#"
-        SELECT a.id, a.name, a.kind::text AS kind, a.status::text AS status,
+        SELECT a.id, a.name, CASE WHEN a.is_topic THEN 'topic' ELSE a.kind::text END AS kind, a.status::text AS status,
                a.created_by AS owner_id,
                a.submitted_at, a.reviewed_at, a.review_note,
                (SELECT p.name FROM artifacts p WHERE p.id = a.parent_id) AS parent_name
@@ -259,7 +259,7 @@ async fn deleted(
     require_admin(&author.0)?;
     let rows = sqlx::query_as::<_, DeletedRow>(
         r#"
-        SELECT a.id, a.name, a.kind::text AS kind, a.deleted_at,
+        SELECT a.id, a.name, CASE WHEN a.is_topic THEN 'topic' ELSE a.kind::text END AS kind, a.deleted_at,
                d.actor_id AS deleted_by_id, d.actor_email AS deleted_by_email,
                (WITH RECURSIVE sub AS (
                     SELECT c.id FROM artifacts c WHERE c.parent_id = a.id AND c.deleted_at = a.deleted_at
@@ -393,7 +393,12 @@ async fn history(
         .collect();
     let actor_ids: Vec<Uuid> = rows.iter().filter_map(|r| r.actor_id).collect();
     let people = super::profile::load_people(&state.db, &actor_ids).await?;
-    let lookup = Lookup { names, emails, people };
+    let topic: bool = sqlx::query_scalar("SELECT is_topic FROM artifacts WHERE id = $1")
+        .bind(id)
+        .fetch_optional(&state.db)
+        .await?
+        .unwrap_or(false);
+    let lookup = Lookup { names, emails, people, topic };
 
     let entries: Vec<Json> = rows.iter().map(|r| describe(r, &lookup)).collect();
     render(
@@ -411,6 +416,8 @@ struct Lookup {
     /// Owner ids to names, for "Owner changed" entries.
     emails: HashMap<String, String>,
     people: HashMap<Uuid, Json>,
+    /// The history is a topic's: no kind or location to report.
+    topic: bool,
 }
 
 fn status_label(s: &str) -> &str {
@@ -501,18 +508,22 @@ fn describe(r: &HistoryRow, l: &Lookup) -> Json {
         "created" => {
             let mut lines = vec![];
             for f in ["name", "kind", "parent_id", "status"] {
+                if l.topic && f == "kind" {
+                    continue;
+                }
                 if let Some(v) = c.get(f) {
                     lines.push(json!({ "label": field_label(f), "value": show(f, v, l) }));
                 }
             }
             match (c.get("lat"), c.get("lng")) {
+                _ if l.topic => {}
                 (Some(a), Some(b)) => lines.push(json!({ "label": "Location", "value": format!("{a}, {b}") })),
                 _ => lines.push(json!({ "label": "Location", "value": "parent's location" })),
             }
             if let Some(d) = c.get("description").and_then(Json::as_str) {
                 lines.push(json!({ "label": "Description", "value": d, "long": true }));
             }
-            ("Created".into(), lines)
+            (if l.topic { "Topic created" } else { "Created" }.into(), lines)
         }
         "edited" => ("Edited".into(), diff_lines(&[])),
         "owner" => ("Owner changed".into(), diff_lines(&[])),
@@ -550,6 +561,15 @@ fn describe(r: &HistoryRow, l: &Lookup) -> Json {
         "media_added" => (format!("Photo or file added: {}", s("file")), vec![]),
         "media_removed" => (format!("Photo or file removed: {}", s("file")), vec![]),
         "media_edited" => (format!("Caption changed: {}", s("file")), diff_lines(&[])),
+        "topic_added" => (format!("Linked to topic: {}", s("topic")), {
+            let mut v = vec![];
+            if !s("note").is_empty() { v.push(json!({ "label": "Note", "value": s("note") })); }
+            v
+        }),
+        "topic_removed" => (format!("Unlinked from topic: {}", s("topic")), vec![]),
+        "topic_edited" => (format!("Note changed on topic: {}", s("topic")), diff_lines(&[])),
+        "topic_artifact_added" => (format!("Artifact linked: {}", s("artifact")), vec![]),
+        "topic_artifact_removed" => (format!("Artifact unlinked: {}", s("artifact")), vec![]),
         other => (other.replace('_', " "), diff_lines(&[])),
     };
 

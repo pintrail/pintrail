@@ -8,11 +8,24 @@
 
   <form hx-post="{{ action }}" hx-target="#detail" hx-swap="innerHTML" data-artifact-form>
     <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    {% if form.is_topic %}<input type="hidden" name="is_topic" value="1">{% endif %}
+    {% if form.link_topic %}
+    <input type="hidden" name="link_topic" value="{{ form.link_topic }}">
+    <input type="hidden" name="link_topic_name" value="{{ form.link_topic_name }}">
+    <p class="flash">This artifact will be linked to the topic <strong>{{ form.link_topic_name }}</strong>, so it shows that topic's description.</p>
+    {% endif %}
 
+    {% if form.is_topic %}
+    <label class="field"><span class="lbl">Name</span>
+      <input type="text" name="name" value="{{ form.name }}" required maxlength="200" autofocus>
+      <span class="help">The shared idea, e.g. <em>LEED certification</em> or <em>Valley Bike Share</em>.</span></label>
+    {% else %}
     <label class="field"><span class="lbl">Name</span>
       <input type="text" name="name" value="{{ form.name }}" required maxlength="200" autofocus>
       <span class="help">What people call it, e.g. <em>Old Chapel</em> or <em>Lot 49 solar canopy</em>.</span></label>
+    {% endif %}
 
+    {% if not form.is_topic %}
     <div class="field-row">
       <label class="field"><span class="lbl">Kind</span>
         <select name="kind" data-kind-select>
@@ -38,6 +51,7 @@
         </select>
         <span class="help">Leave as <em>none</em> for a building or anything standing on its own. Choose a building for its roof, rooms, and systems.</span></label>
     </div>
+    {% endif %}
 
     {% if owners %}
     <label class="field"><span class="lbl">Owner</span>
@@ -50,7 +64,11 @@
 
     <label class="field"><span class="lbl">Description</span>
       <textarea name="description" rows="8">{{ form.description }}</textarea>
-      <span class="help">Write for someone standing in front of it, on their phone: <strong>what</strong> it is, <strong>why</strong> it matters (with a real number if you have one), and <strong>how</strong> it works or what to notice. Press Enter twice between paragraphs. Add your sources as links after you save.</span></label>
+      {% if form.is_topic %}
+      <span class="help">Every artifact linked to this topic shows this text, so write what is true of all of them: <strong>what</strong> it is and <strong>why</strong> it matters. Things that differ from one artifact to the next (a rating, a year, a number of docks) go in each artifact's own description, or in the short note on its link.</span>
+      {% else %}
+      <span class="help">Write for someone standing in front of it, on their phone: <strong>what</strong> it is, <strong>why</strong> it matters (with a real number if you have one), and <strong>how</strong> it works or what to notice. Press Enter twice between paragraphs. Add your sources as links after you save.</span>
+      {% endif %}</label>
 
     <div class="field">
       <span class="lbl" id="tags-lbl">Tags</span>
@@ -65,6 +83,7 @@
       <span class="help">Themes people might look for: <em>solar</em>, <em>stormwater</em>, <em>energy storage</em>. Pick an existing tag from the suggestions when one fits, so the same theme isn't spelled two ways.</span>
     </div>
 
+    {% if not form.is_topic %}
     <div class="field">
       <span class="lbl">Location
         <span class="req-badge" data-loc-required>required for a top-level artifact</span>
@@ -91,6 +110,7 @@
       <span class="help" data-loc-required>Zoom in and click the map on the exact spot, or type or paste coordinates. A pair copied from Google Maps (<em>42.3891, -72.5281</em>) can go straight into the latitude box. Check the pin sits on the right building, not the one next door.</span>
       <span class="help" data-loc-optional>The parent's location is right for anything in or on the building. Only give this one its own spot if it really stands somewhere else, like a rain garden across the plaza.</span>
     </div>
+    {% endif %}
 
     <div class="row" style="margin-top:1rem">
       <button class="btn-primary" type="submit">{{ submit_label }}</button>
