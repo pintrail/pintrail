@@ -167,6 +167,21 @@ The coloured dot next to each artifact in the list shows its status: grey for dr
 
 **History.** At the bottom of every artifact, **History** lists every change: who made it, when, and what it was before and after. Nothing is lost by editing.
 
+## 11. Build a trail
+
+A trail is a walk through artifacts in order, with a note at each stop. Explorers follow trails in the app.
+
+1. Click **Trails** at the top of the sidebar, then **+ New trail**.
+2. Give it a **title** and a **description**: what the walk is about, roughly how long it takes, and where it starts.
+3. Choose **who can see it**. Keep it **Private** while you build it. **Anyone with the link** gives you a share code to hand out; the trail isn't listed in the app. Only your instructor can make a trail **Public**, which lists it in the app for everyone.
+4. Under **Add a stop**, choose an artifact and, if you like, a note: what to look for there, or how to get there from the last stop. Each new stop goes on the end. A stop can be a building or anything inside one; artifacts inside a building are listed under it, like *Integrative Learning Center › Green roof*.
+5. **Drag the grip** (⋮⋮) to put the stops in walking order, or focus the grip and use the arrow keys. The map numbers the stops and joins them with a line, so you can check the route makes sense on the ground.
+6. Click the pencil to edit a stop's note, or the × to remove the stop. Removing a stop doesn't change the artifact.
+
+If a stop's artifact isn't approved yet, the trail says so. Explorers see that stop as "not available" until it's approved, so get your artifacts approved before asking for the trail to be made public.
+
+You can edit and delete only the trails you made. Everyone can see every trail in the Studio.
+
 ## Writing a good description
 
 Someone will read this standing in front of the artifact, on their phone. Write for them. A good description answers:
@@ -190,10 +205,6 @@ The example artifacts follow this pattern, including their tags and source links
 **Delete** asks you to confirm, and **it also deletes everything nested inside the artifact**. If you want to keep a nested artifact, first edit it to move it to a different parent.
 
 You can delete only artifacts you added, and only if nothing inside them belongs to someone else and none of them has been approved. If you delete something by mistake, ask your instructor: a deleted artifact can be restored, with everything that was inside it and its photos.
-
-## Coming soon
-
-- **Trails:** grouping artifacts into a walking route.
 
 ## Getting help
 

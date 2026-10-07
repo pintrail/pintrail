@@ -572,6 +572,18 @@ created by an admin. Any author can change their password at `/studio/password`.
   sidebar) and `/studio/deleted` (restore an artifact and everything deleted
   with it). An editor may delete only a subtree that is entirely theirs and
   not approved. Status shows in the tree, on the artifact, and on the map.
+- **Trails** at `/studio/trails`: the author-owned trails (explorers' own
+  trails are managed by them in the app, and taken down from the admin
+  panel). Each has a title, description, visibility, and ordered stops with a
+  note each, shown on a map with numbered pins in walking order. Stops are
+  added from a picker of every artifact in tree order, reordered by grip
+  (drag or arrow keys; the server accepts a new order only if it is a
+  rearrangement of exactly the stops there now), and removed with positions
+  closed up. Editors change the trails they made; admins change any. Only an
+  admin can make a trail public, in the Studio and the JSON API alike;
+  editors keep trails private or unlisted (which mints the share code). A stop
+  whose artifact isn't published is flagged, since explorers see it as
+  unavailable.
 - **Profiles.** Authors have a full name (required before the Studio opens:
   `/studio` sends anyone without one to `/studio/profile`), display name,
   pronouns, affiliation, bio, and a photo (migration `..._author_profiles`).

@@ -276,6 +276,36 @@
     .deleted-row:last-child { border-bottom: 0; }
     .map-legend { display: flex; gap: .9rem; flex-wrap: wrap; font-size: .82rem; color: var(--muted); }
     .map-legend span { display: inline-flex; align-items: center; gap: .3rem; }
+    /* trails */
+    .trail-list { list-style: none; margin: 0; padding: 0; }
+    .trail-list li { padding: .7rem 0; border-bottom: 1px solid var(--line); }
+    .trail-list li:last-child { border-bottom: 0; }
+    .trail-item { display: flex; flex-wrap: wrap; align-items: baseline; gap: .3rem .6rem; cursor: pointer; color: var(--ink); }
+    .trail-title { font-weight: 600; font-size: 1.05rem; color: var(--accent); }
+    .trail-desc { margin: .3rem 0 0 .5rem; color: var(--muted); font-size: .9rem; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .vis-chip { font-size: .7rem; font-weight: 600; border-radius: .3rem; padding: .05rem .4rem; white-space: nowrap; }
+    .vis-private { color: var(--muted); background: var(--chip); }
+    .vis-unlisted { color: #7c3aed; background: color-mix(in srgb, #7c3aed 14%, transparent); }
+    .vis-public { color: var(--ok); background: color-mix(in srgb, var(--ok) 14%, transparent); }
+    .crumb { margin: 0 0 .2rem; font-size: .85rem; }
+    .crumb a { cursor: pointer; }
+    .share-box { margin-top: .9rem; padding: .7rem .9rem; border: 1px dashed var(--line); border-radius: .5rem; }
+    .share-box code { font-size: .8rem; word-break: break-all; margin: 0 .4rem; }
+    .vis-choice { border: 0; padding: 0; margin: 0 0 1rem; }
+    .vis-choice label { display: flex; gap: .55rem; align-items: flex-start; margin: .45rem 0; cursor: pointer; }
+    .vis-choice input { width: auto; margin-top: .3rem; }
+    .vis-choice label.disabled { opacity: .55; cursor: not-allowed; }
+    .trail-map { height: 300px; margin-bottom: 1rem; }
+    .stop-pin { background: #2563eb; color: #fff; border: 2px solid #fff; border-radius: 50%; box-shadow: 0 1px 4px rgba(0,0,0,.4); display: grid; place-items: center; font: 600 .78rem/1 system-ui, sans-serif; }
+    .stops { counter-reset: none; padding-left: 0; }
+    .stop-num { width: 1.6rem; height: 1.6rem; border-radius: 50%; background: #2563eb; color: #fff; display: inline-grid; place-items: center; font-weight: 650; font-size: .8rem; flex-shrink: 0; margin-top: .1rem; }
+    .stop .link-view { align-items: flex-start; }
+    .stop-head { display: flex; flex-wrap: wrap; align-items: center; gap: .35rem .5rem; }
+    .stop-name { font-weight: 600; cursor: pointer; }
+    .stop-note { white-space: pre-line; }
+    .muted-strike { color: var(--muted); text-decoration: line-through; }
+    .stop-add { margin-top: 1.1rem; padding-top: 1rem; border-top: 1px solid var(--line); }
+
     /* people */
     .avatar { border-radius: 50%; object-fit: cover; flex-shrink: 0; display: inline-grid; place-items: center; vertical-align: middle; }
     .avatar-sm { width: 1.6rem; height: 1.6rem; font-size: .66rem; }
@@ -324,6 +354,7 @@
         <h2>Artifacts</h2>
         <span class="push"></span>
         <button class="btn-sm" hx-get="/studio/map" hx-target="#detail" hx-push-url="true" title="Every artifact on one map">Map</button>
+        <button class="btn-sm" hx-get="/studio/trails" hx-target="#detail" hx-push-url="true" title="Walks through artifacts, in order" style="margin-left:.4rem">Trails</button>
         {% if can_create %}
         <button class="btn-sm btn-primary" hx-get="/studio/artifacts/new" hx-target="#detail" style="margin-left:.4rem">+ New</button>
         {% endif %}

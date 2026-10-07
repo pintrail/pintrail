@@ -1,0 +1,33 @@
+{# Create or edit a trail's title, description, and visibility. Stops are
+   managed on the trail's own page. #}
+<div class="card">
+  <h1>{{ heading }}</h1>
+  {% if error %}<p class="flash err" role="alert">{{ error }}</p>{% endif %}
+  <form hx-post="{{ action }}" hx-target="#detail">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <label class="field"><span class="lbl">Title</span>
+      <input type="text" name="title" value="{{ form.title }}" maxlength="200" required autofocus>
+      <span class="help">Short and inviting, e.g. <em>Renewable energy on campus</em> or <em>Where the rain goes</em>.</span></label>
+    <label class="field"><span class="lbl">Description</span>
+      <textarea name="description" rows="5">{{ form.description }}</textarea>
+      <span class="help">What the walk is about and why it's worth doing. Mention how long it takes and where it starts if that helps.</span></label>
+    <fieldset class="field vis-choice">
+      <legend class="lbl">Who can see it</legend>
+      <label><input type="radio" name="visibility" value="private" {{ 'checked' if form.visibility == 'private' }}>
+        <span><strong>Private</strong> <span class="hint">Only Studio authors. Use this while you build it.</span></span></label>
+      <label><input type="radio" name="visibility" value="unlisted" {{ 'checked' if form.visibility == 'unlisted' }}>
+        <span><strong>Anyone with the link</strong> <span class="hint">Not listed in the app; you get a share code to give to people.</span></span></label>
+      <label {% if not is_admin and form.visibility != 'public' %}class="disabled"{% endif %}>
+        <input type="radio" name="visibility" value="public" {{ 'checked' if form.visibility == 'public' }} {% if not is_admin and form.visibility != 'public' %}disabled{% endif %}>
+        <span><strong>Public</strong> <span class="hint">Listed in the app for everyone.{% if not is_admin %} Only an admin can publish a trail.{% endif %}</span></span></label>
+    </fieldset>
+    <div class="row" style="margin-top:1rem">
+      <button class="btn-primary" type="submit">{{ submit_label }}</button>
+      {% if cancel_id %}
+      <button type="button" class="btn" hx-get="/studio/trails/{{ cancel_id }}" hx-target="#detail" hx-push-url="true">Cancel</button>
+      {% else %}
+      <button type="button" class="btn" hx-get="/studio/trails" hx-target="#detail" hx-push-url="true">Cancel</button>
+      {% endif %}
+    </div>
+  </form>
+</div>
