@@ -428,10 +428,11 @@ async fn insert_stops(
         // than surfacing an opaque foreign key violation. Soft-deleted
         // artifacts are rejected here too: they still satisfy the FK, but
         // adding one would create a stop that is unavailable on arrival.
+        // Topics are rejected as well: they aren't places.
         let exists: Option<Uuid> =
             // A reader can only add artifacts they can see.
             sqlx::query_scalar(
-                "SELECT id FROM artifacts WHERE id = $1 AND deleted_at IS NULL \
+                "SELECT id FROM artifacts WHERE id = $1 AND deleted_at IS NULL AND NOT is_topic \
                  AND (NOT $2 OR artifact_is_published(id))",
             )
                 .bind(stop.artifact_id)
@@ -441,7 +442,7 @@ async fn insert_stops(
 
         if exists.is_none() {
             return Err(AppError::BadRequest(format!(
-                "stop {}: artifact {} does not exist",
+                "stop {}: artifact {} does not exist or can't be a stop",
                 index + 1,
                 stop.artifact_id
             )));

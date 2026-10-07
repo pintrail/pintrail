@@ -268,6 +268,16 @@ the phone hears about every descendant. One consequence worth knowing: when a
 student edits an approved artifact it goes back to "ready", which takes it off
 phones until an admin approves it again.
 
+**Topics travel with the artifacts that link to them.** Each sync entry
+carries `is_topic` and `topic_ids` (for a reader, only published topics). A
+topic has no coordinates, so the phone skips it for geofencing and keeps it to
+label the artifacts that link to it. Migration `..._artifact_topics` marks an
+artifact dirty when it gains or loses a topic, or when one of its topics is
+approved, withdrawn, or deleted, so `topic_ids` never goes stale on the phone. The
+detail response adds `topics` (an artifact's) or `linked_artifacts` (a
+topic's), each `{id, name, note}`; `GET /artifacts` takes `topics=true|false`
+and `topic_id=` to filter, and `roots_only` leaves topics out.
+
 **Moving a parent dirties everything that inherits from it.** This is the
 subtle one. An artifact with NULL coordinates reports its ancestor's position,
 so moving a building changes the effective location of every room inside it —
@@ -584,6 +594,19 @@ created by an admin. Any author can change their password at `/studio/password`.
   editors keep trails private or unlisted (which mints the share code). A stop
   whose artifact isn't published is flagged, since explorers see it as
   unavailable.
+- **Topics** at `/studio/topics` (issue #49): shared pages many artifacts link
+  to, such as "LEED certification". A topic is an artifact row with
+  `is_topic = true`, so it gets the artifact page, review, links, media,
+  comments, and history unchanged; it has no kind, parent, or location and is
+  left out of the tree, the map, the parent picker, and the trail stop picker.
+  An artifact's page has a Topics card (link, unlink, edit the note, and the
+  topic's shared description); a topic's page has a Linked artifacts card with
+  every linked artifact on one map, a link-existing picker (an editor's own
+  artifacts; an admin's, all), and **+ Add a new artifact linked here**, which
+  opens the New artifact form with `?topic=` so the link is made on create. A
+  link is part of the artifact's content, so changing one needs the right to
+  change the artifact (and sends an approved artifact back to review), not the
+  topic.
 - **Profiles.** Authors have a full name (required before the Studio opens:
   `/studio` sends anyone without one to `/studio/profile`), display name,
   pronouns, affiliation, bio, and a photo (migration `..._author_profiles`).
@@ -720,6 +743,7 @@ revisiting, not an accident:
 | Added author profile columns (`full_name`, `display_name`, `pronouns`, `affiliation`, `bio`, `avatar_key`) | People in a class work together; naming each other by email address doesn't work. All default to empty, so older code that names its columns keeps working. |
 | Readers see only published artifacts | Approval has to mean something to the people using the app. `artifact_is_published(id)` and the `published` column of the shared coordinates CTE both define it the same way: approved and not deleted, all the way up the parent chain. |
 | Added `artifact_history` | A complete, append-only record of every change to an artifact, written by triggers so no write path can skip it. No foreign key to `artifacts`, so the record outlives a hard delete. |
+| Added `artifacts.is_topic` and `artifact_topics` | Topics (migration `..._artifact_topics`): a shared page many artifacts link to, many to many, each link with a short `note`. The design has only the place hierarchy and trails; neither expresses "these six bike stations share one description" or "this building is LEED Gold". A CHECK keeps a topic free of coordinates, parent, and beacon; triggers stop anything nesting inside a topic, a topic becoming a place (or the reverse), a link between two places or two topics, and a topic being a trail stop. Link changes are recorded in the history of both ends. |
 | Trigger enforces an acyclic artifact tree | Coordinate inheritance walks up `parent_id`; a cycle would loop forever. Also caps chain depth at 64. |
 
 ## Local services

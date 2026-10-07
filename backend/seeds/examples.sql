@@ -2,7 +2,8 @@
 --
 -- Two real campus buildings, each with child artifacts, so new authors can
 -- see what a well-described artifact looks like and how the building ->
--- feature hierarchy works (children inherit their parent's location).
+-- feature hierarchy works (children inherit their parent's location), plus
+-- one topic (LEED certification) that the Integrative Learning Center links to.
 --
 -- Every name starts with "Example:" so they are easy to spot and to remove.
 -- Facts come from the UMass pages attached to each artifact as links, and
@@ -132,6 +133,25 @@ INSERT INTO artifact_links (id, artifact_id, url, note, position,
  'UMass Amherst Energy Storage Project : Clean Energy : Center for Agriculture, Food, and the Environment (CAFE) at UMass Amherst',
  'Massachusetts ACES Demonstration Project In December 2017, UMass Amherst was awarded a $1.1 million state grant from the Advancing Commonwealth Energy Storage (ACES) program to work with an energy storage company to construct a large battery at the Central Heating Plant on campus. UMass Amherst wil…', 'https://www.umass.edu/static/branding/images/og_default_image.png', 'Center for Agriculture, Food, and the Environment at UMass Amherst', now())
 ON CONFLICT (id) DO NOTHING;
+
+-- A topic -------------------------------------------------------------------
+-- One shared page that several artifacts link to. The building's own page
+-- keeps what is particular to it (its rating, the year); the topic explains
+-- what LEED is, once.
+INSERT INTO artifacts (id, kind, name, description, is_topic) VALUES
+('5eed0000-0000-4000-8000-000000000020', 'other',
+ 'Example: LEED certification',
+ 'LEED (Leadership in Energy and Environmental Design) is the U.S. Green Building Council''s rating system for green buildings. A project earns points for things like energy and water efficiency, materials, and indoor environmental quality, and the total sets its level: Certified, Silver, Gold, or Platinum.
+
+Why it matters: a LEED rating is checked by a third party, so it is evidence that a building was designed and built to use less energy and water than a typical one, not just a claim.
+
+Look for the note on each linked building: it says which level that building earned, and under which version of LEED.',
+ true)
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO artifact_topics (artifact_id, topic_id, note) VALUES
+('5eed0000-0000-4000-8000-000000000001', '5eed0000-0000-4000-8000-000000000020', 'Gold, LEED NC v2009')
+ON CONFLICT DO NOTHING;
 
 -- Review status -------------------------------------------------------------
 -- The examples are reference material, so they load already approved.

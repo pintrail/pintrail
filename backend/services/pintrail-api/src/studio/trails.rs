@@ -447,7 +447,7 @@ async fn render_stops(
 async fn load_pick_options(state: &AppState) -> AppResult<Vec<Json>> {
     let rows = sqlx::query_as::<_, PickRow>(
         "SELECT id, name, kind::text AS kind, parent_id, status::text AS status \
-         FROM artifacts WHERE deleted_at IS NULL ORDER BY lower(name), id",
+         FROM artifacts WHERE deleted_at IS NULL AND NOT is_topic ORDER BY lower(name), id",
     )
     .fetch_all(&state.db)
     .await?;
@@ -507,7 +507,8 @@ async fn add_stop(
     let Ok(artifact_id) = f.artifact_id.parse::<Uuid>() else {
         return Ok(render_stops(&state, &author.0, &jar, id, Some("Choose an artifact to add."), None).await?.into_response());
     };
-    let exists: Option<Uuid> = sqlx::query_scalar("SELECT id FROM artifacts WHERE id = $1 AND deleted_at IS NULL")
+    // Topics aren't places, so they can't be stops (the database refuses too).
+    let exists: Option<Uuid> = sqlx::query_scalar("SELECT id FROM artifacts WHERE id = $1 AND deleted_at IS NULL AND NOT is_topic")
         .bind(artifact_id)
         .fetch_optional(&state.db)
         .await?;

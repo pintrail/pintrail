@@ -39,7 +39,7 @@ The Studio has two parts:
 
 - **The sidebar on the left** lists every artifact. Artifacts that sit inside another one are indented beneath it. Click any artifact to open it.
 - **The main area** shows the artifact you opened, or the form when you create or edit one.
-- **Map**, at the top of the sidebar, shows every artifact on one map (see [step 8](#8-see-everything-on-the-map)).
+- **Map**, **Trails**, and **Topics**, at the top of the sidebar, show every artifact on one map (see [step 8](#8-see-everything-on-the-map)), the trails ([step 11](#11-build-a-trail)), and the topics ([step 12](#12-link-artifacts-to-a-topic)).
 - **Only mine**, above the list, shows just the artifacts you added.
 - The **coloured dot** next to each artifact is its review status: grey for draft, orange for ready for review, green for approved (see [step 10](#10-submit-your-artifact-for-review)).
 
@@ -181,6 +181,23 @@ A trail is a walk through artifacts in order, with a note at each stop. Explorer
 If a stop's artifact isn't approved yet, the trail says so. Explorers see that stop as "not available" until it's approved, so get your artifacts approved before asking for the trail to be made public.
 
 You can edit and delete only the trails you made. Everyone can see every trail in the Studio.
+
+## 12. Link artifacts to a topic
+
+Some information is true of many artifacts. Every bike share station is part of Valley Bike Share; several buildings are LEED certified. Rather than writing the same description six times, write it once as a **topic** and link the artifacts to it. A topic is a page with a name, a description, links, and photos, but no place: it isn't on the map and can't be a trail stop. Each linked artifact shows the topic's description on its own page, so fixing a mistake in the topic fixes it everywhere.
+
+**Start a topic.** Click **Topics** at the top of the sidebar, then **+ New topic**. Give it a name and a description of what is true of *every* artifact that will link to it. Anything that differs from one artifact to the next (a building's LEED level, how many docks a station has) belongs on that artifact, or in the note on its link.
+
+**Add the artifacts.** On the topic's page, under **Linked artifacts**:
+
+- **+ Add a new artifact linked here** opens the New artifact form with the link already set. This is the quick way to add six bike share stations: give each one its name and its spot on the map.
+- **Or link one that already exists** lists the artifacts you own. Add a short note if it helps, like *Gold, 2013*.
+
+You can also link from the other side: an artifact's page has a **Topics** card where you choose a topic and add a note. The pencil edits the note and the × removes the link; neither changes the topic or the artifact itself.
+
+The topic's page puts every linked artifact on one map, so you can see the whole set at once. Topics go through review like artifacts, and the app shows a topic only once it's approved.
+
+You can link only artifacts you own. To link a classmate's artifact, ask them or your instructor.
 
 ## Writing a good description
 

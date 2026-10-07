@@ -319,20 +319,25 @@
       if (form.dataset.ready) return;
       form.dataset.ready = "1";
 
+      // A topic's form has neither a kind nor a parent.
       const kind = form.querySelector("[data-kind-select]");
       const help = form.querySelector("[data-kind-help]");
-      function showKind() {
-        help.querySelectorAll("[data-for]").forEach(function (s) {
-          s.classList.toggle("on", s.dataset.for === kind.value);
-        });
+      if (kind && help) {
+        const showKind = function () {
+          help.querySelectorAll("[data-for]").forEach(function (s) {
+            s.classList.toggle("on", s.dataset.for === kind.value);
+          });
+        };
+        kind.addEventListener("change", showKind);
+        showKind();
       }
-      kind.addEventListener("change", showKind);
-      showKind();
 
       const parent = form.querySelector("[data-parent-select]");
-      function showParent() { form.classList.toggle("top-level", parent.value === ""); }
-      parent.addEventListener("change", showParent);
-      showParent();
+      if (parent) {
+        const showParent = function () { form.classList.toggle("top-level", parent.value === ""); };
+        parent.addEventListener("change", showParent);
+        showParent();
+      }
     });
 
     root.querySelectorAll("[data-tag-input]").forEach(initTagInput);
@@ -546,7 +551,9 @@
   }
 
   // --- a trail's route ---------------------------------------------------------
-  // Numbered pins in walking order, joined by a line.
+  // Numbered pins in walking order, joined by a line. A topic's page uses the
+  // same map for its linked artifacts, unnumbered and with no line
+  // (`route: false`).
   function initTrailMaps(root) {
     root.querySelectorAll("[data-trail-map]").forEach(function (el) {
       if (el._leaflet_id) return;
@@ -564,12 +571,15 @@
         const key = p.lat.toFixed(6) + "," + p.lng.toFixed(6);
         const i = seen[key] = (seen[key] || 0) + 1;
         const shift = (i - 1 - (total[key] - 1) / 2) * 28;
-        const icon = L.divIcon({ className: "stop-pin", html: "<span>" + p.n + "</span>", iconSize: [26, 26], iconAnchor: [13 - shift, 13] });
-        return L.marker([p.lat, p.lng], { icon: icon, keyboard: false, title: p.n + ". " + p.name })
-          .bindTooltip(p.n + ". " + p.name)
+        const label = p.n == null ? p.name : p.n + ". " + p.name;
+        const icon = p.n == null
+          ? L.divIcon({ className: "stop-pin topic-pin", html: "", iconSize: [18, 18], iconAnchor: [9 - shift * 0.7, 9] })
+          : L.divIcon({ className: "stop-pin", html: "<span>" + p.n + "</span>", iconSize: [26, 26], iconAnchor: [13 - shift, 13] });
+        return L.marker([p.lat, p.lng], { icon: icon, keyboard: false, title: label })
+          .bindTooltip(label)
           .on("click", function () { openArtifact(p.artifact_id); });
       });
-      if (pts.length > 1) {
+      if (data.route !== false && pts.length > 1) {
         L.polyline(layers.map(function (m) { return m.getLatLng(); }), {
           color: "#2563eb", weight: 3, opacity: 0.7, dashArray: "6 6",
         }).addTo(map);

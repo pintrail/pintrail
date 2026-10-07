@@ -1,0 +1,63 @@
+{# Linked artifacts card on a topic's page: every artifact that links to it,
+   all on one map. Re-rendered whole after every change. #}
+<h3>Linked artifacts</h3>
+{% if error %}<p class="flash err" role="alert">{{ error }}</p>{% endif %}
+
+{% if linked %}
+{% if placed %}
+<div class="map trail-map" data-trail-map></div>
+<script type="application/json" data-trail-data>{{ map_data }}</script>
+{% endif %}
+<ul class="links">
+  {% for a in linked %}
+  <li class="link">
+    <div class="link-view">
+      <div class="link-body">
+        <div class="stop-head">
+          <a class="stop-name" hx-get="/studio/artifacts/{{ a.id }}" hx-target="#detail" hx-push-url="true">{{ a.name or "(untitled)" }}</a>
+          <span class="kind-chip">{{ a.kind }}</span>
+          {% if a.status != "approved" %}<span class="status-chip status-{{ a.status }}">{{ status_labels[a.status] }}</span>{% endif %}
+          {% if a.parent_name %}<span class="hint">in {{ a.parent_name }}</span>{% endif %}
+        </div>
+        {% if a.note %}<p class="link-note stop-note">{{ a.note }}</p>{% endif %}
+        {% if not a.placed %}<p class="hint" style="margin:.2rem 0 0">No location yet, so it isn't on the map.</p>{% endif %}
+      </div>
+      {% if a.can_edit %}
+      <div class="link-actions">
+        <button type="button" class="icon-btn danger" title="Unlink" aria-label="Unlink {{ a.name }}"
+                hx-post="/studio/topics/{{ topic_id }}/artifacts/{{ a.id }}/delete" hx-vals='{"csrf_token": "{{ csrf_token }}"}'
+                hx-target="#topic-artifacts" hx-swap="innerHTML" hx-confirm="Unlink “{{ a.name }}” from this topic? The artifact itself is not affected.">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+      {% endif %}
+    </div>
+  </li>
+  {% endfor %}
+</ul>
+{% else %}
+<p class="hint">No artifacts link to this topic yet.</p>
+{% endif %}
+
+{% if can_create %}
+<div class="row" style="margin-top:.25rem">
+  <button class="btn-sm btn-primary" hx-get="/studio/artifacts/new?topic={{ topic_id }}" hx-target="#detail">+ Add a new artifact linked here</button>
+  <span class="hint">e.g. another bike share station</span>
+</div>
+{% if choices %}
+<form class="topic-add" hx-post="/studio/topics/{{ topic_id }}/artifacts" hx-target="#topic-artifacts" hx-swap="innerHTML" style="margin-top:1rem">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+  <div class="topic-add-row">
+    <label class="field"><span class="lbl">Or link one that already exists</span>
+      <select name="other_id" required>
+        <option value="">Choose an artifact…</option>
+        {% for c in choices %}<option value="{{ c.id }}">{{ c.label }}</option>{% endfor %}
+      </select></label>
+    <label class="field"><span class="lbl">Note <span class="hint">(optional)</span></span>
+      <input type="text" name="note" maxlength="200" placeholder="e.g. Gold, 2019"></label>
+    <button class="btn-primary" type="submit">Link</button>
+  </div>
+  {% if not is_admin %}<p class="help" style="margin:.4rem 0 0">Lists the artifacts you own. To link someone else's, ask them or an admin.</p>{% endif %}
+</form>
+{% endif %}
+{% endif %}

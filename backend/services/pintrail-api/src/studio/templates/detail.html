@@ -7,7 +7,7 @@
       <h1>{{ a.name or "(untitled)" }}</h1>
       <p class="subtitle">
         <span class="status-chip status-{{ a.status }}">{{ status_labels[a.status] }}</span>
-        <span class="kind-chip">{{ a.kind }}</span>
+        {% if a.is_topic %}<span class="kind-chip topic-chip">topic</span>{% else %}<span class="kind-chip">{{ a.kind }}</span>{% endif %}
         {% if a.parent_name %} · inside <a hx-get="/studio/artifacts/{{ a.parent_id }}" hx-target="#detail" hx-push-url="true" style="cursor:pointer">{{ a.parent_name }}</a>{% endif %}
       </p>
     </div>
@@ -21,7 +21,7 @@
               hx-post="/studio/artifacts/{{ a.id }}/delete"
               hx-vals='{"csrf_token": "{{ csrf_token }}"}'
               hx-target="#detail"
-              hx-confirm="Delete “{{ a.name }}” and everything nested inside it?">Delete</button>
+              hx-confirm="{% if a.is_topic %}Delete the topic “{{ a.name }}”? Artifacts linked to it stay, without the link.{% else %}Delete “{{ a.name }}” and everything nested inside it?{% endif %}">Delete</button>
       {% endif %}
     </div>
     {% endif %}
@@ -45,6 +45,13 @@
 
 {% include "studio_review_card.html" %}
 
+{% if a.is_topic %}
+<div class="card" id="topic-artifacts"
+     hx-get="/studio/topics/{{ a.id }}/artifacts"
+     hx-trigger="load"
+     hx-swap="innerHTML">
+</div>
+{% else %}
 <div class="card">
   <h3>Location</h3>
   {% if a.effective_lat is none %}
@@ -62,6 +69,13 @@
   {% endif %}
 </div>
 
+<div class="card" id="topics"
+     hx-get="/studio/artifacts/{{ a.id }}/topics"
+     hx-trigger="load"
+     hx-swap="innerHTML">
+</div>
+{% endif %}
+
 <div class="card" id="links"
      hx-get="/studio/artifacts/{{ a.id }}/links"
      hx-trigger="load"
@@ -74,7 +88,8 @@
      hx-swap="innerHTML">
 </div>
 
-{% if a.children %}
+{% if a.is_topic %}
+{% elif a.children %}
 <div class="card">
   <h3>Nested inside</h3>
   <ul class="tree">
