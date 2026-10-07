@@ -1,9 +1,9 @@
-{% from "studio_macros.html" import avatar %}
+{% from "studio_macros.html" import help, avatar %}
 {# Every author-curated trail. #}
 <div class="card">
   <div class="row">
     <div>
-      <h1>Trails</h1>
+      <h1>Trails{{ help("trails", "Walks through artifacts in order, which explorers follow in the app") }}</h1>
       <p class="subtitle" style="margin:0">A trail is a walk through artifacts in order, with a note at each stop. Explorers follow them in the app.</p>
     </div>
     {% if can_create %}

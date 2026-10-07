@@ -51,6 +51,9 @@ pub(super) fn environment() -> Environment<'static> {
         ("studio_topics.html", include_str!("templates/topics.html")),
         ("studio_artifact_topics.html", include_str!("templates/artifact_topics.html")),
         ("studio_topic_artifacts.html", include_str!("templates/topic_artifacts.html")),
+        ("studio_help.html", include_str!("templates/help.html")),
+        ("studio_help_index.html", include_str!("templates/help_index.html")),
+        ("studio_help_panel.html", include_str!("templates/help_panel.html")),
         (
             "studio_avatar.html",
             r#"{% from "studio_macros.html" import avatar %}{{ avatar(me) }}"#,
@@ -100,6 +103,7 @@ pub fn router() -> Router<AppState> {
         .merge(super::profile::router())
         .merge(super::trails::router())
         .merge(super::topics::router())
+        .merge(super::help::router())
 }
 
 // --- rendering helpers -----------------------------------------------------

@@ -1,7 +1,8 @@
+{% from "studio_macros.html" import help %}
 {# Create or edit a trail's title, description, and visibility. Stops are
    managed on the trail's own page. #}
 <div class="card">
-  <h1>{{ heading }}</h1>
+  <h1>{{ heading }}{{ help("creating-a-trail", "A walk through artifacts in order, with a note at each stop") }}</h1>
   {% if error %}<p class="flash err" role="alert">{{ error }}</p>{% endif %}
   <form hx-post="{{ action }}" hx-target="#detail">
     <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
@@ -12,7 +13,7 @@
       <textarea name="description" rows="5">{{ form.description }}</textarea>
       <span class="help">What the walk is about and why it's worth doing. Mention how long it takes and where it starts if that helps.</span></label>
     <fieldset class="field vis-choice">
-      <legend class="lbl">Who can see it</legend>
+      <legend class="lbl">Who can see it{{ help("sharing-a-trail", "Private while you build it; share by link; only an admin can make it public") }}</legend>
       <label><input type="radio" name="visibility" value="private" {{ 'checked' if form.visibility == 'private' }}>
         <span><strong>Private</strong> <span class="hint">Only Studio authors. Use this while you build it.</span></span></label>
       <label><input type="radio" name="visibility" value="unlisted" {{ 'checked' if form.visibility == 'unlisted' }}>

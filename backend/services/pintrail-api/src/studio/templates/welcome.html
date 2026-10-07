@@ -3,6 +3,7 @@
    the sidebar. #}
 <div class="empty">
   <p style="font-size:1.1rem;margin-bottom:.5rem">Select an artifact to view it.</p>
+  <p class="welcome-help">New here? Read <a href="/studio/help/welcome" hx-get="/studio/help/welcome" hx-target="#detail" hx-push-url="true">Welcome to the Studio</a>, or press <kbd>?</kbd> any time for the manual.</p>
   <p class="wide-only">{% if can_create %}Or create one with <strong>+ New</strong> in the sidebar.{% else %}You have read-only access.{% endif %}</p>
   <div class="phone-only welcome-actions">
     <button type="button" class="btn" data-nav-toggle>Browse artifacts</button>

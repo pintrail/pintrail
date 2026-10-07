@@ -1,9 +1,9 @@
-{% from "studio_macros.html" import avatar %}
+{% from "studio_macros.html" import help, avatar %}
 {# Every topic. #}
 <div class="card">
   <div class="row">
     <div>
-      <h1>Topics</h1>
+      <h1>Topics{{ help("topics", "Shared pages that many artifacts link to") }}</h1>
       <p class="subtitle" style="margin:0">A topic is one shared page that many artifacts link to, like <em>LEED certification</em> or <em>Valley Bike Share</em>. Write it once; every linked artifact shows it, and the topic's page puts all of them on one map.</p>
     </div>
     {% if can_create %}

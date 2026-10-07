@@ -1,9 +1,10 @@
+{% from "studio_macros.html" import help %}
 {# Create/edit form. `action` and `submit_label` differ between the two. The
    map and the latitude/longitude boxes stay in sync both ways (studio.js);
    Clear blanks them so the artifact inherits its parent's location. A failed
    save re-renders this form with `error` set and the author's input intact. #}
 <div class="card">
-  <h1>{{ heading }}</h1>
+  <h1>{{ heading }}{% if form.is_topic %}{{ help("creating-a-topic", "What a topic is, and what to write on it") }}{% elif is_new %}{{ help("adding-an-artifact", "Create it with a name and a place, then fill in the rest") }}{% else %}{{ help("editing", "Changing an artifact, and what happens to an approved one") }}{% endif %}</h1>
   {% if error %}<p class="flash err" role="alert">{{ error }}</p>{% endif %}
 
   <form hx-post="{{ action }}" hx-target="#detail" hx-swap="innerHTML" data-artifact-form>
@@ -16,11 +17,11 @@
     {% endif %}
 
     {% if form.is_topic %}
-    <label class="field"><span class="lbl">Name</span>
+    <label class="field"><span class="lbl">Name{{ help("creating-a-topic", "Name the shared idea, not one artifact: LEED certification, not Integrative Learning Center") }}</span>
       <input type="text" name="name" value="{{ form.name }}" required maxlength="200" autofocus>
       <span class="help">The shared idea, e.g. <em>LEED certification</em> or <em>Valley Bike Share</em>.</span></label>
     {% else %}
-    <label class="field"><span class="lbl">Name</span>
+    <label class="field"><span class="lbl">Name{{ help("artifacts", "What people on campus call it. Keep it short.", "naming-an-artifact") }}</span>
       <input type="text" name="name" value="{{ form.name }}" required maxlength="200" autofocus>
       <span class="help">What people call it, e.g. <em>Old Chapel</em> or <em>Lot 49 solar canopy</em>.</span></label>
     {% endif %}
@@ -32,7 +33,7 @@
     {% if not form.is_topic %}
     <div class="field-row">
       {% if not is_new %}
-      <label class="field"><span class="lbl">Kind</span>
+      <label class="field"><span class="lbl">Kind{{ help("kinds", "What sort of thing it is: building, room, artwork, installation, rooftop, or other") }}</span>
         <select name="kind" data-kind-select>
           {% for k in kinds %}
           <option value="{{ k }}" {{ 'selected' if k == form.kind }}>{{ k }}</option>
@@ -48,7 +49,7 @@
         </span></label>
       {% endif %}
 
-      <label class="field"><span class="lbl">Inside (parent)</span>
+      <label class="field"><span class="lbl">Inside (parent){{ help("nesting", "The artifact this one sits in or on. Leave it as none for a building.") }}</span>
         <select name="parent_id" id="f-parent" data-parent-select>
           <option value="">— none (top level) —</option>
           {% for p in parents %}
@@ -60,7 +61,7 @@
     {% endif %}
 
     {% if owners %}
-    <label class="field"><span class="lbl">Owner</span>
+    <label class="field"><span class="lbl">Owner{{ help("owners-and-recovery", "Admins only: who can change this artifact", "giving-an-artifact-to-someone-else") }}</span>
       <select name="owner_id">
         <option value="">— no owner —</option>
         {% for o in owners %}<option value="{{ o.id }}" {{ 'selected' if o.id == form.owner_id }}>{{ o.label }}</option>{% endfor %}
@@ -69,7 +70,7 @@
     {% endif %}
 
     {% if not is_new or form.is_topic %}
-    <label class="field"><span class="lbl">Description</span>
+    <label class="field"><span class="lbl">Description{{ help("writing-descriptions", "What it is, why it matters, and how it works. Written for someone standing in front of it.") }}</span>
       <textarea name="description" rows="8">{{ form.description }}</textarea>
       {% if form.is_topic %}
       <span class="help">Every artifact linked to this topic shows this text, so write what is true of all of them: <strong>what</strong> it is and <strong>why</strong> it matters. Things that differ from one artifact to the next (a rating, a year, a number of docks) go in each artifact's own description, or in the short note on its link.</span>
@@ -78,7 +79,7 @@
       {% endif %}</label>
 
     <div class="field">
-      <span class="lbl" id="tags-lbl">Tags</span>
+      <span class="lbl" id="tags-lbl">Tags{{ help("tags", "Themes people search by, like solar or stormwater. Reuse existing tags.") }}</span>
       <div class="tag-input" data-tag-input>
         <ul class="chips" aria-labelledby="tags-lbl"></ul>
         <input type="text" list="tag-suggestions" aria-labelledby="tags-lbl" placeholder="Add a tag, then press Enter" maxlength="60">
@@ -93,7 +94,7 @@
 
     {% if not form.is_topic %}
     <div class="field">
-      <span class="lbl">Location
+      <span class="lbl">Location{{ help("location", "Click the map on the exact spot. A nested artifact can use its parent's location.") }}
         <span class="req-badge" data-loc-required>required for a top-level artifact</span>
         <span class="opt-badge" data-loc-optional>uses the parent's unless you set one</span></span>
       <div class="map"
@@ -109,8 +110,8 @@
                aria-label="Latitude" value="{{ form.lat }}" class="coord">
         <input type="text" inputmode="decimal" id="f-lng" name="lng" placeholder="longitude"
                aria-label="Longitude" value="{{ form.lng }}" class="coord">
-        <button type="button" class="btn-sm" id="f-clear">Clear (use parent's)</button>
-        <button type="button" class="btn-sm btn-locate" id="f-locate" title="Put the pin where this device is">
+        <button type="button" class="btn-sm" id="f-clear" data-tip="Remove this artifact's own location, so it uses its parent's">Clear (use parent's)</button>
+        <button type="button" class="btn-sm btn-locate" id="f-locate" data-tip="Put the pin where this device is">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>
           Use my location</button>
       </div>

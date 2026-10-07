@@ -1,0 +1,41 @@
+{# One page of the manual, in the main area, with the contents alongside.
+   Links between pages stay in the main area (hx-boost); "On this page"
+   links scroll within it. #}
+{% macro nav(contents) %}
+<nav class="help-nav" aria-label="Manual contents" hx-boost="true" hx-target="#detail" hx-swap="innerHTML show:window:top">
+  <a class="help-home" href="/studio/help">Studio manual</a>
+  {% for s in contents %}
+  <details {{ 'open' if s.open }}>
+    <summary>{{ s.title }}</summary>
+    <ul>
+      {% for p in s.pages %}
+      <li><a href="/studio/help/{{ p.slug }}" {% if p.current %}aria-current="page"{% endif %}>{{ p.title }}</a></li>
+      {% endfor %}
+    </ul>
+  </details>
+  {% endfor %}
+</nav>
+{% endmacro %}
+
+<div class="help-layout">
+  <div class="help-nav-wrap card">
+    <button type="button" class="help-nav-btn" data-help-nav-toggle aria-expanded="false">Contents</button>
+    {{ nav(contents) }}
+  </div>
+  <article class="card help-article" hx-boost="true" hx-target="#detail" hx-swap="innerHTML show:window:top">
+    <p class="crumbs"><a href="/studio/help">Studio manual</a> <span aria-hidden="true">›</span> {{ section }}</p>
+    <h1>{{ page_title }}</h1>
+    <p class="subtitle">{{ summary }}</p>
+    {% if outline | length > 2 %}
+    <nav class="on-this-page" aria-label="On this page">
+      <span class="lbl">On this page</span>
+      <ul>{% for h in outline %}<li><a href="#{{ h.id }}" hx-boost="false">{{ h.title }}</a></li>{% endfor %}</ul>
+    </nav>
+    {% endif %}
+    <div class="prose">{{ body }}</div>
+    <nav class="help-pager" aria-label="Previous and next page">
+      {% if prev %}<a class="prev" href="/studio/help/{{ prev.slug }}"><span class="hint">Previous</span>{{ prev.title }}</a>{% else %}<span></span>{% endif %}
+      {% if next %}<a class="next" href="/studio/help/{{ next.slug }}"><span class="hint">Next</span>{{ next.title }}</a>{% endif %}
+    </nav>
+  </article>
+</div>

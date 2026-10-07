@@ -5,7 +5,7 @@
 <li>
   <a class="node {{ 'active' if a.id == selected_id }}"
      hx-get="/studio/artifacts/{{ a.id }}" hx-target="#detail" hx-push-url="true">
-    <span class="status-dot status-{{ a.status }}" title="{{ status_labels[a.status] }}"></span>
+    <span class="status-dot status-{{ a.status }}" data-tip="{{ status_labels[a.status] }}"></span>
     <span class="kind-chip">{{ a.kind }}</span>
     <span>{{ a.name or "(untitled)" }}</span>
   </a>
@@ -18,7 +18,7 @@
 {% endmacro %}
 
 {% if can_create %}
-<label class="mine-toggle">
+<label class="mine-toggle" data-tip="Show only the artifacts you added">
   <input type="checkbox" name="mine" value="1" {{ 'checked' if mine }}
          hx-get="/studio/tree" hx-target="#tree" hx-swap="innerHTML" hx-trigger="change">
   Only mine

@@ -7,6 +7,7 @@
 //! Reuses admin::csrf and the artifacts coordinate-resolution query.
 
 pub mod assets;
+pub mod help;
 pub mod preview;
 pub mod profile;
 pub mod review;

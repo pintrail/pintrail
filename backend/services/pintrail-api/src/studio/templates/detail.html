@@ -1,4 +1,4 @@
-{% from "studio_macros.html" import who %}
+{% from "studio_macros.html" import help, who %}
 {# Artifact detail. Swapped into #detail on selection, or wrapped in page.html
    for a direct load. #}
 <div class="card">
@@ -6,21 +6,22 @@
     <div>
       <h1>{{ a.name or "(untitled)" }}</h1>
       <p class="subtitle">
-        <span class="status-chip status-{{ a.status }}">{{ status_labels[a.status] }}</span>
-        {% if a.is_topic %}<span class="kind-chip topic-chip">topic</span>{% else %}<span class="kind-chip">{{ a.kind }}</span>{% endif %}
+        <span class="status-chip status-{{ a.status }}" data-tip="{% if a.status == 'approved' %}Approved: shown in the Pintrail app.{% elif a.status == 'ready' %}Waiting for an admin to review it. Not in the app yet.{% else %}Draft: only Studio authors can see it.{% endif %}">{{ status_labels[a.status] }}</span>
+        {% if a.is_topic %}<span class="kind-chip topic-chip" data-tip="A topic: a shared page that artifacts link to. It has no place of its own.">topic</span>{% else %}<span class="kind-chip" data-tip="Kind: what sort of thing this is. Change it with Edit.">{{ a.kind }}</span>{% endif %}
         {% if a.parent_name %} · inside <a hx-get="/studio/artifacts/{{ a.parent_id }}" hx-target="#detail" hx-push-url="true" style="cursor:pointer">{{ a.parent_name }}</a>{% endif %}
       </p>
     </div>
     {% if can_edit or can_delete %}
     <div class="push row">
       {% if can_edit %}
-      <button class="btn-sm" hx-get="/studio/artifacts/{{ a.id }}/edit" hx-target="#detail">Edit</button>
+      <button class="btn-sm" hx-get="/studio/artifacts/{{ a.id }}/edit" hx-target="#detail" data-tip="Change the name, kind, description, tags, parent, or location">Edit</button>
       {% endif %}
       {% if can_delete %}
       <button class="btn-sm btn-danger"
               hx-post="/studio/artifacts/{{ a.id }}/delete"
               hx-vals='{"csrf_token": "{{ csrf_token }}"}'
               hx-target="#detail"
+              data-tip="Delete this, and everything nested inside it. An admin can restore it."
               hx-confirm="{% if a.is_topic %}Delete the topic “{{ a.name }}”? Artifacts linked to it stay, without the link.{% else %}Delete “{{ a.name }}” and everything nested inside it?{% endif %}">Delete</button>
       {% endif %}
     </div>
@@ -51,7 +52,7 @@
 {% set done_linked = a.linked_count > 0 %}
 {% if just_created or not (done_desc and done_kind and done_links and (done_media or a.is_topic) and (done_linked or not a.is_topic)) %}
 <div class="card next-steps{{ ' just-created' if just_created }}">
-  <h3>{% if just_created %}Created. Next, fill it in{% else %}Finish this {{ "topic" if a.is_topic else "artifact" }}{% endif %}</h3>
+  <h3>{% if just_created %}Created. Next, fill it in{% else %}Finish this {{ "topic" if a.is_topic else "artifact" }}{% endif %}{{ help("adding-an-artifact", "What a finished artifact has, before you submit it for review", "step-2-fill-it-in") }}</h3>
   <ul class="checklist">
     <li class="{{ 'done' if done_desc }}"><span class="tick" aria-hidden="true"></span>
       <span>A <strong>description</strong>{% if not a.is_topic %}, a <strong>kind</strong>,{% endif %} and <strong>tags</strong>
@@ -82,7 +83,7 @@
 </div>
 {% else %}
 <div class="card">
-  <h3>Location</h3>
+  <h3>Location{{ help("location", "Where the artifact is. Things inside a building can use the building's location.") }}</h3>
   {% if a.effective_lat is none %}
     <p class="hint">No coordinates set, and no ancestor has any. This artifact will not geofence until it or a parent gets a location.</p>
   {% else %}
@@ -120,7 +121,7 @@
 {% if a.is_topic %}
 {% elif a.children %}
 <div class="card">
-  <h3>Nested inside</h3>
+  <h3>Nested inside{{ help("nesting", "Artifacts that sit inside this one, like a building's roof, rooms, or systems") }}</h3>
   <ul class="tree">
     {% for c in a.children %}
     <li><a class="node" hx-get="/studio/artifacts/{{ c.id }}" hx-target="#detail" hx-push-url="true">
@@ -135,7 +136,7 @@
 {% elif can_create %}
 <div class="card">
   <button class="btn-sm" hx-get="/studio/artifacts/new?parent={{ a.id }}" hx-target="#detail">+ Add a nested artifact</button>
-  <span class="hint" style="margin-left:.5rem">e.g. a room or object inside this one</span>
+  <span class="hint" style="margin-left:.5rem">e.g. a room or object inside this one</span>{{ help("adding-inside", "Add something that belongs to this artifact, like a green roof on a building") }}
 </div>
 {% endif %}
 

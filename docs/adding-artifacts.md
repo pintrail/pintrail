@@ -1,6 +1,6 @@
 # Adding artifacts in the Pintrail Studio
 
-A step-by-step guide for authors adding campus artifacts to Pintrail.
+A step-by-step guide for authors adding campus artifacts to Pintrail. The Studio also has a fuller manual built in: click **Help** at the top of the Studio.
 
 An **artifact** is anything on campus worth stopping for: a building, a room, a rooftop, a piece of art, or an installation such as a solar canopy or a rain garden. Artifacts can sit **inside** other artifacts. A building can hold its green roof, its stormwater system, or a room, and those can hold their own artifacts in turn. Later, artifacts get grouped into **trails** that people walk with the Pintrail app.
 
@@ -229,5 +229,7 @@ The example artifacts follow this pattern, including their tags and source links
 You can delete only artifacts you added, and only if nothing inside them belongs to someone else and none of them has been approved. If you delete something by mistake, ask your instructor: a deleted artifact can be restored, with everything that was inside it and its photos.
 
 ## Getting help
+
+The Studio has its own manual: click **Help** at the top of the page, or press **?** anywhere. Hover over a button or label for a short tip, and click a small **?** next to a heading or field to read about it in a panel without leaving the page.
 
 If something in the Studio doesn't work the way this guide says, email your instructor with a screenshot and the name of the artifact you were working on.

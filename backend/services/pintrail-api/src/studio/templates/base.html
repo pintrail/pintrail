@@ -307,6 +307,80 @@
     .checklist li.done { color: var(--muted); }
     .checklist li.done strong { font-weight: 500; }
     .checklist li.done .tick { background: var(--ok); border-color: var(--ok); }
+    /* Help: the "?" buttons, the floating tip, the panel, and the manual. */
+    .help-btn { display: inline-flex; align-items: center; gap: .3rem; }
+    .help-q { width: 1.15rem; height: 1.15rem; padding: 0; border-radius: 50%; font: 700 .72rem/1 system-ui, sans-serif;
+      color: var(--muted); border: 1px solid var(--line); background: var(--panel); display: inline-grid; place-items: center;
+      vertical-align: .1em; margin-left: .35rem; cursor: help; text-transform: none; letter-spacing: 0; }
+    .help-q:hover, .help-q:focus-visible { color: var(--accent); border-color: var(--accent); }
+    .tip-pop { position: fixed; z-index: 3000; max-width: 280px; padding: .45rem .6rem; border-radius: .45rem;
+      background: #1c1d22; color: #f4f5f7; font-size: .82rem; line-height: 1.35; box-shadow: 0 4px 14px rgba(0,0,0,.25); pointer-events: none; }
+    @media (prefers-color-scheme: dark) { .tip-pop { background: #f4f5f7; color: #1c1d22; } }
+    .help-panel { position: fixed; top: 0; right: 0; bottom: 0; z-index: 2000; width: min(460px, 100vw); background: var(--panel);
+      border-left: 1px solid var(--line); box-shadow: -8px 0 28px rgba(0,0,0,.18); overflow-y: auto; padding: 1rem 1.25rem 1.5rem; }
+    .help-panel-head { display: flex; gap: .75rem; align-items: flex-start; justify-content: space-between; position: sticky; top: -1rem;
+      background: var(--panel); padding: 1rem 0 .5rem; margin-top: -1rem; border-bottom: 1px solid var(--line); margin-bottom: .75rem; }
+    .help-panel-head h2 { margin: 0; font-size: 1.15rem; }
+    .help-panel-foot { display: flex; gap: .5rem; flex-wrap: wrap; border-top: 1px solid var(--line); padding-top: .9rem; margin-top: 1.25rem; }
+    .crumbs { margin: 0 0 .3rem; color: var(--muted); font-size: .8rem; }
+    .help-layout { display: grid; grid-template-columns: 230px minmax(0, 1fr); gap: 1.25rem; align-items: start; }
+    .help-nav-wrap { position: sticky; top: 4.5rem; padding: .75rem .9rem; max-height: calc(100vh - 6rem); overflow-y: auto; }
+    .help-nav-btn { display: none; width: 100%; text-align: left; font-weight: 600; }
+    .help-nav { font-size: .9rem; }
+    .help-nav .help-home { display: block; font-weight: 600; margin-bottom: .5rem; }
+    .help-nav details { margin: .2rem 0; }
+    .help-nav summary { cursor: pointer; color: var(--muted); font-size: .75rem; text-transform: uppercase; letter-spacing: .04em; padding: .3rem 0; }
+    .help-nav ul { list-style: none; margin: 0 0 .4rem; padding: 0 0 0 .5rem; border-left: 1px solid var(--line); }
+    .help-nav li a { display: block; padding: .2rem .5rem; border-radius: .35rem; color: var(--ink); text-decoration: none; }
+    .help-nav li a:hover { background: var(--chip); }
+    .help-nav li a[aria-current] { background: color-mix(in srgb, var(--accent) 14%, transparent); color: var(--accent); font-weight: 600; }
+    .help-article { padding: 1.5rem 1.75rem 1.25rem; }
+    .help-article h1 { margin: 0 0 .25rem; }
+    .on-this-page { background: var(--chip); border-radius: .5rem; padding: .6rem .9rem; margin: .25rem 0 1.25rem; font-size: .9rem; }
+    .on-this-page .lbl { display: block; color: var(--muted); font-size: .75rem; text-transform: uppercase; letter-spacing: .04em; margin-bottom: .2rem; }
+    .on-this-page ul { margin: 0; padding-left: 1.1rem; columns: 2 220px; }
+    .prose { line-height: 1.6; max-width: 46rem; }
+    .prose h2 { font-size: 1.2rem; margin: 1.75rem 0 .5rem; padding-top: .25rem; scroll-margin-top: 5rem; }
+    .prose h3 { font-size: 1rem; margin: 1.25rem 0 .4rem; scroll-margin-top: 5rem; }
+    .prose p, .prose ul, .prose ol { margin: .55rem 0; }
+    .prose li { margin: .2rem 0; }
+    .prose code { background: var(--chip); padding: .05rem .3rem; border-radius: .25rem; font-size: .9em; }
+    .prose .table-wrap { overflow-x: auto; margin: .75rem 0; }
+    .prose table { border-collapse: collapse; width: 100%; font-size: .93rem; }
+    .prose th, .prose td { border: 1px solid var(--line); padding: .4rem .6rem; text-align: left; vertical-align: top; }
+    .prose th { background: var(--chip); }
+    .prose .callout { margin: .9rem 0; padding: .6rem .9rem; border-radius: .5rem; border-left: 4px solid var(--line); background: var(--chip); }
+    .prose .callout p { margin: .3rem 0; }
+    .prose .callout.example { border-left-color: #8b5cf6; background: color-mix(in srgb, #8b5cf6 8%, var(--panel)); }
+    .prose .callout.tip { border-left-color: var(--ok); background: color-mix(in srgb, var(--ok) 8%, var(--panel)); }
+    .prose .callout.note { border-left-color: var(--accent); background: color-mix(in srgb, var(--accent) 8%, var(--panel)); }
+    .prose .callout.warn { border-left-color: #d97706; background: color-mix(in srgb, #d97706 10%, var(--panel)); }
+    .prose kbd { border: 1px solid var(--line); border-bottom-width: 2px; border-radius: .3rem; padding: 0 .3rem; font-size: .85em; }
+    .help-pager { display: flex; justify-content: space-between; gap: 1rem; border-top: 1px solid var(--line); margin-top: 2rem; padding-top: 1rem; }
+    .help-pager a { display: flex; flex-direction: column; text-decoration: none; max-width: 48%; }
+    .help-pager a.next { text-align: right; margin-left: auto; }
+    .help-hero h1 { margin-bottom: .3rem; }
+    .help-search { display: flex; align-items: center; gap: .5rem; margin-top: 1rem; border: 1px solid var(--line); border-radius: .6rem; padding: .1rem .7rem; background: var(--bg); color: var(--muted); }
+    .help-search input { border: 0; background: transparent; flex: 1; padding: .6rem 0; font-size: 1rem; outline: none; }
+    .help-search:focus-within { border-color: var(--accent); }
+    .help-results { list-style: none; padding: 0; margin: .75rem 0 0; display: grid; gap: .5rem; }
+    .help-results li { border: 1px solid var(--line); border-radius: .5rem; padding: .55rem .75rem; }
+    .help-results a { font-weight: 600; }
+    .help-results .snippet { display: block; color: var(--muted); font-size: .88rem; margin-top: .15rem; }
+    .help-results mark { background: color-mix(in srgb, #facc15 45%, transparent); color: inherit; border-radius: .15rem; }
+    .help-sections { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.25rem; }
+    .help-sections .card { margin: 0; }
+    .help-list { list-style: none; margin: 0; padding: 0; display: grid; gap: .55rem; }
+    .help-list li { display: flex; flex-direction: column; }
+    .help-list .hint { font-size: .85rem; }
+    @media (max-width: 860px) {
+      .help-layout { grid-template-columns: minmax(0, 1fr); }
+      .help-nav-wrap { position: static; max-height: none; }
+      .help-nav-btn { display: block; }
+      .help-nav-wrap:not(.open) .help-nav { display: none; }
+      .help-nav-wrap.open .help-nav { margin-top: .6rem; }
+      .help-article { padding: 1.1rem 1rem; }
+    }
     .topic-chip { background: color-mix(in srgb, #8b5cf6 14%, transparent); color: #8b5cf6; border-color: color-mix(in srgb, #8b5cf6 40%, var(--line)); }
     .topic-pin { background: #7c3aed; }
     .topic-shared { margin: .35rem .2rem 0; white-space: pre-line; color: var(--muted); font-size: .92rem; border-left: 3px solid color-mix(in srgb, #7c3aed 40%, var(--line)); padding-left: .6rem; }
@@ -351,8 +425,12 @@
     </button>
     <a class="brand" href="/studio"><span class="dot"></span> Pintrail Studio</a>
     <span class="spacer"></span>
+    <button type="button" class="btn-sm help-btn" hx-get="/studio/help" hx-target="#detail" hx-push-url="true" data-tip="The Studio manual. Press ? anywhere to open it." aria-label="Help">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9.5"/><path d="M9.3 9.2a2.8 2.8 0 0 1 5.4 1c0 1.9-2.7 2.4-2.7 4.1"/><circle cx="12" cy="17.6" r=".6" fill="currentColor"/></svg>
+      <span class="wide-only">Help</span></button>
+    {% if is_admin %}<a class="btn btn-sm wide-only" href="/admin/authors" data-tip="Add and manage authors, moderate comments and explorers' trails">Admin panel</a>{% endif %}
     {% from "studio_macros.html" import avatar %}
-    <a class="me-link" href="/studio/profile" title="Your profile ({{ author.email }})">
+    <a class="me-link" href="/studio/profile" data-tip="Your profile and password ({{ author.email }})">
       <span id="header-avatar" hx-get="/studio/profile/header-avatar" hx-trigger="profile-photo-changed from:body" hx-swap="innerHTML">{{ avatar(me) }}</span>
       <span class="who"><span class="me-name">{{ me.name }}</span><span class="wide-only"> · {{ author.role }}</span></span>
     </a>
@@ -368,16 +446,16 @@
         <button type="button" class="icon-btn nav-close" data-nav-close aria-label="Close artifact list">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
         </button>
-        <h2>Artifacts</h2>
+        {% from "studio_macros.html" import help %}<h2>Artifacts{{ help("finding-your-way", "Every artifact; ones inside another are indented under it. The dot is its review status.") }}</h2>
         <span class="push"></span>
         {% if can_create %}
-        <button class="btn-sm btn-primary" hx-get="/studio/artifacts/new" hx-target="#detail">+ New</button>
+        <button class="btn-sm btn-primary" hx-get="/studio/artifacts/new" hx-target="#detail" data-tip="Add an artifact: start with its name and where it is">+ New</button>
         {% endif %}
       </div>
       <nav class="view-links" aria-label="Views">
-        <button class="btn-sm" hx-get="/studio/map" hx-target="#detail" hx-push-url="true" title="Every artifact on one map">Map</button>
-        <button class="btn-sm" hx-get="/studio/trails" hx-target="#detail" hx-push-url="true" title="Walks through artifacts, in order">Trails</button>
-        <button class="btn-sm" hx-get="/studio/topics" hx-target="#detail" hx-push-url="true" title="Shared pages many artifacts link to">Topics</button>
+        <button class="btn-sm" hx-get="/studio/map" hx-target="#detail" hx-push-url="true" data-tip="Every artifact on one map">Map</button>
+        <button class="btn-sm" hx-get="/studio/trails" hx-target="#detail" hx-push-url="true" data-tip="Walks through artifacts, in order">Trails</button>
+        <button class="btn-sm" hx-get="/studio/topics" hx-target="#detail" hx-push-url="true" data-tip="Shared pages many artifacts link to">Topics</button>
       </nav>
       {% if is_admin %}
       <div class="admin-links">
@@ -397,6 +475,12 @@
       {% block detail %}{% endblock %}
     </main>
   </div>
+  {# The help panel: a manual page that slides in from the right when a "?"
+     is clicked, over whatever is open, so a half-filled form isn't lost. #}
+  <aside class="help-panel" id="help-panel" aria-label="Help" tabindex="-1" hidden>
+    <div id="help-panel-body"></div>
+  </aside>
+  <div class="tip-pop" id="tip-pop" role="tooltip" hidden></div>
 {% else %}
   {% block content %}{% endblock %}
 {% endif %}

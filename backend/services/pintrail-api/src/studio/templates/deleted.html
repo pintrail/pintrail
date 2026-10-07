@@ -1,7 +1,7 @@
-{% from "studio_macros.html" import avatar %}
+{% from "studio_macros.html" import help, avatar %}
 {# Admin: recently deleted artifacts, with Restore. #}
 <div class="card">
-  <h1>Recently deleted</h1>
+  <h1>Recently deleted{{ help("owners-and-recovery", "Deleted artifacts, and restoring them with everything that was inside", "restoring-a-deleted-artifact") }}</h1>
   <p class="subtitle" style="margin:0">Restoring brings back the artifact and everything that was deleted with it. Its history is kept either way.</p>
 </div>
 <div class="card">

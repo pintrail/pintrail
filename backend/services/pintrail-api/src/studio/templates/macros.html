@@ -14,3 +14,10 @@
 {%- if p -%}<span class="who-chip">{{ avatar(p) }}<span>{{ p.name }}</span></span>
 {%- else -%}{{ fallback }}{%- endif -%}
 {%- endmacro %}
+
+{# A "?" that shows a one-line tip on hover or focus and, when clicked,
+   opens the manual at `page` (optionally at a heading's `anchor`) in the
+   help panel. Use it beside a card title or a form label. #}
+{% macro help(page, tip, anchor="") -%}
+<button type="button" class="help-q" data-tip="{{ tip }}" data-help="{{ page }}{% if anchor %}#{{ anchor }}{% endif %}" aria-label="Help: {{ tip }}">?</button>
+{%- endmacro %}

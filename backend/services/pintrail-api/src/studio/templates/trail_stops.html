@@ -1,6 +1,7 @@
+{% from "studio_macros.html" import help %}
 {# The stops card. Re-rendered whole after every change, so the numbers,
    the map, and the list always agree. #}
-<h3>Stops</h3>
+<h3>Stops{{ help("trail-stops", "Add artifacts in walking order. Drag the grip to reorder.") }}</h3>
 {% if error %}<p class="flash err" role="alert">{{ error }}</p>{% endif %}
 {% if unpublished %}
 <p class="flash">{{ unpublished }} stop{{ "s" if unpublished != 1 }} {{ "aren't" if unpublished != 1 else "isn't" }} approved yet. Explorers see {{ "them" if unpublished != 1 else "it" }} as "not available" until {{ "they're" if unpublished != 1 else "it's" }} approved.</p>
@@ -15,7 +16,7 @@
   <li class="link stop" data-id="{{ s.id }}">
     <div class="link-view">
       {% if can_edit %}
-      <button type="button" class="grip" title="Drag to reorder (or use the arrow keys)" aria-label="Move stop {{ s.n }}, {{ s.name }}">
+      <button type="button" class="grip" data-tip="Drag to reorder (or use the arrow keys)" aria-label="Move stop {{ s.n }}, {{ s.name }}">
         <svg width="12" height="18" viewBox="0 0 12 18" aria-hidden="true"><g fill="currentColor"><circle cx="3" cy="3" r="1.6"/><circle cx="9" cy="3" r="1.6"/><circle cx="3" cy="9" r="1.6"/><circle cx="9" cy="9" r="1.6"/><circle cx="3" cy="15" r="1.6"/><circle cx="9" cy="15" r="1.6"/></g></svg>
       </button>
       {% endif %}
@@ -34,10 +35,10 @@
       </div>
       {% if can_edit %}
       <div class="link-actions">
-        <button type="button" class="icon-btn" data-edit-link title="Edit note" aria-label="Edit the note for stop {{ s.n }}">
+        <button type="button" class="icon-btn" data-edit-link data-tip="Edit note" aria-label="Edit the note for stop {{ s.n }}">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
         </button>
-        <button type="button" class="icon-btn danger" title="Remove stop" aria-label="Remove stop {{ s.n }}"
+        <button type="button" class="icon-btn danger" data-tip="Remove stop" aria-label="Remove stop {{ s.n }}"
                 hx-post="/studio/trail-stops/{{ s.id }}/delete" hx-vals='{"csrf_token": "{{ csrf_token }}"}'
                 hx-target="#stops" hx-swap="innerHTML" hx-confirm="Remove “{{ s.name }}” from this trail? The artifact itself is not affected.">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>

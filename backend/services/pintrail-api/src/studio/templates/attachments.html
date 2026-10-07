@@ -1,8 +1,9 @@
+{% from "studio_macros.html" import help %}
 {# Attachment gallery, swapped into #attachments. Re-fetches itself on a delay
    while anything is still processing, so a freshly uploaded photo turns into a
    thumbnail without a manual refresh. #}
 <div class="row">
-  <h3 style="margin:0">Media</h3>
+  <h3 style="margin:0">Media{{ help("media", "Photos and PDFs about this artifact. JPEG, PNG, WebP, HEIC, or PDF.") }}</h3>
   {% if can_edit %}
   <span class="push"></span>
   <label class="btn btn-sm touch-only" style="cursor:pointer">

@@ -1,6 +1,7 @@
+{% from "studio_macros.html" import help %}
 {# The signed-in author's own profile. #}
 <div class="card">
-  <h1>Your profile</h1>
+  <h1>Your profile{{ help("signing-in", "Your name and photo appear on everything you add", "your-profile") }}</h1>
   <p class="subtitle" style="margin:0">Signed in as {{ email }}. This is how you appear to everyone else in the Studio: on artifacts you add, in the review list, and in each artifact's history.</p>
 </div>
 
