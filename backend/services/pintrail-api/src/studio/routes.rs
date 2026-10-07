@@ -44,6 +44,10 @@ pub(super) fn environment() -> Environment<'static> {
         ("studio_deleted.html", include_str!("templates/deleted.html")),
         ("studio_review_card.html", include_str!("templates/review_card.html")),
         ("studio_macros.html", include_str!("templates/macros.html")),
+        ("studio_trails.html", include_str!("templates/trails.html")),
+        ("studio_trail.html", include_str!("templates/trail.html")),
+        ("studio_trail_form.html", include_str!("templates/trail_form.html")),
+        ("studio_trail_stops.html", include_str!("templates/trail_stops.html")),
         (
             "studio_avatar.html",
             r#"{% from "studio_macros.html" import avatar %}{{ avatar(me) }}"#,
@@ -57,6 +61,12 @@ pub(super) fn environment() -> Environment<'static> {
         "status_labels",
         Value::from_serialize(serde_json::json!({
             "draft": "Draft", "ready": "Ready for review", "approved": "Approved",
+        })),
+    );
+    env.add_global(
+        "visibility_labels",
+        Value::from_serialize(serde_json::json!({
+            "private": "Private", "unlisted": "Anyone with the link", "public": "Public",
         })),
     );
     env.add_global("studio_js_version", super::assets::studio_js_version());
@@ -85,6 +95,7 @@ pub fn router() -> Router<AppState> {
         .route("/studio/links/{id}/delete", post(delete_link))
         .merge(super::review::router())
         .merge(super::profile::router())
+        .merge(super::trails::router())
 }
 
 // --- rendering helpers -----------------------------------------------------
@@ -1032,7 +1043,7 @@ async fn map_view(
 /// escaped as \u sequences (still valid JSON) so an artifact named
 /// "</script>" cannot end the block early; marked safe so autoescaping leaves
 /// the quotes alone.
-fn script_json(data: &serde_json::Value) -> Value {
+pub(super) fn script_json(data: &serde_json::Value) -> Value {
     let json = data
         .to_string()
         .replace('<', "\\u003c")

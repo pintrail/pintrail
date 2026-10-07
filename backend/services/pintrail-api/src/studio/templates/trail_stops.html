@@ -1,0 +1,79 @@
+{# The stops card. Re-rendered whole after every change, so the numbers,
+   the map, and the list always agree. #}
+<h3>Stops</h3>
+{% if error %}<p class="flash err" role="alert">{{ error }}</p>{% endif %}
+{% if unpublished %}
+<p class="flash">{{ unpublished }} stop{{ "s" if unpublished != 1 }} {{ "aren't" if unpublished != 1 else "isn't" }} approved yet. Explorers see {{ "them" if unpublished != 1 else "it" }} as "not available" until {{ "they're" if unpublished != 1 else "it's" }} approved.</p>
+{% endif %}
+
+{% if stops %}
+<div class="map trail-map" data-trail-map></div>
+<script type="application/json" data-trail-data>{{ map_data }}</script>
+
+<ol class="links stops" data-sortable="/studio/trails/{{ trail_id }}/stops/order" data-sortable-target="#stops" data-csrf="{{ csrf_token }}">
+  {% for s in stops %}
+  <li class="link stop" data-id="{{ s.id }}">
+    <div class="link-view">
+      {% if can_edit %}
+      <button type="button" class="grip" title="Drag to reorder (or use the arrow keys)" aria-label="Move stop {{ s.n }}, {{ s.name }}">
+        <svg width="12" height="18" viewBox="0 0 12 18" aria-hidden="true"><g fill="currentColor"><circle cx="3" cy="3" r="1.6"/><circle cx="9" cy="3" r="1.6"/><circle cx="3" cy="9" r="1.6"/><circle cx="9" cy="9" r="1.6"/><circle cx="3" cy="15" r="1.6"/><circle cx="9" cy="15" r="1.6"/></g></svg>
+      </button>
+      {% endif %}
+      <span class="stop-num" aria-hidden="true">{{ s.n }}</span>
+      <div class="link-body">
+        <div class="stop-head">
+          {% if s.deleted %}<strong class="muted-strike">{{ s.name }}</strong> <span class="status-chip status-draft">deleted</span>
+          {% else %}<a class="stop-name" hx-get="/studio/artifacts/{{ s.artifact_id }}" hx-target="#detail" hx-push-url="true">{{ s.name or "(untitled)" }}</a>{% endif %}
+          <span class="kind-chip">{{ s.kind }}</span>
+          {% if not s.deleted and not s.published %}<span class="status-chip status-{{ s.status }}">{{ status_labels[s.status] if s.status != "approved" else "inside an unapproved artifact" }}</span>{% endif %}
+          {% if s.parent_name %}<span class="hint">in {{ s.parent_name }}</span>{% endif %}
+        </div>
+        {% if s.note %}<p class="link-note stop-note">{{ s.note }}</p>
+        {% elif can_edit %}<p class="hint" style="margin:.2rem 0 0">No note. Add one to say what to look for here.</p>{% endif %}
+        {% if s.lat is none and not s.deleted %}<p class="hint" style="margin:.2rem 0 0">No location yet, so it isn't on the map.</p>{% endif %}
+      </div>
+      {% if can_edit %}
+      <div class="link-actions">
+        <button type="button" class="icon-btn" data-edit-link title="Edit note" aria-label="Edit the note for stop {{ s.n }}">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+        </button>
+        <button type="button" class="icon-btn danger" title="Remove stop" aria-label="Remove stop {{ s.n }}"
+                hx-post="/studio/trail-stops/{{ s.id }}/delete" hx-vals='{"csrf_token": "{{ csrf_token }}"}'
+                hx-target="#stops" hx-swap="innerHTML" hx-confirm="Remove “{{ s.name }}” from this trail? The artifact itself is not affected.">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+      {% endif %}
+    </div>
+    {% if can_edit %}
+    <form class="link-edit" hx-post="/studio/trail-stops/{{ s.id }}" hx-target="#stops" hx-swap="innerHTML">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <label class="field"><span class="lbl">Note for this stop</span>
+        <textarea name="note" rows="3" maxlength="1000" placeholder="What to look for here, or how it connects to the last stop">{{ s.note }}</textarea></label>
+      <div class="row">
+        <button class="btn-primary btn-sm" type="submit">Save</button>
+        <button class="btn-sm" type="button" data-cancel-edit>Cancel</button>
+      </div>
+    </form>
+    {% endif %}
+  </li>
+  {% endfor %}
+</ol>
+{% elif not can_edit %}
+<p class="hint" style="margin:0">No stops yet.</p>
+{% endif %}
+
+{% if can_edit %}
+<form class="stop-add" hx-post="/studio/trails/{{ trail_id }}/stops" hx-target="#stops" hx-swap="innerHTML">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+  <label class="field"><span class="lbl">Add a stop</span>
+    <select name="artifact_id" required>
+      <option value="">Choose an artifact…</option>
+      {% for p in picks %}<option value="{{ p.id }}">{{ p.label }}</option>{% endfor %}
+    </select></label>
+  <label class="field"><span class="lbl">Note <span class="hint">(optional)</span></span>
+    <textarea name="note" rows="2" maxlength="1000" placeholder="What to look for here, or how it connects to the last stop"></textarea></label>
+  <button class="btn-primary" type="submit">+ Add stop</button>
+  <p class="help">Stops go on the end; drag the grip to put them in walking order. A stop can be a building or anything inside one.</p>
+</form>
+{% endif %}

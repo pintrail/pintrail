@@ -1,0 +1,33 @@
+{% from "studio_macros.html" import who %}
+{# One trail: its details, then the stops card (map, ordered list, picker). #}
+<div class="card">
+  <div class="row">
+    <div>
+      <p class="crumb"><a hx-get="/studio/trails" hx-target="#detail" hx-push-url="true">Trails</a></p>
+      <h1>{{ trail.title }}</h1>
+      <p class="subtitle"><span class="vis-chip vis-{{ trail.visibility }}">{{ visibility_labels[trail.visibility] }}</span></p>
+    </div>
+    {% if can_edit %}
+    <div class="push row">
+      <button class="btn-sm" hx-get="/studio/trails/{{ trail.id }}/edit" hx-target="#detail">Edit</button>
+      <button class="btn-sm btn-danger" hx-post="/studio/trails/{{ trail.id }}/delete"
+              hx-vals='{"csrf_token": "{{ csrf_token }}"}' hx-target="#detail"
+              hx-confirm="Delete the trail “{{ trail.title }}”? Its artifacts are not affected.">Delete</button>
+    </div>
+    {% endif %}
+  </div>
+  <p class="byline">Made by {{ who(trail.owner) }} · updated <time data-local datetime="{{ trail.updated_at }}">{{ trail.updated_at[:10] }}</time></p>
+  {% if trail.description %}<p style="margin:.75rem 0 0; white-space:pre-line">{{ trail.description }}</p>{% endif %}
+  {% if trail.visibility == "unlisted" and trail.share_token and can_edit %}
+  <div class="share-box">
+    <span class="lbl">Share code</span>
+    <code data-share-code>{{ trail.share_token }}</code>
+    <button type="button" class="btn-sm" data-copy="{{ trail.share_token }}">Copy</button>
+    <p class="hint" style="margin:.3rem 0 0">Anyone with this code can open the trail. Make the trail private to stop it working.</p>
+  </div>
+  {% endif %}
+</div>
+
+<div class="card" id="stops" hx-get="/studio/trails/{{ trail.id }}/stops" hx-trigger="load" hx-swap="innerHTML">
+  <p class="hint">Loading stops…</p>
+</div>

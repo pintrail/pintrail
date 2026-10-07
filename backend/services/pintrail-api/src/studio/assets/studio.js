@@ -399,7 +399,7 @@
     if (edit) {
       const li = edit.closest(".link");
       li.classList.add("editing");
-      const input = li.querySelector(".link-edit input[name=url]");
+      const input = li.querySelector(".link-edit input:not([type=hidden]), .link-edit textarea");
       if (input) input.focus();
       return;
     }
@@ -424,7 +424,7 @@
       function save() {
         const ids = Array.from(list.children).map(function (li) { return li.dataset.id; });
         htmx.ajax("POST", list.dataset.sortable, {
-          target: "#links", swap: "innerHTML",
+          target: list.dataset.sortableTarget || "#links", swap: "innerHTML",
           values: { csrf_token: list.dataset.csrf, ids: ids.join(",") },
         });
       }
@@ -545,6 +545,41 @@
     return div;
   }
 
+  // --- a trail's route ---------------------------------------------------------
+  // Numbered pins in walking order, joined by a line.
+  function initTrailMaps(root) {
+    root.querySelectorAll("[data-trail-map]").forEach(function (el) {
+      if (el._leaflet_id) return;
+      const data = JSON.parse(el.parentElement.querySelector("[data-trail-data]").textContent);
+      const map = L.map(el).setView(CAMPUS, 15);
+      L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        maxZoom: 19, attribution: "© OpenStreetMap",
+      }).addTo(map);
+      const pts = data.points;
+      // Stops inside the same building share a spot. Fan their numbers out
+      // sideways on screen (not on the map) so each stays readable at any zoom.
+      const total = {}, seen = {};
+      pts.forEach(function (p) { const k = p.lat.toFixed(6) + "," + p.lng.toFixed(6); total[k] = (total[k] || 0) + 1; });
+      const layers = pts.map(function (p) {
+        const key = p.lat.toFixed(6) + "," + p.lng.toFixed(6);
+        const i = seen[key] = (seen[key] || 0) + 1;
+        const shift = (i - 1 - (total[key] - 1) / 2) * 28;
+        const icon = L.divIcon({ className: "stop-pin", html: "<span>" + p.n + "</span>", iconSize: [26, 26], iconAnchor: [13 - shift, 13] });
+        return L.marker([p.lat, p.lng], { icon: icon, keyboard: false, title: p.n + ". " + p.name })
+          .bindTooltip(p.n + ". " + p.name)
+          .on("click", function () { openArtifact(p.artifact_id); });
+      });
+      if (pts.length > 1) {
+        L.polyline(layers.map(function (m) { return m.getLatLng(); }), {
+          color: "#2563eb", weight: 3, opacity: 0.7, dashArray: "6 6",
+        }).addTo(map);
+      }
+      layers.forEach(function (m) { m.addTo(map); });
+      if (layers.length) map.fitBounds(L.featureGroup(layers).getBounds().pad(0.25), { maxZoom: 18 });
+      setTimeout(function () { map.invalidateSize(); }, 50);
+    });
+  }
+
   function initOverview(root) {
     root.querySelectorAll("[data-overview-map]").forEach(function (el) {
       if (el._leaflet_id) return;
@@ -647,6 +682,17 @@
     }
   });
 
+  // --- copy buttons --------------------------------------------------------------
+  document.addEventListener("click", function (e) {
+    const b = e.target.closest("[data-copy]");
+    if (!b) return;
+    navigator.clipboard.writeText(b.dataset.copy).then(function () {
+      const was = b.textContent;
+      b.textContent = "Copied";
+      setTimeout(function () { b.textContent = was; }, 1500);
+    });
+  });
+
   // --- times in the reader's own zone -------------------------------------
   const DATE_FMT = new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" });
   function localTimes(root) {
@@ -663,6 +709,7 @@
     initForms(root);
     initSortable(root);
     initOverview(root);
+    initTrailMaps(root);
   }
 
   document.addEventListener("DOMContentLoaded", function () { enhance(document); });

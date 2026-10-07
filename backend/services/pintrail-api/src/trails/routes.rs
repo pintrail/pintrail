@@ -18,7 +18,7 @@ use crate::state::AppState;
 
 /// A trail with more stops than this is not a walk anyone is taking; the cap
 /// exists so one request cannot insert unbounded rows.
-const MAX_STOPS: usize = 200;
+pub(crate) const MAX_STOPS: usize = 200;
 
 pub fn router() -> Router<AppState> {
     Router::new()
@@ -127,12 +127,29 @@ async fn list(
     Ok(Json(json!({ "trails": trails })))
 }
 
+/// Public author trails are the curated set everyone sees in the app, so only
+/// an admin may make one public (the Studio applies the same rule). Explorers'
+/// own trails are theirs to share.
+fn ensure_may_publish(identity: &Identity, visibility: Option<TrailVisibility>, current: Option<TrailVisibility>) -> AppResult<()> {
+    match identity {
+        Identity::Author(a)
+            if visibility == Some(TrailVisibility::Public)
+                && current != Some(TrailVisibility::Public)
+                && !crate::audit::is_admin(a) =>
+        {
+            Err(AppError::BadRequest("only an admin can make an author trail public".into()))
+        }
+        _ => Ok(()),
+    }
+}
+
 async fn create(
     identity: Identity,
     State(state): State<AppState>,
     Json(body): Json<CreateTrail>,
 ) -> AppResult<(StatusCode, Json<Value>)> {
     identity.ensure_verified()?;
+    ensure_may_publish(&identity, Some(body.visibility), None)?;
 
     let title = body.title.trim();
     if title.is_empty() {
@@ -236,6 +253,7 @@ async fn update(
     Json(body): Json<UpdateTrail>,
 ) -> AppResult<Json<Value>> {
     let trail = load_owned_trail(&state, id, &identity).await?;
+    ensure_may_publish(&identity, body.visibility, Some(trail.visibility))?;
 
     if let Some(title) = &body.title {
         if title.trim().is_empty() {
@@ -341,7 +359,7 @@ async fn remove(
 /// Stored in plaintext, unlike session tokens: it has to be reconstructible
 /// into a URL to be shared at all. It is a capability, not a credential — it
 /// grants read of one non-private trail and nothing else.
-fn new_share_token() -> String {
+pub(crate) fn new_share_token() -> String {
     generate_token(chrono::Duration::days(1)).raw
 }
 

@@ -1,0 +1,36 @@
+{% from "studio_macros.html" import avatar %}
+{# Every author-curated trail. #}
+<div class="card">
+  <div class="row">
+    <div>
+      <h1>Trails</h1>
+      <p class="subtitle" style="margin:0">A trail is a walk through artifacts in order, with a note at each stop. Explorers follow them in the app.</p>
+    </div>
+    {% if can_create %}
+    <div class="push"><button class="btn-primary" hx-get="/studio/trails/new" hx-target="#detail" hx-push-url="true">+ New trail</button></div>
+    {% endif %}
+  </div>
+</div>
+
+<div class="card">
+  {% if trails %}
+  <ul class="trail-list">
+    {% for t in trails %}
+    <li>
+      <a class="trail-item" hx-get="/studio/trails/{{ t.id }}" hx-target="#detail" hx-push-url="true">
+        <span class="trail-title">{{ t.title }}</span>
+        <span class="vis-chip vis-{{ t.visibility }}">{{ visibility_labels[t.visibility] }}</span>
+        <span class="hint">{{ t.stop_count }} stop{{ "s" if t.stop_count != 1 }}{% if t.unpublished %} · {{ t.unpublished }} not in the app yet{% endif %}</span>
+      </a>
+      <div class="hint q-meta">
+        {% if t.owner %}<span class="h-who">{{ avatar(t.owner) }} {{ t.owner.name }}</span>{% endif %}
+        · updated <time data-local datetime="{{ t.updated_at }}">{{ t.updated_at[:10] }}</time>
+      </div>
+      {% if t.description %}<p class="trail-desc">{{ t.description }}</p>{% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="hint" style="margin:0">No trails yet.{% if can_create %} Use <strong>+ New trail</strong> to start one.{% endif %}</p>
+  {% endif %}
+</div>

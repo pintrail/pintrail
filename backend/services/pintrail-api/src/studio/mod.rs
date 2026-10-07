@@ -11,5 +11,6 @@ pub mod preview;
 pub mod profile;
 pub mod review;
 pub mod routes;
+pub mod trails;
 
 pub use routes::{redirect_unauthenticated, router};
