@@ -30,3 +30,5 @@ tracing.workspace = true
 tracing-subscriber.workspace = true
 uuid.workspace = true
 reqwest.workspace = true
+image.workspace = true
+webp.workspace = true

@@ -15,7 +15,7 @@ You need a Studio account. Your instructor creates it and gives you two things:
 - the email address the account uses, and
 - a **temporary password**.
 
-## 1. Sign in and choose your own password
+## 1. Sign in, choose your password, and fill in your profile
 
 Go to the Studio and sign in with your email and the temporary password.
 
@@ -25,7 +25,13 @@ The first time you sign in, the Studio asks you to choose your own password. Ent
 
 ![Choosing a new password on first sign-in](img/add-artifact/02-choose-password.png)
 
-You can change it again at any time with **Change password** at the top right.
+Next, the Studio asks for your **profile**. Your full name is required; everything else is optional:
+
+- **Display name**: what people call you, if that's different from your full name. The Studio shows it instead of your full name.
+- **Pronouns**, **affiliation** (for example *COMPSCI 326 student*), and a **short bio**.
+- **Photo**: click **Add a photo**. A clear photo of your face helps classmates and reviewers know who's who. On a phone you can take one with the camera. It's cropped to a square from the middle.
+
+Your name and photo appear on the artifacts you add, in the review list, and in each artifact's history. To change your profile or your password later, click your name or photo at the top right.
 
 ## 2. Find your way around
 

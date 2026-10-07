@@ -76,7 +76,7 @@ async fn author_from_session(parts: &Parts, state: &AppState) -> Result<Author, 
     sqlx::query_as::<_, Author>(
         r#"
         SELECT a.id, a.email, a.password_hash, a.role, a.is_active, a.must_change_password,
-               a.created_at, a.updated_at
+               a.created_at, a.updated_at, a.full_name, a.display_name, a.avatar_key
         FROM author_sessions s
         JOIN authors a ON a.id = s.author_id
         WHERE s.token_hash = $1

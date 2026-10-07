@@ -2210,6 +2210,7 @@ dependencies = [
  "chrono",
  "dotenvy",
  "hex",
+ "image",
  "minijinja",
  "pintrail-storage",
  "reqwest",
@@ -2225,6 +2226,7 @@ dependencies = [
  "tracing",
  "tracing-subscriber",
  "uuid",
+ "webp",
 ]
 
 [[package]]

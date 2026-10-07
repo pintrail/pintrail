@@ -91,7 +91,7 @@ Compose itself fails to start, naming the missing variable, if any of the requir
    ```sh
    docker compose run --rm api create-author you@umass.edu admin
    ```
-   Admins can create every other account from the browser, at **Admin → Authors → Add author**.
+   Admins can create every other account from the browser, at **Admin → Authors → Add author**. The first time anyone opens the Studio, it asks for their name (and optionally a photo) before anything else.
 5. **Check that it works:**
    ```sh
    curl https://pintrail.cs.umass.edu/health          # {"status":"ok",...}

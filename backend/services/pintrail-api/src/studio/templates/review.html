@@ -1,3 +1,4 @@
+{% from "studio_macros.html" import avatar %}
 {# Admin review queue. #}
 {% macro item(r, note) %}
 <li>
@@ -6,7 +7,7 @@
     <span>{{ r.name or "(untitled)" }}</span>
   </a>
   <div class="hint q-meta">
-    {{ r.owner or "no owner" }}{% if r.parent_name %} · inside {{ r.parent_name }}{% endif %}
+    {% if r.owner %}<span class="h-who">{{ avatar(r.owner) }} {{ r.owner.name }}</span>{% else %}no owner{% endif %}{% if r.parent_name %} · inside {{ r.parent_name }}{% endif %}
     {% if r.submitted_at and not note %} · submitted <time data-local datetime="{{ r.submitted_at }}">{{ r.submitted_at[:10] }}</time>{% endif %}
   </div>
   {% if note and r.review_note %}<p class="q-note">{{ r.review_note }}</p>{% endif %}

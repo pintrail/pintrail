@@ -54,6 +54,26 @@ pub struct Author {
     pub must_change_password: bool,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+    /// Profile fields. `#[sqlx(default)]` lets the many queries that load an
+    /// author for authentication or listing leave them out; the session
+    /// extractor (what the Studio uses) selects them.
+    #[sqlx(default)]
+    pub full_name: String,
+    #[sqlx(default)]
+    pub display_name: String,
+    #[sqlx(default)]
+    pub avatar_key: Option<String>,
+}
+
+impl Author {
+    /// How this author is named to others: display name, else full name,
+    /// else email. Mirrors the SQL function `author_label`.
+    pub fn label(&self) -> &str {
+        [self.display_name.as_str(), self.full_name.as_str()]
+            .into_iter()
+            .find(|s| !s.trim().is_empty())
+            .unwrap_or(&self.email)
+    }
 }
 
 /// The wire representation. Distinct from [`Author`] so `password_hash` cannot

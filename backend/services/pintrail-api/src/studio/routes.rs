@@ -43,6 +43,13 @@ pub(super) fn environment() -> Environment<'static> {
         ("studio_review.html", include_str!("templates/review.html")),
         ("studio_deleted.html", include_str!("templates/deleted.html")),
         ("studio_review_card.html", include_str!("templates/review_card.html")),
+        ("studio_macros.html", include_str!("templates/macros.html")),
+        (
+            "studio_avatar.html",
+            r#"{% from "studio_macros.html" import avatar %}{{ avatar(me) }}"#,
+        ),
+        ("studio_profile.html", include_str!("templates/profile.html")),
+        ("studio_profile_photo.html", include_str!("templates/profile_photo.html")),
     ] {
         env.add_template(name, src).expect("studio template compiles");
     }
@@ -77,6 +84,7 @@ pub fn router() -> Router<AppState> {
         .route("/studio/links/{id}", post(update_link))
         .route("/studio/links/{id}/delete", post(delete_link))
         .merge(super::review::router())
+        .merge(super::profile::router())
 }
 
 // --- rendering helpers -----------------------------------------------------
@@ -115,6 +123,9 @@ fn is_editor(author: &Author) -> bool {
 pub(super) fn base_ctx(author: &Author, session_token: &str) -> Value {
     context! {
         author => context! { email => author.email.clone(), role => author.role.as_str() },
+        me => Value::from_serialize(super::profile::person(
+            author.id, author.label(), author.avatar_key.as_deref(),
+        )),
         can_edit => is_editor(author),
         can_create => is_editor(author),
         is_admin => crate::audit::is_admin(author),
@@ -328,7 +339,12 @@ async fn home(
     author: AuthenticatedAuthor,
     State(state): State<AppState>,
     jar: CookieJar,
-) -> AppResult<Html<String>> {
+) -> AppResult<Response> {
+    // Everyone gets a name before they start, so the Studio can say who
+    // added what rather than showing email addresses.
+    if author.0.full_name.trim().is_empty() {
+        return Ok(Redirect::to("/studio/profile?welcome=1").into_response());
+    }
     // Always the full document -- this is the entry point, not an htmx swap.
     let ctx = context! {
         title => "Studio",
@@ -337,7 +353,7 @@ async fn home(
         ..base_ctx(&author.0, &session_token(&jar))
     };
     let _ = &state;
-    render(&environment(), "studio_page.html", ctx)
+    Ok(render(&environment(), "studio_page.html", ctx)?.into_response())
 }
 
 async fn welcome(
@@ -1404,14 +1420,13 @@ struct DetailRow {
     parent_name: Option<String>,
     source_name: Option<String>,
     created_by: Option<Uuid>,
-    created_by_email: Option<String>,
-    updated_by_email: Option<String>,
+    updated_by: Option<Uuid>,
     created_at: chrono::DateTime<Utc>,
     updated_at: chrono::DateTime<Utc>,
     status: String,
     submitted_at: Option<chrono::DateTime<Utc>>,
     reviewed_at: Option<chrono::DateTime<Utc>>,
-    reviewed_by_email: Option<String>,
+    reviewed_by: Option<Uuid>,
     review_note: String,
 }
 
@@ -1419,6 +1434,8 @@ struct DetailRow {
 /// handlers can populate the edit form without round-tripping through a
 /// `minijinja::Value`.
 struct Detail {
+    /// The people the page names, keyed by author id.
+    people: std::collections::HashMap<Uuid, serde_json::Value>,
     row: DetailRow,
     children: Vec<serde_json::Value>,
     tags: Vec<String>,
@@ -1441,13 +1458,13 @@ impl Detail {
             "children": self.children,
             "tags": self.tags,
             "status": self.row.status,
-            "created_by_email": self.row.created_by_email,
-            "updated_by_email": self.row.updated_by_email,
+            "created_by": self.row.created_by.and_then(|id| self.people.get(&id)),
+            "updated_by": self.row.updated_by.and_then(|id| self.people.get(&id)),
             "created_at": self.row.created_at.to_rfc3339(),
             "updated_at": self.row.updated_at.to_rfc3339(),
             "submitted_at": self.row.submitted_at.map(|t| t.to_rfc3339()),
             "reviewed_at": self.row.reviewed_at.map(|t| t.to_rfc3339()),
-            "reviewed_by_email": self.row.reviewed_by_email,
+            "reviewed_by": self.row.reviewed_by.and_then(|id| self.people.get(&id)),
             "review_note": self.row.review_note,
         }))
     }
@@ -1462,11 +1479,10 @@ async fn load_detail(state: &AppState, id: Uuid) -> AppResult<Detail> {
                (SELECT p.name FROM artifacts p WHERE p.id = a.parent_id) AS parent_name,
                (SELECT s.name FROM artifacts s WHERE s.id = r.location_source_id) AS source_name,
                a.created_by,
-               (SELECT email FROM authors WHERE id = a.created_by) AS created_by_email,
-               (SELECT email FROM authors WHERE id = a.updated_by) AS updated_by_email,
+               a.updated_by,
                a.created_at, a.updated_at, a.status::text AS status, a.submitted_at,
                a.reviewed_at,
-               (SELECT email FROM authors WHERE id = a.reviewed_by) AS reviewed_by_email,
+               a.reviewed_by,
                a.review_note
         FROM artifacts a JOIN resolved r ON r.id = a.id
         WHERE a.id = $1 AND a.deleted_at IS NULL
@@ -1492,7 +1508,9 @@ async fn load_detail(state: &AppState, id: Uuid) -> AppResult<Detail> {
         .collect();
 
     let tags = load_tags(state, id).await?;
-    Ok(Detail { row, children, tags })
+    let ids: Vec<Uuid> = [row.created_by, row.updated_by, row.reviewed_by].into_iter().flatten().collect();
+    let people = super::profile::load_people(&state.db, &ids).await?;
+    Ok(Detail { people, row, children, tags })
 }
 
 async fn load_tags(state: &AppState, id: Uuid) -> AppResult<Vec<String>> {
@@ -1562,14 +1580,20 @@ async fn load_parent_options(state: &AppState, exclude: Option<Uuid>) -> AppResu
 
 /// Authors who can own artifacts, for the admin's owner picker.
 async fn load_owner_options(state: &AppState) -> AppResult<Value> {
-    let rows: Vec<(Uuid, String)> = sqlx::query_as(
-        "SELECT id, email FROM authors WHERE role IN ('editor', 'admin') AND is_active ORDER BY lower(email)",
+    // Named by full name where there is one, with the email to tell apart
+    // two people with the same name.
+    let rows: Vec<(Uuid, String, String)> = sqlx::query_as(
+        "SELECT id, full_name, email FROM authors WHERE role IN ('editor', 'admin') AND is_active \
+         ORDER BY lower(NULLIF(full_name, '')) NULLS LAST, lower(email)",
     )
     .fetch_all(&state.db)
     .await?;
     let opts: Vec<serde_json::Value> = rows
         .iter()
-        .map(|(id, email)| serde_json::json!({ "id": id.to_string(), "email": email }))
+        .map(|(id, name, email)| {
+            let label = if name.trim().is_empty() { email.clone() } else { format!("{name} ({email})") };
+            serde_json::json!({ "id": id.to_string(), "label": label })
+        })
         .collect();
     Ok(Value::from_serialize(&opts))
 }
