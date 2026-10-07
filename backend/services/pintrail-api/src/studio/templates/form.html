@@ -25,8 +25,13 @@
       <span class="help">What people call it, e.g. <em>Old Chapel</em> or <em>Lot 49 solar canopy</em>.</span></label>
     {% endif %}
 
+    {% if is_new and not form.is_topic %}
+    <p class="hint" style="margin:-.25rem 0 1rem">Start with the name and where it is. Once it's created, you add the description, kind, tags, sources, and photos on its page.</p>
+    {% endif %}
+
     {% if not form.is_topic %}
     <div class="field-row">
+      {% if not is_new %}
       <label class="field"><span class="lbl">Kind</span>
         <select name="kind" data-kind-select>
           {% for k in kinds %}
@@ -41,6 +46,7 @@
           <span data-for="rooftop">A roof and what is on it: a green roof, rooftop solar.</span>
           <span data-for="other">Anything that fits none of the above.</span>
         </span></label>
+      {% endif %}
 
       <label class="field"><span class="lbl">Inside (parent)</span>
         <select name="parent_id" id="f-parent" data-parent-select>
@@ -62,6 +68,7 @@
       <span class="help">Admins only. The owner is the only editor who can change or delete this artifact. Use this to give an artifact to the student who should work on it.</span></label>
     {% endif %}
 
+    {% if not is_new or form.is_topic %}
     <label class="field"><span class="lbl">Description</span>
       <textarea name="description" rows="8">{{ form.description }}</textarea>
       {% if form.is_topic %}
@@ -82,6 +89,7 @@
       </datalist>
       <span class="help">Themes people might look for: <em>solar</em>, <em>stormwater</em>, <em>energy storage</em>. Pick an existing tag from the suggestions when one fits, so the same theme isn't spelled two ways.</span>
     </div>
+    {% endif %}
 
     {% if not form.is_topic %}
     <div class="field">

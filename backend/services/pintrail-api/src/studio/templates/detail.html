@@ -43,6 +43,35 @@
   {% endif %}
 </div>
 
+{% if can_edit and a.status == "draft" %}
+{% set done_desc = a.description != "" %}
+{% set done_kind = a.is_topic or a.kind != "other" %}
+{% set done_links = a.link_count > 0 %}
+{% set done_media = a.media_count > 0 %}
+{% set done_linked = a.linked_count > 0 %}
+{% if just_created or not (done_desc and done_kind and done_links and (done_media or a.is_topic) and (done_linked or not a.is_topic)) %}
+<div class="card next-steps{{ ' just-created' if just_created }}">
+  <h3>{% if just_created %}Created. Next, fill it in{% else %}Finish this {{ "topic" if a.is_topic else "artifact" }}{% endif %}</h3>
+  <ul class="checklist">
+    <li class="{{ 'done' if done_desc }}"><span class="tick" aria-hidden="true"></span>
+      <span>A <strong>description</strong>{% if not a.is_topic %}, a <strong>kind</strong>,{% endif %} and <strong>tags</strong>
+      {% if not done_desc or not done_kind %}<button class="btn-sm" hx-get="/studio/artifacts/{{ a.id }}/edit" hx-target="#detail">Edit</button>{% endif %}</span></li>
+    <li class="{{ 'done' if done_links }}"><span class="tick" aria-hidden="true"></span>
+      <span>At least one <strong>source link</strong> <a href="#links">below</a></span></li>
+    {% if a.is_topic %}
+    <li class="{{ 'done' if done_linked }}"><span class="tick" aria-hidden="true"></span>
+      <span>The <strong>artifacts</strong> this topic is about, under <a href="#topic-artifacts">Linked artifacts</a></span></li>
+    {% else %}
+    <li class="{{ 'done' if done_media }}"><span class="tick" aria-hidden="true"></span>
+      <span>A <strong>photo</strong> you took, under <a href="#attachments">Media</a></span></li>
+    {% endif %}
+    <li><span class="tick" aria-hidden="true"></span>
+      <span>Then <strong>Submit for review</strong>, just below</span></li>
+  </ul>
+</div>
+{% endif %}
+{% endif %}
+
 {% include "studio_review_card.html" %}
 
 {% if a.is_topic %}

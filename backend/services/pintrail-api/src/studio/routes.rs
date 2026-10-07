@@ -567,6 +567,9 @@ pub(super) async fn render_form(
         action => action,
         submit_label => submit_label,
         cancel_id => edit_id.map(|u| u.to_string()),
+        // Creating a place asks only for what makes it exist: its name and
+        // where it is (issue #50). The rest is filled in on the edit form.
+        is_new => edit_id.is_none(),
         kinds => KINDS,
         parents => parents,
         tag_suggestions => tag_suggestions,
@@ -654,7 +657,12 @@ impl ArtifactForm {
                 lng: None,
             });
         }
-        let kind = self.kind.trim();
+        // The create form has no Kind (it's chosen on the edit form), so a
+        // new artifact starts as "other".
+        let kind = match self.kind.trim() {
+            "" => "other",
+            k => k,
+        };
         if !KINDS.contains(&kind) {
             return Err("Choose a kind from the list.".into());
         }
@@ -840,7 +848,11 @@ async fn create(
     tx.commit().await?;
 
     tracing::info!(actor = %author.0.id, artifact_id = %id, topic, "artifact created in studio");
-    detail_after_change(&state, &author.0, &jar, &headers, id).await
+    let ctx = detail_ctx(&state, &author.0, &jar, id).await?;
+    let ctx = context! { just_created => true, ..ctx };
+    let body = respond(&environment(), &headers, "studio_detail.html", ctx)?;
+    let url = format!("/studio/artifacts/{id}");
+    Ok(([("HX-Trigger", "refresh-tree".to_string()), ("HX-Push-Url", url)], body).into_response())
 }
 
 async fn update(
@@ -1522,6 +1534,10 @@ struct Detail {
     row: DetailRow,
     children: Vec<serde_json::Value>,
     tags: Vec<String>,
+    /// How much has been added, for the "finish this artifact" checklist.
+    link_count: i64,
+    media_count: i64,
+    linked_count: i64,
 }
 
 impl Detail {
@@ -1550,6 +1566,9 @@ impl Detail {
             "reviewed_by": self.row.reviewed_by.and_then(|id| self.people.get(&id)),
             "review_note": self.row.review_note,
             "is_topic": self.row.is_topic,
+            "link_count": self.link_count,
+            "media_count": self.media_count,
+            "linked_count": self.linked_count,
         }))
     }
 }
@@ -1594,7 +1613,16 @@ async fn load_detail(state: &AppState, id: Uuid) -> AppResult<Detail> {
     let tags = load_tags(state, id).await?;
     let ids: Vec<Uuid> = [row.created_by, row.updated_by, row.reviewed_by].into_iter().flatten().collect();
     let people = super::profile::load_people(&state.db, &ids).await?;
-    Ok(Detail { people, row, children, tags })
+    let (link_count, media_count, linked_count): (i64, i64, i64) = sqlx::query_as(
+        "SELECT (SELECT count(*) FROM artifact_links WHERE artifact_id = $1), \
+                (SELECT count(*) FROM attachments WHERE artifact_id = $1 AND status <> 'pending_upload'), \
+                (SELECT count(*) FROM artifact_topics l JOIN artifacts a ON a.id = l.artifact_id \
+                 WHERE l.topic_id = $1 AND a.deleted_at IS NULL)",
+    )
+    .bind(id)
+    .fetch_one(&state.db)
+    .await?;
+    Ok(Detail { people, row, children, tags, link_count, media_count, linked_count })
 }
 
 async fn load_tags(state: &AppState, id: Uuid) -> AppResult<Vec<String>> {

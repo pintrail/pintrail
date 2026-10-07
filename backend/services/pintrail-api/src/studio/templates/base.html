@@ -298,6 +298,15 @@
     .vis-choice input { width: auto; margin-top: .3rem; }
     .vis-choice label.disabled { opacity: .55; cursor: not-allowed; }
     .trail-map { height: 300px; margin-bottom: 1rem; }
+    .next-steps { border-left: 4px solid var(--accent); }
+    .next-steps.just-created { background: color-mix(in srgb, var(--accent) 6%, var(--panel)); }
+    .checklist { list-style: none; margin: .25rem 0 0; padding: 0; display: grid; gap: .45rem; }
+    .checklist li { display: flex; gap: .55rem; align-items: baseline; }
+    .checklist li .btn-sm { margin-left: .4rem; }
+    .checklist .tick { flex: 0 0 auto; width: 1rem; height: 1rem; border: 2px solid var(--line); border-radius: 50%; transform: translateY(.15rem); }
+    .checklist li.done { color: var(--muted); }
+    .checklist li.done strong { font-weight: 500; }
+    .checklist li.done .tick { background: var(--ok); border-color: var(--ok); }
     .topic-chip { background: color-mix(in srgb, #8b5cf6 14%, transparent); color: #8b5cf6; border-color: color-mix(in srgb, #8b5cf6 40%, var(--line)); }
     .topic-pin { background: #7c3aed; }
     .topic-shared { margin: .35rem .2rem 0; white-space: pre-line; color: var(--muted); font-size: .92rem; border-left: 3px solid color-mix(in srgb, #7c3aed 40%, var(--line)); padding-left: .6rem; }
