@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <p class="sub" style="margin:0 0 .3rem"><a href="/admin/authors">← Authors</a></p>
+    <h1>{{ target.full_name or target.email }}</h1>
+    <p>{{ target.email }} ·
+      <span class="pill plain {{ 'pill-accent' if target.role == 'admin' }}">{{ target.role }}</span>
+      {% if target.is_active %}<span class="pill pill-ok">Active</span>{% else %}<span class="pill pill-danger">Suspended</span>{% endif %}
+      {% if target.must_change_password %}<span class="pill pill-warn">Must change password</span>{% endif %}
+    </p>
+  </div>
+</div>
+
+{% if error %}<div class="alert alert-error" role="alert"><p>{{ error }}</p></div>{% endif %}
+
+<h2 class="section">Account</h2>
+<div class="card"><div class="card-body">
+  <form method="post" action="/admin/authors/{{ target.id }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <div class="form-grid">
+      <label class="field"><span>Email</span>
+        <input type="email" name="email" value="{{ target.email }}" autocomplete="off" required>
+        <span class="hint">What they sign in with. Changing it signs them out.</span></label>
+      <label class="field"><span>Full name</span>
+        <input type="text" name="full_name" value="{{ target.full_name }}" maxlength="120" autocomplete="off">
+        <span class="hint">They can change this, and the rest of their profile, themselves.</span></label>
+      <label class="field"><span>Role</span>
+        <select name="role" {% if is_self %}disabled{% endif %}>
+          {% for r in roles %}<option value="{{ r }}" {% if r == target.role %}selected{% endif %}>{{ r }}</option>{% endfor %}
+        </select>
+        <span class="hint">{% if is_self %}You can't change your own role; ask another admin.{% else %}Viewers can look, editors write their own artifacts and trails, admins can do everything.{% endif %}</span></label>
+    </div>
+    <div class="form-actions"><button class="btn-primary">Save changes</button></div>
+  </form>
+</div></div>
+
+{% if not is_self %}
+<h2 class="section">Reset password</h2>
+<div class="card"><div class="card-body">
+  <form method="post" action="/admin/authors/{{ target.id }}/password">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <input type="email" name="username" value="{{ target.email }}" autocomplete="off" hidden>
+    <div class="form-grid">
+      <label class="field"><span>Temporary password</span>
+        <input type="password" name="password" minlength="12" autocomplete="new-password" required>
+        <span class="hint">At least 12 characters.</span></label>
+      <label class="field"><span>Confirm password</span>
+        <input type="password" name="password_confirm" minlength="12" autocomplete="new-password" required></label>
+    </div>
+    <div class="form-actions">
+      <button class="btn-primary">Reset password</button>
+      <span class="muted">Signs them out everywhere. They must choose their own password when they next sign in. Give them the temporary one in person or over a trusted channel.</span>
+    </div>
+  </form>
+</div></div>
+
+<h2 class="section">Suspend</h2>
+<div class="card"><div class="card-body">
+  <form method="post" action="/admin/authors/{{ target.id }}/toggle" class="form-actions">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <input type="hidden" name="back" value="edit">
+    {% if target.is_active %}
+      <button class="btn-danger">Suspend</button>
+      <span class="muted">Signs them out and stops them signing in. Everything they made stays, and you can reactivate them later. Use this when a student leaves the project.</span>
+    {% else %}
+      <button>Reactivate</button>
+      <span class="muted">Lets them sign in again.</span>
+    {% endif %}
+  </form>
+</div></div>
+
+<h2 class="section">Delete</h2>
+<div class="card"><div class="card-body">
+  <p style="margin-top:0">Deleting removes the account for good. It can't be undone. Suspending is usually the better choice.</p>
+  <p class="muted">They own <strong>{{ owned_artifacts }}</strong> artifact{{ "s" if owned_artifacts != 1 }} and <strong>{{ owned_trails }}</strong> trail{{ "s" if owned_trails != 1 }}.
+    {% if owned_artifacts or owned_trails %}These move to the person you choose below, so nothing is lost.{% endif %}
+    Their name stays in each artifact's history as it was recorded.</p>
+  <form method="post" action="/admin/authors/{{ target.id }}/delete">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <div class="form-grid">
+      {% if owned_artifacts or owned_trails %}
+      <label class="field"><span>Give their artifacts and trails to</span>
+        <select name="transfer_to" required>
+          <option value="">Choose an author…</option>
+          {% for o in others %}<option value="{{ o.id }}">{{ o.label }}</option>{% endfor %}
+        </select></label>
+      {% endif %}
+      <label class="field"><span>Type their email to confirm</span>
+        <input type="text" name="confirm_email" autocomplete="off" required placeholder="{{ target.email }}"></label>
+    </div>
+    <div class="form-actions"><button class="btn-danger">Delete this author</button></div>
+  </form>
+</div></div>
+{% endif %}
+{% endblock %}

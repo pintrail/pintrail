@@ -664,6 +664,19 @@ An expired session redirects to the sign-in page rather than returning a bare
 JSON 401, which would leave an admin staring at `{"error":"authentication
 required"}` with no way forward.
 
+**Editing authors.** Each author has a page at `/admin/authors/{id}` (the
+Edit button on the list): change their email, full name, and role; reset
+their password (flagged `must_change_password`, sessions revoked); suspend or
+reactivate; or delete. Changing the email or lowering the role signs them out.
+An admin can't change their own role, reset their own password here, or
+delete themselves, and no change may leave zero active admins. **Deleting**
+requires typing the author's email, and first moves everything they own
+(artifacts, including deleted ones, and trails) to an active editor or admin
+the admin picks, inside an attributed transaction so the history records the
+owner change. Without that, `authors_delete_trails` would delete their trails
+and their artifacts would be left with no owner. Their profile photo is
+removed from storage. The history keeps the email recorded at the time.
+
 **Creating authors.** The Authors page has an *Add author* form: email, an
 optional full name, role, and a temporary password entered twice. The list
 shows each author by full name with the email beneath, or by email with a

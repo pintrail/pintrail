@@ -5,6 +5,7 @@
 //! API does not need -- see `csrf`.
 
 pub mod csrf;
+pub mod author_edit;
 pub mod routes;
 
 pub use routes::{redirect_unauthenticated, router};
