@@ -250,7 +250,21 @@ the cache can evict. A *first* sync (`since=0`) omits them — nothing is cached
 yet, so shipping every historical deletion is pure waste.
 
 **Deleting a parent deletes the subtree.** A child left behind would inherit
-coordinates from a deleted ancestor.
+coordinates from a deleted ancestor. An admin can restore a deleted subtree
+from `/studio/deleted`; clearing `deleted_at` is an ordinary update, so it bumps
+`sync_version` and the artifact reaches phones again on their next sync.
+
+**Readers see only published artifacts.** An artifact is published when it
+and every artifact above it are approved and not deleted, so a draft building
+hides the approved rooms inside it. Authors (cookie) still see everything.
+This applies to sync, list, detail, media, comments, and trail stops (a stop
+at an unpublished artifact comes back `available: false`, like a deleted
+one). In an incremental sync an artifact that stops being published travels
+as a tombstone (`deleted: true`), and migration `..._artifact_publication`
+marks the whole subtree dirty when an artifact's status or parent changes, so
+the phone hears about every descendant. One consequence worth knowing: when a
+student edits an approved artifact it goes back to "ready", which takes it off
+phones until an admin approves it again.
 
 **Moving a parent dirties everything that inherits from it.** This is the
 subtle one. An artifact with NULL coordinates reports its ancestor's position,
@@ -510,7 +524,8 @@ wrong. **Set it to true in any deployment behind Caddy.**
 
 A server-rendered UI at `/studio` for viewing and authoring artifacts while the
 mobile app is built. Cookie-authenticated on the author tier — viewers browse,
-editors and admins write. Sign in at `/studio/login` with an author account
+editors write their own artifacts (and may add artifacts inside anyone's), and
+admins write everything (see *Authorship and review* below). Sign in at `/studio/login` with an author account
 created by an admin. Any author can change their password at `/studio/password`.
 
 - **htmx** drives every interaction as a fragment swap: selecting an artifact,
@@ -541,8 +556,28 @@ created by an admin. Any author can change their password at `/studio/password`.
   Preview images and favicons are loaded by the browser from the linked site.
 - **The map** at `/studio/map` shows every artifact: one marker per artifact
   with its own location, with the artifacts that inherit it listed in the
-  marker's popup, plus kind and tag filters. Artifacts with no location
+  marker's popup, plus kind, status, and tag filters (the ring colour is the
+  review status). Artifacts with no location
   anywhere up their parent chain are listed below the map.
+- **Authorship and review.** Each artifact records who created it and who
+  last edited it. Editors change only artifacts they created (in the Studio
+  and the JSON API); anyone with editor rights may add an artifact *inside*
+  someone else's; admins change anything and can reassign the owner on the
+  edit form. Status runs draft → ready for review (the owner submits or
+  withdraws) → approved (an admin approves, or sends it back to draft with a
+  required note). An owner who edits an approved artifact sends it back to
+  "ready". Admins get `/studio/review` (queue, with a count badge in the
+  sidebar) and `/studio/deleted` (restore an artifact and everything deleted
+  with it). An editor may delete only a subtree that is entirely theirs and
+  not approved. Status shows in the tree, on the artifact, and on the map.
+- **Change history.** Every change is written to `artifact_history` by
+  database triggers (migration `20261007000001`): creation, field edits with
+  before and after values, status changes and review notes, owner changes,
+  tags, links, media, delete and restore. Writes learn who is acting through
+  a transaction-local `pintrail.actor_id` set by `audit::begin_as`; a write
+  without it (seed scripts, psql, the worker) is recorded as "system". The
+  table has no foreign key, so a record outlives even a hard delete. The
+  artifact page shows it under **History**.
 - **Media upload** runs from the browser against the *existing* cookie-authed
   attachment endpoints: `upload-intent` → direct PUT to storage → `complete`,
   then the gallery polls until the worker's WebP thumbnail appears. No
@@ -638,6 +673,9 @@ revisiting, not an accident:
 | Added `attachments.claimed_at` / `attempts` | Needed by the sweep that re-queues jobs abandoned by a worker that died mid-processing (DESIGN.md §2.5 calls for the sweep but not the columns it requires). |
 | Case-insensitive unique email on both identity tables | `Tim@umass.edu` and `tim@umass.edu` are one person; treating them as two accounts is a support ticket at best. |
 | Triggers enforce trail owner integrity | `owner_type` + `owner_id` cannot have a declarative foreign key. Triggers validate the owner exists on write and delete a user's trails when the user is deleted — what `ON DELETE CASCADE` would have done. |
+| Added `artifacts.created_by`, `updated_by`, `status`, `submitted_at`, `reviewed_by`, `reviewed_at`, `review_note` | Authorship and review (migration `20261007000001`). The design has no notion of who wrote an artifact or whether it has been checked, and a class of student authors needs both. `status` is an `artifact_status` enum: `draft`, `ready`, `approved`. |
+| Readers see only published artifacts | Approval has to mean something to the people using the app. `artifact_is_published(id)` and the `published` column of the shared coordinates CTE both define it the same way: approved and not deleted, all the way up the parent chain. |
+| Added `artifact_history` | A complete, append-only record of every change to an artifact, written by triggers so no write path can skip it. No foreign key to `artifacts`, so the record outlives a hard delete. |
 | Trigger enforces an acyclic artifact tree | Coordinate inheritance walks up `parent_id`; a cycle would loop forever. Also caps chain depth at 64. |
 
 ## Local services
@@ -663,3 +701,6 @@ to end before the next began.
 8. ✅ `trails/` — stops, visibility, share tokens
 9. ✅ `comments/` — create, list, rate limiting
 10. ✅ `admin/` — minijinja moderation UI
+
+Since then, in the Studio: tags, source links with previews, the map of every
+artifact, the phone layout, and authorship, review, and change history.

@@ -49,7 +49,9 @@ SELECT s.id, s.artifact_id, s.position, s.note,
        a.kind AS artifact_kind,
        r.effective_lat AS lat,
        r.effective_lng AS lng,
-       (a.deleted_at IS NOT NULL) AS artifact_deleted
+       -- For a reader, an artifact that isn't published is as unavailable
+       -- as a deleted one, and nothing about it is shown.
+       (a.deleted_at IS NOT NULL OR ($2 AND NOT artifact_is_published(a.id))) AS artifact_deleted
 FROM trail_stops s
 JOIN artifacts a ON a.id = s.artifact_id
 JOIN resolved r ON r.id = a.id
@@ -168,7 +170,7 @@ async fn create(
     .await?;
 
     if !body.stops.is_empty() {
-        insert_stops(&mut tx, trail.id, &body.stops).await?;
+        insert_stops(&mut tx, trail.id, &body.stops, !identity.is_author()).await?;
     }
 
     tx.commit().await?;
@@ -198,7 +200,7 @@ async fn detail(
         return Err(AppError::NotFound("trail"));
     }
 
-    Ok(Json(json!({ "trail": build_detail(&state, trail, is_owner).await? })))
+    Ok(Json(json!({ "trail": build_detail(&state, trail, is_owner, !identity.is_author()).await? })))
 }
 
 /// Resolves an unlisted share link.
@@ -206,7 +208,7 @@ async fn detail(
 /// The token is looked up on its own rather than alongside a trail id, so a
 /// link cannot be pointed at a different trail than the one it was minted for.
 async fn resolve_share_token(
-    _identity: Identity,
+    identity: Identity,
     State(state): State<AppState>,
     Path(token): Path<String>,
 ) -> AppResult<Json<Value>> {
@@ -224,7 +226,7 @@ async fn resolve_share_token(
         return Err(AppError::NotFound("trail"));
     }
 
-    Ok(Json(json!({ "trail": build_detail(&state, trail, false).await? })))
+    Ok(Json(json!({ "trail": build_detail(&state, trail, false, !identity.is_author()).await? })))
 }
 
 async fn update(
@@ -267,7 +269,7 @@ async fn update(
     .fetch_one(&state.db)
     .await?;
 
-    Ok(Json(json!({ "trail": build_detail(&state, updated, true).await? })))
+    Ok(Json(json!({ "trail": build_detail(&state, updated, true, !identity.is_author()).await? })))
 }
 
 /// Replaces the whole ordered stop list.
@@ -299,7 +301,7 @@ async fn replace_stops(
         .execute(&mut *tx)
         .await?;
 
-    insert_stops(&mut tx, trail.id, &body.stops).await?;
+    insert_stops(&mut tx, trail.id, &body.stops, !identity.is_author()).await?;
 
     // Reordering stops is a change to the trail, and a listing sorted by
     // updated_at should reflect it.
@@ -310,7 +312,7 @@ async fn replace_stops(
 
     tx.commit().await?;
 
-    let stops = load_stops(&state, trail.id).await?;
+    let stops = load_stops(&state, trail.id, !identity.is_author()).await?;
     Ok(Json(json!({ "stops": stops })))
 }
 
@@ -367,17 +369,18 @@ async fn load_owned_trail(state: &AppState, id: Uuid, identity: &Identity) -> Ap
     Ok(trail)
 }
 
-async fn load_stops(state: &AppState, trail_id: Uuid) -> AppResult<Vec<TrailStopView>> {
+async fn load_stops(state: &AppState, trail_id: Uuid, reader: bool) -> AppResult<Vec<TrailStopView>> {
     let rows = sqlx::query_as::<_, TrailStopRow>(STOPS_QUERY)
         .bind(trail_id)
+        .bind(reader)
         .fetch_all(&state.db)
         .await?;
 
     Ok(rows.into_iter().map(TrailStopView::from).collect())
 }
 
-async fn build_detail(state: &AppState, trail: Trail, is_owner: bool) -> AppResult<TrailDetail> {
-    let stops = load_stops(state, trail.id).await?;
+async fn build_detail(state: &AppState, trail: Trail, is_owner: bool, reader: bool) -> AppResult<TrailDetail> {
+    let stops = load_stops(state, trail.id, reader).await?;
 
     Ok(TrailDetail {
         id: trail.id,
@@ -400,6 +403,7 @@ async fn insert_stops(
     conn: &mut PgConnection,
     trail_id: Uuid,
     stops: &[StopInput],
+    reader: bool,
 ) -> AppResult<()> {
     for (index, stop) in stops.iter().enumerate() {
         // Checked per stop so the error names the offending artifact rather
@@ -407,8 +411,13 @@ async fn insert_stops(
         // artifacts are rejected here too: they still satisfy the FK, but
         // adding one would create a stop that is unavailable on arrival.
         let exists: Option<Uuid> =
-            sqlx::query_scalar("SELECT id FROM artifacts WHERE id = $1 AND deleted_at IS NULL")
+            // A reader can only add artifacts they can see.
+            sqlx::query_scalar(
+                "SELECT id FROM artifacts WHERE id = $1 AND deleted_at IS NULL \
+                 AND (NOT $2 OR artifact_is_published(id))",
+            )
                 .bind(stop.artifact_id)
+                .bind(reader)
                 .fetch_optional(&mut *conn)
                 .await?;
 

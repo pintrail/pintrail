@@ -1,0 +1,45 @@
+{# Admin review queue. #}
+{% macro item(r, note) %}
+<li>
+  <a class="node" hx-get="/studio/artifacts/{{ r.id }}" hx-target="#detail" hx-push-url="true">
+    <span class="kind-chip">{{ r.kind }}</span>
+    <span>{{ r.name or "(untitled)" }}</span>
+  </a>
+  <div class="hint q-meta">
+    {{ r.owner or "no owner" }}{% if r.parent_name %} · inside {{ r.parent_name }}{% endif %}
+    {% if r.submitted_at and not note %} · submitted <time data-local datetime="{{ r.submitted_at }}">{{ r.submitted_at[:10] }}</time>{% endif %}
+  </div>
+  {% if note and r.review_note %}<p class="q-note">{{ r.review_note }}</p>{% endif %}
+</li>
+{% endmacro %}
+
+<div class="card">
+  <h1>Review</h1>
+  <p class="subtitle" style="margin:0">
+    <span class="status-chip status-ready">{{ n_ready }} waiting</span>
+    <span class="status-chip status-draft">{{ n_draft }} draft</span>
+    <span class="status-chip status-approved">{{ n_approved }} approved</span>
+  </p>
+</div>
+
+<div class="card">
+  <h3>Waiting for review</h3>
+  {% if waiting %}
+  <ul class="tree queue">{% for r in waiting %}{{ item(r, false) }}{% endfor %}</ul>
+  {% else %}<p class="hint" style="margin:0">Nothing is waiting. Students submit from the artifact page.</p>{% endif %}
+</div>
+
+{% if sent_back %}
+<div class="card">
+  <h3>Sent back, not resubmitted yet</h3>
+  <ul class="tree queue">{% for r in sent_back %}{{ item(r, true) }}{% endfor %}</ul>
+</div>
+{% endif %}
+
+{% if unowned %}
+<div class="card">
+  <h3>No owner</h3>
+  <p class="hint" style="margin-top:0">Added before authorship was recorded. Open one and use Edit to assign it to an author, so they can change it.</p>
+  <ul class="tree queue">{% for r in unowned %}{{ item(r, false) }}{% endfor %}</ul>
+</div>
+{% endif %}

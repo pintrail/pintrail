@@ -5,21 +5,33 @@
     <div>
       <h1>{{ a.name or "(untitled)" }}</h1>
       <p class="subtitle">
+        <span class="status-chip status-{{ a.status }}">{{ status_labels[a.status] }}</span>
         <span class="kind-chip">{{ a.kind }}</span>
         {% if a.parent_name %} · inside <a hx-get="/studio/artifacts/{{ a.parent_id }}" hx-target="#detail" hx-push-url="true" style="cursor:pointer">{{ a.parent_name }}</a>{% endif %}
       </p>
     </div>
-    {% if can_edit %}
+    {% if can_edit or can_delete %}
     <div class="push row">
+      {% if can_edit %}
       <button class="btn-sm" hx-get="/studio/artifacts/{{ a.id }}/edit" hx-target="#detail">Edit</button>
+      {% endif %}
+      {% if can_delete %}
       <button class="btn-sm btn-danger"
               hx-post="/studio/artifacts/{{ a.id }}/delete"
               hx-vals='{"csrf_token": "{{ csrf_token }}"}'
               hx-target="#detail"
               hx-confirm="Delete “{{ a.name }}” and everything nested inside it?">Delete</button>
+      {% endif %}
     </div>
     {% endif %}
   </div>
+  <p class="byline">
+    Added by {{ a.created_by_email or "someone before authorship was recorded" }}
+    <time data-local datetime="{{ a.created_at }}">{{ a.created_at[:10] }}</time>
+    {% if a.updated_by_email and a.updated_at[:16] != a.created_at[:16] %}
+    · last edited by {{ a.updated_by_email }} <time data-local datetime="{{ a.updated_at }}">{{ a.updated_at[:10] }}</time>
+    {% endif %}
+  </p>
 
   {# pre-line keeps the author's paragraph breaks; the text is still autoescaped. #}
   {% if a.description %}<p style="margin:.75rem 0 0; white-space:pre-line">{{ a.description }}</p>{% endif %}
@@ -29,6 +41,8 @@
   </ul>
   {% endif %}
 </div>
+
+{% include "studio_review_card.html" %}
 
 <div class="card">
   <h3>Location</h3>
@@ -68,14 +82,21 @@
       <span class="kind-chip">{{ c.kind }}</span><span>{{ c.name or "(untitled)" }}</span></a></li>
     {% endfor %}
   </ul>
-  {% if can_edit %}
+  {% if can_create %}
   <button class="btn-sm" style="margin-top:.75rem"
           hx-get="/studio/artifacts/new?parent={{ a.id }}" hx-target="#detail">+ Add one inside</button>
   {% endif %}
 </div>
-{% elif can_edit %}
+{% elif can_create %}
 <div class="card">
   <button class="btn-sm" hx-get="/studio/artifacts/new?parent={{ a.id }}" hx-target="#detail">+ Add a nested artifact</button>
   <span class="hint" style="margin-left:.5rem">e.g. a room or object inside this one</span>
 </div>
 {% endif %}
+
+<details class="card history-card">
+  <summary><h3>History</h3><span class="hint">every change, newest first</span></summary>
+  <div hx-get="/studio/artifacts/{{ a.id }}/history" hx-trigger="toggle from:closest details once" hx-swap="innerHTML">
+    <p class="hint">Loading…</p>
+  </div>
+</details>

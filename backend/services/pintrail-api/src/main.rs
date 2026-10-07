@@ -1,6 +1,7 @@
 mod admin;
 mod artifacts;
 mod attachments;
+mod audit;
 mod authors;
 mod cli;
 mod client_ip;

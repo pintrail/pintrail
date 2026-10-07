@@ -490,6 +490,9 @@
     installation: "#059669", rooftop: "#d97706", other: "#64748b",
   };
 
+  const STATUS_COLORS = { draft: "#94a3b8", ready: "#d97706", approved: "#16a34a" };
+  const STATUS_LABELS = { draft: "Draft", ready: "Ready for review", approved: "Approved" };
+
   function openArtifact(id) {
     const url = "/studio/artifacts/" + id;
     htmx.ajax("GET", url, { target: "#detail", swap: "innerHTML" }).then(function () {
@@ -513,6 +516,7 @@
     a.addEventListener("click", function () { openArtifact(m.id); });
     h.appendChild(a);
     div.appendChild(h);
+    div.appendChild(chip(STATUS_LABELS[m.status] || m.status, "status-chip status-" + m.status));
     div.appendChild(chip(m.kind, "kind-chip"));
     if (m.tags.length) {
       const t = document.createElement("div");
@@ -554,7 +558,7 @@
       const entries = data.markers.map(function (m) {
         const color = KIND_COLORS[m.kind] || KIND_COLORS.other;
         const layer = L.circleMarker([m.lat, m.lng], {
-          radius: m.inside.length ? 10 : 8, color: "#fff", weight: 2,
+          radius: m.inside.length ? 10 : 8, color: STATUS_COLORS[m.status] || "#fff", weight: 3,
           fillColor: color, fillOpacity: 0.9,
         }).bindPopup(popupFor(m)).bindTooltip(m.name || "(untitled)");
         return { m: m, layer: layer };
@@ -562,13 +566,14 @@
 
       const kindSel = card.querySelector('[data-map-filter="kind"]');
       const tagSel = card.querySelector('[data-map-filter="tag"]');
+      const statusSel = card.querySelector('[data-map-filter="status"]');
       const count = card.querySelector("[data-map-count]");
 
       function matches(m) {
         const all = [m].concat(m.inside);
-        const k = kindSel.value, t = tagSel.value;
+        const k = kindSel.value, t = tagSel.value, st = statusSel.value;
         return all.some(function (a) {
-          return (!k || a.kind === k) &&
+          return (!k || a.kind === k) && (!st || a.status === st) &&
             (!t || a.tags.some(function (x) { return x.toLowerCase() === t; }));
         });
       }
@@ -585,6 +590,7 @@
       }
       kindSel.addEventListener("change", function () { apply(true); });
       tagSel.addEventListener("change", function () { apply(true); });
+      statusSel.addEventListener("change", function () { apply(true); });
       apply(true);
       setTimeout(function () { map.invalidateSize(); }, 50);
     });
@@ -606,8 +612,18 @@
     if (e.key === "Escape" && document.body.classList.contains("nav-open")) setNav(false);
   });
 
+  // --- times in the reader's own zone -------------------------------------
+  const DATE_FMT = new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" });
+  function localTimes(root) {
+    root.querySelectorAll("time[data-local]").forEach(function (t) {
+      const d = new Date(t.getAttribute("datetime"));
+      if (!isNaN(d)) { t.textContent = DATE_FMT.format(d); t.title = d.toString(); }
+    });
+  }
+
   function enhance(root) {
     root = root || document;
+    localTimes(root);
     initMaps(root);
     initForms(root);
     initSortable(root);

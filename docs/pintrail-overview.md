@@ -110,6 +110,7 @@ Pintrail has three kinds of users, kept as separate tiers because they are diffe
 3. They create artifacts: pick the kind, write the name and description, and place it on the map. For an indoor child artifact (a room or an object) they choose the parent and leave the location blank, and it inherits the building's position.
 4. They upload attachments (see the diagram below). Files go straight to storage, and the background worker converts them into phone-friendly formats (for example, iPhone HEIC photos become resized WebP images and PDFs get a thumbnail of page one). The author sees each file's status move from queued to processed.
 5. They reorder and caption attachments, preview the artifact, and curate official trails that appear publicly in the app.
+6. When an artifact is finished, they submit it for review. An admin approves it or sends it back with a note saying what to change. Only approved artifacts appear in the app. Editors can change only the artifacts they created, though anyone can add an artifact inside someone else's building. Every change to an artifact is kept in its history, with who made it and when.
 
 ![From upload to phone-ready media](img/05-upload-pipeline.svg)
 
@@ -117,8 +118,9 @@ Pintrail has three kinds of users, kept as separate tiers because they are diffe
 
 1. Admins use the admin panel at `pintrail.cs.umass.edu/admin` to add authors (**Authors → Add author**, with a temporary password the author must replace), suspend them, or change their role. Suspending an account signs it out immediately, and the system prevents removing the last active admin.
 2. They review a moderation queue of flagged comments and hide or restore them.
-3. They can take down a user-created trail that has been reported.
-4. The very first admin account is created from the server's command line; everything after that happens in the web panel.
+3. In the Studio, they work through the queue of artifacts submitted for review, assign owners, and restore artifacts that were deleted by mistake.
+4. They can take down a user-created trail that has been reported.
+5. The very first admin account is created from the server's command line; everything after that happens in the web panel.
 
 ## 6. How it works behind the scenes (non-technical view)
 

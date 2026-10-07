@@ -5,6 +5,7 @@
 <li>
   <a class="node {{ 'active' if a.id == selected_id }}"
      hx-get="/studio/artifacts/{{ a.id }}" hx-target="#detail" hx-push-url="true">
+    <span class="status-dot status-{{ a.status }}" title="{{ status_labels[a.status] }}"></span>
     <span class="kind-chip">{{ a.kind }}</span>
     <span>{{ a.name or "(untitled)" }}</span>
   </a>
@@ -16,10 +17,18 @@
 </li>
 {% endmacro %}
 
+{% if can_create %}
+<label class="mine-toggle">
+  <input type="checkbox" name="mine" value="1" {{ 'checked' if mine }}
+         hx-get="/studio/tree" hx-target="#tree" hx-swap="innerHTML" hx-trigger="change">
+  Only mine
+</label>
+{% endif %}
+
 {% if roots %}
 <ul class="tree">
   {% for a in roots %}{{ node(a) }}{% endfor %}
 </ul>
 {% else %}
-<p class="hint">No artifacts yet.{% if can_edit %} Use <strong>+ New</strong> to add one.{% endif %}</p>
+<p class="hint">{% if mine %}You haven't added any artifacts yet.{% else %}No artifacts yet.{% if can_create %} Use <strong>+ New</strong> to add one.{% endif %}{% endif %}</p>
 {% endif %}

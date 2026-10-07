@@ -14,6 +14,13 @@
           <option value="">all</option>
           {% for k in kinds %}<option value="{{ k }}">{{ k }}</option>{% endfor %}
         </select></label>
+      <label class="inline-filter">Status
+        <select data-map-filter="status">
+          <option value="">all</option>
+          <option value="draft">Draft</option>
+          <option value="ready">Ready for review</option>
+          <option value="approved">Approved</option>
+        </select></label>
       <label class="inline-filter">Tag
         <select data-map-filter="tag">
           <option value="">all</option>
@@ -23,7 +30,11 @@
   </div>
   <div class="map overview" data-overview-map></div>
   <script type="application/json" data-map-data>{{ map_data }}</script>
-  <p class="hint" style="margin:.6rem 0 0">A marker is an artifact with its own location. Click it to see it and everything nested inside it.</p>
+  <p class="map-legend" style="margin:.6rem 0 0">Fill shows the kind. Ring shows review status:
+    <span><span class="status-dot status-draft"></span>draft</span>
+    <span><span class="status-dot status-ready"></span>ready for review</span>
+    <span><span class="status-dot status-approved"></span>approved</span></p>
+  <p class="hint" style="margin:.3rem 0 0">A marker is an artifact with its own location. Click it to see it and everything nested inside it.</p>
 </div>
 
 {% if unplaced %}

@@ -54,6 +54,7 @@ async fn list(
     Path(artifact_id): Path<Uuid>,
     Query(params): Query<ListParams>,
 ) -> AppResult<Json<Value>> {
+    crate::artifacts::routes::ensure_visible(&state, &identity, artifact_id).await?;
     let limit = params.limit.clamp(1, 200);
     let offset = params.offset.max(0);
 
@@ -101,13 +102,13 @@ async fn create(
         )));
     }
 
-    let artifact_exists: Option<Uuid> =
-        sqlx::query_scalar("SELECT id FROM artifacts WHERE id = $1 AND deleted_at IS NULL")
-            .bind(artifact_id)
-            .fetch_optional(&state.db)
-            .await?;
+    // Commenters are readers, who can see only published artifacts.
+    let published: bool = sqlx::query_scalar("SELECT artifact_is_published($1)")
+        .bind(artifact_id)
+        .fetch_one(&state.db)
+        .await?;
 
-    if artifact_exists.is_none() {
+    if !published {
         return Err(AppError::NotFound("artifact"));
     }
 

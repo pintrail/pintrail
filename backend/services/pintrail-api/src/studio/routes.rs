@@ -22,7 +22,7 @@ use crate::state::AppState;
 
 const KINDS: [&str; 6] = ["building", "room", "artwork", "installation", "rooftop", "other"];
 
-fn environment() -> Environment<'static> {
+pub(super) fn environment() -> Environment<'static> {
     let mut env = Environment::new();
     // minijinja autoescapes by .html extension, so every registered name ends
     // in .html -- artifact names and descriptions are author-controlled but
@@ -39,9 +39,19 @@ fn environment() -> Environment<'static> {
         ("studio_password.html", include_str!("templates/password.html")),
         ("studio_links.html", include_str!("templates/links.html")),
         ("studio_map.html", include_str!("templates/map.html")),
+        ("studio_history.html", include_str!("templates/history.html")),
+        ("studio_review.html", include_str!("templates/review.html")),
+        ("studio_deleted.html", include_str!("templates/deleted.html")),
+        ("studio_review_card.html", include_str!("templates/review_card.html")),
     ] {
         env.add_template(name, src).expect("studio template compiles");
     }
+    env.add_global(
+        "status_labels",
+        Value::from_serialize(serde_json::json!({
+            "draft": "Draft", "ready": "Ready for review", "approved": "Approved",
+        })),
+    );
     env.add_global("studio_js_version", super::assets::studio_js_version());
     env
 }
@@ -66,11 +76,12 @@ pub fn router() -> Router<AppState> {
         .route("/studio/artifacts/{id}/links/order", post(reorder_links))
         .route("/studio/links/{id}", post(update_link))
         .route("/studio/links/{id}/delete", post(delete_link))
+        .merge(super::review::router())
 }
 
 // --- rendering helpers -----------------------------------------------------
 
-fn render(env: &Environment, name: &str, ctx: Value) -> AppResult<Html<String>> {
+pub(super) fn render(env: &Environment, name: &str, ctx: Value) -> AppResult<Html<String>> {
     let tmpl = env
         .get_template(name)
         .map_err(|e| AppError::Internal(anyhow::anyhow!("template {name}: {e}")))?;
@@ -82,7 +93,7 @@ fn render(env: &Environment, name: &str, ctx: Value) -> AppResult<Html<String>> 
 /// Returns a bare fragment to htmx (which sends `HX-Request`), or the whole
 /// document to a direct navigation or refresh. Both share one fragment
 /// template, so a deep-linked URL renders identically to a swapped-in view.
-fn respond(
+pub(super) fn respond(
     env: &Environment,
     headers: &HeaderMap,
     fragment: &str,
@@ -101,19 +112,21 @@ fn is_editor(author: &Author) -> bool {
 
 /// Context every authenticated view needs: who is signed in, whether they may
 /// edit, and the CSRF token bound to their session.
-fn base_ctx(author: &Author, session_token: &str) -> Value {
+pub(super) fn base_ctx(author: &Author, session_token: &str) -> Value {
     context! {
         author => context! { email => author.email.clone(), role => author.role.as_str() },
         can_edit => is_editor(author),
+        can_create => is_editor(author),
+        is_admin => crate::audit::is_admin(author),
         csrf_token => csrf::token_for_session(session_token),
     }
 }
 
-fn session_token(jar: &CookieJar) -> String {
+pub(super) fn session_token(jar: &CookieJar) -> String {
     jar.get(SESSION_COOKIE).map(|c| c.value().to_string()).unwrap_or_default()
 }
 
-fn require_editor(author: &Author) -> AppResult<()> {
+pub(super) fn require_editor(author: &Author) -> AppResult<()> {
     if is_editor(author) {
         Ok(())
     } else {
@@ -121,7 +134,7 @@ fn require_editor(author: &Author) -> AppResult<()> {
     }
 }
 
-fn require_csrf(jar: &CookieJar, submitted: &str) -> AppResult<()> {
+pub(super) fn require_csrf(jar: &CookieJar, submitted: &str) -> AppResult<()> {
     if csrf::verify(&session_token(jar), submitted) {
         Ok(())
     } else {
@@ -306,7 +319,7 @@ async fn logout(
 
 #[derive(Debug, Deserialize)]
 pub struct CsrfForm {
-    csrf_token: String,
+    pub(super) csrf_token: String,
 }
 
 // --- views -----------------------------------------------------------------
@@ -344,12 +357,13 @@ async fn tree(
     jar: CookieJar,
     Query(q): Query<TreeQuery>,
 ) -> AppResult<Html<String>> {
-    let roots = load_tree(&state).await?;
+    let roots = load_tree(&state, q.mine.is_some().then_some(author.0.id)).await?;
     render(
         &environment(),
         "studio_tree.html",
         context! {
             roots => roots,
+            mine => q.mine.is_some(),
             selected_id => q.selected.map(|u| u.to_string()),
             ..base_ctx(&author.0, &session_token(&jar))
         },
@@ -359,6 +373,8 @@ async fn tree(
 #[derive(Debug, Deserialize)]
 pub struct TreeQuery {
     selected: Option<Uuid>,
+    /// Present (any value) to show only the signed-in author's artifacts.
+    mine: Option<String>,
 }
 
 async fn detail(
@@ -368,13 +384,28 @@ async fn detail(
     headers: HeaderMap,
     Path(id): Path<Uuid>,
 ) -> AppResult<Html<String>> {
-    let d = load_detail(&state, id).await?;
-    let ctx = context! {
+    let ctx = detail_ctx(&state, &author.0, &jar, id).await?;
+    respond(&environment(), &headers, "studio_detail.html", ctx)
+}
+
+/// Everything the artifact page needs, including what this author may do
+/// with it. `can_edit` here means "may change this artifact" (it drives the
+/// links and media controls); `can_create` is the general editor right to
+/// add artifacts, including inside someone else's.
+async fn detail_ctx(state: &AppState, author: &Author, jar: &CookieJar, id: Uuid) -> AppResult<Value> {
+    let d = load_detail(state, id).await?;
+    let own = crate::audit::Ownership { created_by: d.row.created_by };
+    let can_modify = crate::audit::may_modify(author, &own);
+    let can_delete = crate::audit::can_delete(&state.db, author, id).await?;
+    Ok(context! {
         title => d.row.name.clone(),
         a => d.value(),
-        ..base_ctx(&author.0, &session_token(&jar))
-    };
-    respond(&environment(), &headers, "studio_detail.html", ctx)
+        can_edit => can_modify,
+        can_delete => can_delete,
+        can_create => is_editor(author),
+        is_owner => d.row.created_by == Some(author.id),
+        ..base_ctx(author, &session_token(jar))
+    })
 }
 
 async fn attachments(
@@ -383,6 +414,8 @@ async fn attachments(
     jar: CookieJar,
     Path(id): Path<Uuid>,
 ) -> AppResult<Html<String>> {
+    let own = crate::audit::ownership(&state.db, id).await?;
+    let can_modify = crate::audit::may_modify(&author.0, &own);
     let views = crate::attachments::list_for_artifact(&state, id, true).await?;
     // Still-processing rows drive the fragment to poll again.
     let processing = views.iter().any(|m| {
@@ -398,6 +431,7 @@ async fn attachments(
             artifact_id => id.to_string(),
             attachments => serde_json::to_value(&views).map_err(|e| AppError::Internal(e.into()))?,
             processing => processing,
+            can_edit => can_modify,
             ..base_ctx(&author.0, &session_token(&jar))
         },
     )
@@ -433,6 +467,7 @@ async fn edit_form(
     Path(id): Path<Uuid>,
 ) -> AppResult<Html<String>> {
     require_editor(&author.0)?;
+    crate::audit::ensure_can_modify(&state.db, &author.0, id).await?;
     let d = load_detail(&state, id).await?;
 
     // Empty strings, not nulls, so the inputs render blank rather than the
@@ -445,6 +480,7 @@ async fn edit_form(
         parent_id => d.row.parent_id.map(|u| u.to_string()).unwrap_or_default(),
         lat => d.row.lat.map(|v| v.to_string()).unwrap_or_default(),
         lng => d.row.lng.map(|v| v.to_string()).unwrap_or_default(),
+        owner_id => d.row.created_by.map(|u| u.to_string()).unwrap_or_default(),
     };
     render_form(&state, &author.0, &jar, &headers, Some(id), form, None).await
 }
@@ -463,6 +499,13 @@ async fn render_form(
 ) -> AppResult<Html<String>> {
     let parents = load_parent_options(state, edit_id).await?;
     let tag_suggestions = load_tag_suggestions(state).await?;
+    // Admins can hand an artifact to another author (or claim one that
+    // predates authorship). Everyone else owns what they create.
+    let owners = if edit_id.is_some() && crate::audit::is_admin(author) {
+        load_owner_options(state).await?
+    } else {
+        Value::from(())
+    };
     let (title, heading, action, submit_label) = match edit_id {
         Some(id) => ("Edit", "Edit artifact", format!("/studio/artifacts/{id}"), "Save changes"),
         None => ("New artifact", "New artifact", "/studio/artifacts".to_string(), "Create"),
@@ -476,6 +519,7 @@ async fn render_form(
         kinds => KINDS,
         parents => parents,
         tag_suggestions => tag_suggestions,
+        owners => owners,
         form => form,
         error => error,
         ..base_ctx(author, &session_token(jar))
@@ -498,6 +542,9 @@ pub struct ArtifactForm {
     lat: String,
     #[serde(default)]
     lng: String,
+    /// Admin-only, on the edit form: the artifact's owner.
+    #[serde(default)]
+    owner_id: Option<String>,
 }
 
 /// A form submission that passed validation.
@@ -518,6 +565,7 @@ impl ArtifactForm {
             name => self.name.clone(), kind => self.kind.clone(),
             description => self.description.clone(), tags => self.tags.clone(),
             parent_id => self.parent_id.clone(), lat => self.lat.clone(), lng => self.lng.clone(),
+            owner_id => self.owner_id.clone().unwrap_or_default(),
         }
     }
 
@@ -636,16 +684,23 @@ async fn replace_tags(
     id: Uuid,
     tags: &[String],
 ) -> Result<(), sqlx::Error> {
-    sqlx::query("DELETE FROM artifact_tags WHERE artifact_id = $1")
+    // Only the difference is written, so the history records tags actually
+    // added and removed rather than every tag on every save.
+    let lowered: Vec<String> = tags.iter().map(|t| t.to_lowercase()).collect();
+    sqlx::query("DELETE FROM artifact_tags WHERE artifact_id = $1 AND NOT (lower(tag) = ANY($2))")
         .bind(id)
+        .bind(&lowered)
         .execute(&mut **tx)
         .await?;
     if !tags.is_empty() {
-        sqlx::query("INSERT INTO artifact_tags (artifact_id, tag) SELECT $1, unnest($2::text[])")
-            .bind(id)
-            .bind(tags)
-            .execute(&mut **tx)
-            .await?;
+        sqlx::query(
+            "INSERT INTO artifact_tags (artifact_id, tag) SELECT $1, unnest($2::text[]) \
+             ON CONFLICT DO NOTHING",
+        )
+        .bind(id)
+        .bind(tags)
+        .execute(&mut **tx)
+        .await?;
     }
     Ok(())
 }
@@ -669,7 +724,7 @@ async fn create(
         }
     };
 
-    let mut tx = state.db.begin().await?;
+    let mut tx = crate::audit::begin_as(&state.db, author.0.id).await?;
     let inserted: Result<Uuid, sqlx::Error> = sqlx::query_scalar(
         "INSERT INTO artifacts (kind, name, description, lat, lng, parent_id) \
          VALUES ($1::artifact_kind, $2, $3, $4, $5, $6) RETURNING id",
@@ -708,6 +763,7 @@ async fn update(
 ) -> AppResult<Response> {
     require_editor(&author.0)?;
     require_csrf(&jar, &form.csrf_token)?;
+    crate::audit::ensure_can_modify(&state.db, &author.0, id).await?;
 
     let v = match form.validate(Some(id)) {
         Ok(v) => v,
@@ -718,7 +774,7 @@ async fn update(
         }
     };
 
-    let mut tx = state.db.begin().await?;
+    let mut tx = crate::audit::begin_as(&state.db, author.0.id).await?;
     let updated = sqlx::query(
         "UPDATE artifacts SET kind = $2::artifact_kind, name = $3, description = $4, \
          lat = $5, lng = $6, parent_id = $7 WHERE id = $1 AND deleted_at IS NULL",
@@ -745,6 +801,17 @@ async fn update(
         return Err(AppError::NotFound("artifact"));
     }
     replace_tags(&mut tx, id, &v.tags).await?;
+    if crate::audit::is_admin(&author.0) {
+        if let Some(owner) = form.owner_id.as_deref().map(str::trim).filter(|s| !s.is_empty()) {
+            let owner = Uuid::parse_str(owner).map_err(|_| AppError::BadRequest("invalid owner".into()))?;
+            sqlx::query("UPDATE artifacts SET created_by = $2 WHERE id = $1 AND created_by IS DISTINCT FROM $2")
+                .bind(id)
+                .bind(owner)
+                .execute(&mut *tx)
+                .await?;
+        }
+    }
+    crate::audit::reopen_if_approved(&mut tx, &author.0, id).await?;
     tx.commit().await?;
 
     tracing::info!(actor = %author.0.id, artifact_id = %id, "artifact updated in studio");
@@ -761,6 +828,10 @@ async fn remove(
     require_editor(&author.0)?;
     require_csrf(&jar, &form.csrf_token)?;
 
+    let mut tx = crate::audit::begin_as(&state.db, author.0.id).await?;
+    if !crate::audit::can_delete(&mut *tx, &author.0, id).await? {
+        return Err(AppError::Forbidden);
+    }
     // Soft delete of the whole subtree, matching the JSON API: a surviving
     // child would inherit coordinates from a deleted ancestor.
     sqlx::query(
@@ -775,8 +846,9 @@ async fn remove(
         "#,
     )
     .bind(id)
-    .execute(&state.db)
+    .execute(&mut *tx)
     .await?;
+    tx.commit().await?;
 
     tracing::info!(actor = %author.0.id, artifact_id = %id, "artifact deleted in studio");
 
@@ -798,16 +870,19 @@ async fn delete_attachment(
     require_editor(&author.0)?;
     require_csrf(&jar, &form.csrf_token)?;
 
-    // Delete the row and both objects, and learn which artifact to re-render.
-    let artifact_id: Option<Uuid> = sqlx::query_scalar(
-        "DELETE FROM attachments WHERE id = $1 \
-         RETURNING artifact_id",
-    )
-    .bind(id)
-    .fetch_optional(&state.db)
-    .await?;
-
-    let artifact_id = artifact_id.ok_or(AppError::NotFound("attachment"))?;
+    let artifact_id: Uuid = sqlx::query_scalar("SELECT artifact_id FROM attachments WHERE id = $1")
+        .bind(id)
+        .fetch_optional(&state.db)
+        .await?
+        .ok_or(AppError::NotFound("attachment"))?;
+    let mut tx = crate::audit::begin_as(&state.db, author.0.id).await?;
+    crate::audit::ensure_can_modify(&mut *tx, &author.0, artifact_id).await?;
+    sqlx::query("DELETE FROM attachments WHERE id = $1")
+        .bind(id)
+        .execute(&mut *tx)
+        .await?;
+    crate::audit::touch(&mut tx, &author.0, artifact_id).await?;
+    tx.commit().await?;
     // Object cleanup is best-effort; a leaked object is wasted space, a
     // dangling row would be a broken image. (The JSON delete handler removes
     // objects too; here we keep it simple and let the row drive the UI.)
@@ -825,6 +900,7 @@ async fn delete_attachment(
             artifact_id => artifact_id.to_string(),
             attachments => serde_json::to_value(&views).map_err(|e| AppError::Internal(e.into()))?,
             processing => processing,
+            can_edit => true,
             ..base_ctx(&author.0, &session_token(&jar))
         },
     )
@@ -832,19 +908,14 @@ async fn delete_attachment(
 
 /// After a create or update, render the detail fragment and tell the sidebar
 /// tree to refresh via an HX-Trigger response header.
-async fn detail_after_change(
+pub(super) async fn detail_after_change(
     state: &AppState,
     author: &Author,
     jar: &CookieJar,
     headers: &HeaderMap,
     id: Uuid,
 ) -> AppResult<Response> {
-    let d = load_detail(state, id).await?;
-    let ctx = context! {
-        title => d.row.name.clone(),
-        a => d.value(),
-        ..base_ctx(author, &session_token(jar))
-    };
+    let ctx = detail_ctx(state, author, jar, id).await?;
     let body = respond(&environment(), headers, "studio_detail.html", ctx)?;
     // Put the saved artifact's address in the location bar, so a reload or a
     // shared link lands back on it rather than on the welcome page.
@@ -864,6 +935,7 @@ struct MapRow {
     effective_lng: Option<f64>,
     location_source_id: Option<Uuid>,
     tags: Vec<String>,
+    status: String,
 }
 
 /// Every artifact on one map. One marker per artifact that has its own
@@ -881,7 +953,8 @@ async fn map_view(
         SELECT a.id, a.kind::text AS kind, a.name, a.parent_id,
                r.effective_lat, r.effective_lng, r.location_source_id,
                COALESCE((SELECT array_agg(t.tag ORDER BY lower(t.tag))
-                         FROM artifact_tags t WHERE t.artifact_id = a.id), '{{}}') AS tags
+                         FROM artifact_tags t WHERE t.artifact_id = a.id), '{{}}') AS tags,
+               a.status::text AS status
         FROM artifacts a JOIN resolved r ON r.id = a.id
         WHERE a.deleted_at IS NULL
         ORDER BY a.name, a.id
@@ -891,7 +964,7 @@ async fn map_view(
 
     let item = |r: &MapRow| {
         serde_json::json!({
-            "id": r.id.to_string(), "kind": r.kind, "name": r.name, "tags": r.tags,
+            "id": r.id.to_string(), "kind": r.kind, "name": r.name, "tags": r.tags, "status": r.status,
             "parent_id": r.parent_id.map(|u| u.to_string()),
         })
     };
@@ -1038,20 +1111,12 @@ async fn render_links(
             error => error,
             draft => draft,
             edit_id => edit_id.map(|u| u.to_string()),
+            can_edit => links_editable(state, author, artifact_id).await?,
             ..base_ctx(author, &session_token(jar))
         },
     )
 }
 
-/// Any change to an artifact's links counts as a change to the artifact, so
-/// incremental sync picks it up once the app shows links.
-async fn touch_artifact(state: &AppState, id: Uuid) -> AppResult<()> {
-    sqlx::query("UPDATE artifacts SET updated_at = now() WHERE id = $1")
-        .bind(id)
-        .execute(&state.db)
-        .await?;
-    Ok(())
-}
 
 async fn ensure_artifact(state: &AppState, id: Uuid) -> AppResult<()> {
     let exists: bool = sqlx::query_scalar(
@@ -1081,6 +1146,12 @@ async fn links(
     render_links(&state, &author.0, &jar, id, None, Value::from(()), None).await
 }
 
+/// The links card's controls follow the artifact's owner, not just the role.
+async fn links_editable(state: &AppState, author: &Author, artifact_id: Uuid) -> AppResult<bool> {
+    let own = crate::audit::ownership(&state.db, artifact_id).await?;
+    Ok(crate::audit::may_modify(author, &own))
+}
+
 async fn add_link(
     author: AuthenticatedAuthor,
     State(state): State<AppState>,
@@ -1090,7 +1161,7 @@ async fn add_link(
 ) -> AppResult<Html<String>> {
     require_editor(&author.0)?;
     require_csrf(&jar, &form.csrf_token)?;
-    ensure_artifact(&state, id).await?;
+    crate::audit::ensure_can_modify(&state.db, &author.0, id).await?;
 
     let draft = context! { url => form.url.clone(), note => form.note.clone() };
     let checked = super::preview::normalize_url(&form.url).and_then(|u| Ok((u, clean_note(&form.note)?)));
@@ -1100,6 +1171,7 @@ async fn add_link(
     };
 
     let preview = super::preview::fetch(&url).await.unwrap_or_default();
+    let mut tx = crate::audit::begin_as(&state.db, author.0.id).await?;
     sqlx::query(
         "INSERT INTO artifact_links (artifact_id, url, note, position, preview_title, \
          preview_description, preview_image_url, preview_site_name, preview_fetched_at) \
@@ -1114,9 +1186,10 @@ async fn add_link(
     .bind(&preview.description)
     .bind(&preview.image_url)
     .bind(&preview.site_name)
-    .execute(&state.db)
+    .execute(&mut *tx)
     .await?;
-    touch_artifact(&state, id).await?;
+    crate::audit::touch(&mut tx, &author.0, id).await?;
+    tx.commit().await?;
 
     tracing::info!(actor = %author.0.id, artifact_id = %id, "link added in studio");
     render_links(&state, &author.0, &jar, id, None, Value::from(()), None).await
@@ -1141,6 +1214,7 @@ async fn update_link(
     require_editor(&author.0)?;
     require_csrf(&jar, &form.csrf_token)?;
     let link = load_link(&state, link_id).await?;
+    crate::audit::ensure_can_modify(&state.db, &author.0, link.artifact_id).await?;
 
     let draft = context! { url => form.url.clone(), note => form.note.clone() };
     let checked = super::preview::normalize_url(&form.url).and_then(|u| Ok((u, clean_note(&form.note)?)));
@@ -1153,8 +1227,10 @@ async fn update_link(
 
     // Re-read the page only when the address changed, or the first fetch
     // came back empty and the author is effectively asking to try again.
-    if url.as_str() != link.url || link.preview_title.is_none() {
-        let preview = super::preview::fetch(&url).await.unwrap_or_default();
+    let refetch = url.as_str() != link.url || link.preview_title.is_none();
+    let preview = if refetch { super::preview::fetch(&url).await.unwrap_or_default() } else { Default::default() };
+    let mut tx = crate::audit::begin_as(&state.db, author.0.id).await?;
+    if refetch {
         sqlx::query(
             "UPDATE artifact_links SET url = $2, note = $3, preview_title = $4, \
              preview_description = $5, preview_image_url = $6, preview_site_name = $7, \
@@ -1167,16 +1243,17 @@ async fn update_link(
         .bind(&preview.description)
         .bind(&preview.image_url)
         .bind(&preview.site_name)
-        .execute(&state.db)
+        .execute(&mut *tx)
         .await?;
     } else {
         sqlx::query("UPDATE artifact_links SET note = $2 WHERE id = $1")
             .bind(link_id)
             .bind(&note)
-            .execute(&state.db)
+            .execute(&mut *tx)
             .await?;
     }
-    touch_artifact(&state, link.artifact_id).await?;
+    crate::audit::touch(&mut tx, &author.0, link.artifact_id).await?;
+    tx.commit().await?;
     render_links(&state, &author.0, &jar, link.artifact_id, None, Value::from(()), None).await
 }
 
@@ -1189,12 +1266,15 @@ async fn delete_link(
 ) -> AppResult<Html<String>> {
     require_editor(&author.0)?;
     require_csrf(&jar, &form.csrf_token)?;
-    let artifact_id: Uuid = sqlx::query_scalar("DELETE FROM artifact_links WHERE id = $1 RETURNING artifact_id")
+    let artifact_id = load_link(&state, link_id).await?.artifact_id;
+    let mut tx = crate::audit::begin_as(&state.db, author.0.id).await?;
+    crate::audit::ensure_can_modify(&mut *tx, &author.0, artifact_id).await?;
+    sqlx::query("DELETE FROM artifact_links WHERE id = $1")
         .bind(link_id)
-        .fetch_optional(&state.db)
-        .await?
-        .ok_or(AppError::NotFound("link"))?;
-    touch_artifact(&state, artifact_id).await?;
+        .execute(&mut *tx)
+        .await?;
+    crate::audit::touch(&mut tx, &author.0, artifact_id).await?;
+    tx.commit().await?;
     render_links(&state, &author.0, &jar, artifact_id, None, Value::from(()), None).await
 }
 
@@ -1214,16 +1294,27 @@ async fn reorder_links(
         .split(',')
         .filter_map(|s| Uuid::parse_str(s.trim()).ok())
         .collect();
-    sqlx::query(
+    let mut tx = crate::audit::begin_as(&state.db, author.0.id).await?;
+    crate::audit::ensure_can_modify(&mut *tx, &author.0, id).await?;
+    let moved = sqlx::query(
         "UPDATE artifact_links l SET position = o.ord - 1 \
          FROM unnest($2::uuid[]) WITH ORDINALITY AS o(id, ord) \
-         WHERE l.id = o.id AND l.artifact_id = $1",
+         WHERE l.id = o.id AND l.artifact_id = $1 AND l.position IS DISTINCT FROM o.ord - 1",
     )
     .bind(id)
     .bind(&ids)
-    .execute(&state.db)
-    .await?;
-    touch_artifact(&state, id).await?;
+    .execute(&mut *tx)
+    .await?
+    .rows_affected();
+    if moved > 0 {
+        // One history entry for the whole reorder, not one per moved link.
+        sqlx::query("SELECT artifact_history_add($1, 'links_reordered', '{}')")
+            .bind(id)
+            .execute(&mut *tx)
+            .await?;
+        crate::audit::touch(&mut tx, &author.0, id).await?;
+    }
+    tx.commit().await?;
     render_links(&state, &author.0, &jar, id, None, Value::from(()), None).await
 }
 
@@ -1235,17 +1326,39 @@ struct TreeRow {
     kind: String,
     name: String,
     parent_id: Option<Uuid>,
+    status: String,
 }
 
 /// Loads every artifact and nests it into a root->children forest for the
 /// sidebar. One query, assembled in memory, rather than a query per level.
-async fn load_tree(state: &AppState) -> AppResult<Value> {
+async fn load_tree(state: &AppState, mine: Option<Uuid>) -> AppResult<Value> {
     let rows = sqlx::query_as::<_, TreeRow>(
-        "SELECT id, kind::text AS kind, name, parent_id \
+        "SELECT id, kind::text AS kind, name, parent_id, status::text AS status \
          FROM artifacts WHERE deleted_at IS NULL ORDER BY name, id",
     )
     .fetch_all(&state.db)
     .await?;
+
+    // "Only mine" is a flat list: the author's artifacts, wherever they sit.
+    if let Some(me) = mine {
+        let owned: std::collections::HashSet<Uuid> = sqlx::query_scalar(
+            "SELECT id FROM artifacts WHERE deleted_at IS NULL AND created_by = $1",
+        )
+        .bind(me)
+        .fetch_all(&state.db)
+        .await?
+        .into_iter()
+        .collect();
+        let flat: Vec<serde_json::Value> = rows
+            .iter()
+            .filter(|r| owned.contains(&r.id))
+            .map(|r| serde_json::json!({
+                "id": r.id.to_string(), "kind": r.kind, "name": r.name,
+                "status": r.status, "children": [],
+            }))
+            .collect();
+        return Ok(Value::from_serialize(&flat));
+    }
 
     // Build child lists keyed by parent.
     use std::collections::HashMap;
@@ -1264,6 +1377,7 @@ async fn load_tree(state: &AppState) -> AppResult<Value> {
                             "id": r.id.to_string(),
                             "kind": r.kind,
                             "name": r.name,
+                            "status": r.status,
                             "children": build(Some(r.id), children),
                         })
                     })
@@ -1289,6 +1403,16 @@ struct DetailRow {
     parent_id: Option<Uuid>,
     parent_name: Option<String>,
     source_name: Option<String>,
+    created_by: Option<Uuid>,
+    created_by_email: Option<String>,
+    updated_by_email: Option<String>,
+    created_at: chrono::DateTime<Utc>,
+    updated_at: chrono::DateTime<Utc>,
+    status: String,
+    submitted_at: Option<chrono::DateTime<Utc>>,
+    reviewed_at: Option<chrono::DateTime<Utc>>,
+    reviewed_by_email: Option<String>,
+    review_note: String,
 }
 
 /// A loaded artifact plus its direct children. Keeps the typed row around so
@@ -1316,6 +1440,15 @@ impl Detail {
             "source_name": self.row.source_name,
             "children": self.children,
             "tags": self.tags,
+            "status": self.row.status,
+            "created_by_email": self.row.created_by_email,
+            "updated_by_email": self.row.updated_by_email,
+            "created_at": self.row.created_at.to_rfc3339(),
+            "updated_at": self.row.updated_at.to_rfc3339(),
+            "submitted_at": self.row.submitted_at.map(|t| t.to_rfc3339()),
+            "reviewed_at": self.row.reviewed_at.map(|t| t.to_rfc3339()),
+            "reviewed_by_email": self.row.reviewed_by_email,
+            "review_note": self.row.review_note,
         }))
     }
 }
@@ -1327,7 +1460,14 @@ async fn load_detail(state: &AppState, id: Uuid) -> AppResult<Detail> {
         SELECT a.id, a.kind::text AS kind, a.name, a.description,
                a.lat, a.lng, r.effective_lat, r.effective_lng, a.parent_id,
                (SELECT p.name FROM artifacts p WHERE p.id = a.parent_id) AS parent_name,
-               (SELECT s.name FROM artifacts s WHERE s.id = r.location_source_id) AS source_name
+               (SELECT s.name FROM artifacts s WHERE s.id = r.location_source_id) AS source_name,
+               a.created_by,
+               (SELECT email FROM authors WHERE id = a.created_by) AS created_by_email,
+               (SELECT email FROM authors WHERE id = a.updated_by) AS updated_by_email,
+               a.created_at, a.updated_at, a.status::text AS status, a.submitted_at,
+               a.reviewed_at,
+               (SELECT email FROM authors WHERE id = a.reviewed_by) AS reviewed_by_email,
+               a.review_note
         FROM artifacts a JOIN resolved r ON r.id = a.id
         WHERE a.id = $1 AND a.deleted_at IS NULL
         "#
@@ -1339,7 +1479,7 @@ async fn load_detail(state: &AppState, id: Uuid) -> AppResult<Detail> {
         .ok_or(AppError::NotFound("artifact"))?;
 
     let kids = sqlx::query_as::<_, TreeRow>(
-        "SELECT id, kind::text AS kind, name, parent_id FROM artifacts \
+        "SELECT id, kind::text AS kind, name, parent_id, status::text AS status FROM artifacts \
          WHERE parent_id = $1 AND deleted_at IS NULL ORDER BY name, id",
     )
     .bind(id)
@@ -1348,7 +1488,7 @@ async fn load_detail(state: &AppState, id: Uuid) -> AppResult<Detail> {
 
     let children: Vec<serde_json::Value> = kids
         .iter()
-        .map(|c| serde_json::json!({ "id": c.id.to_string(), "kind": c.kind, "name": c.name }))
+        .map(|c| serde_json::json!({ "id": c.id.to_string(), "kind": c.kind, "name": c.name, "status": c.status }))
         .collect();
 
     let tags = load_tags(state, id).await?;
@@ -1416,6 +1556,20 @@ async fn load_parent_options(state: &AppState, exclude: Option<Uuid>) -> AppResu
                 "source": r.source_name.clone().unwrap_or_default(),
             })
         })
+        .collect();
+    Ok(Value::from_serialize(&opts))
+}
+
+/// Authors who can own artifacts, for the admin's owner picker.
+async fn load_owner_options(state: &AppState) -> AppResult<Value> {
+    let rows: Vec<(Uuid, String)> = sqlx::query_as(
+        "SELECT id, email FROM authors WHERE role IN ('editor', 'admin') AND is_active ORDER BY lower(email)",
+    )
+    .fetch_all(&state.db)
+    .await?;
+    let opts: Vec<serde_json::Value> = rows
+        .iter()
+        .map(|(id, email)| serde_json::json!({ "id": id.to_string(), "email": email }))
         .collect();
     Ok(Value::from_serialize(&opts))
 }
