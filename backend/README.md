@@ -570,6 +570,20 @@ created by an admin. Any author can change their password at `/studio/password`.
   sidebar) and `/studio/deleted` (restore an artifact and everything deleted
   with it). An editor may delete only a subtree that is entirely theirs and
   not approved. Status shows in the tree, on the artifact, and on the map.
+- **Profiles.** Authors have a full name (required before the Studio opens:
+  `/studio` sends anyone without one to `/studio/profile`), display name,
+  pronouns, affiliation, bio, and a photo (migration `..._author_profiles`).
+  The Studio names people by display name, else full name, else email (SQL
+  `author_label`, Rust `Author::label`), with the photo or coloured initials,
+  in the header, bylines, the review queue, history, the deleted list, and the
+  owner picker. Photos are uploaded straight to the API (`POST
+  /studio/profile/photo`, raw body, CSRF in `X-CSRF-Token`, 20 MB cap), turned
+  upright from the camera's EXIF orientation, centre-cropped, resized to
+  320×320, and re-encoded as WebP, which also strips location metadata. They
+  live in the media bucket under `avatars/` and are served to signed-in authors
+  from `/studio/avatars/{id}?v=…`, cached for good because a new photo gets a
+  new URL; the replaced object is deleted. The admin panel's Add author form
+  takes an optional full name.
 - **Change history.** Every change is written to `artifact_history` by
   database triggers (migration `20261007000001`): creation, field edits with
   before and after values, status changes and review notes, owner changes,
@@ -674,6 +688,7 @@ revisiting, not an accident:
 | Case-insensitive unique email on both identity tables | `Tim@umass.edu` and `tim@umass.edu` are one person; treating them as two accounts is a support ticket at best. |
 | Triggers enforce trail owner integrity | `owner_type` + `owner_id` cannot have a declarative foreign key. Triggers validate the owner exists on write and delete a user's trails when the user is deleted — what `ON DELETE CASCADE` would have done. |
 | Added `artifacts.created_by`, `updated_by`, `status`, `submitted_at`, `reviewed_by`, `reviewed_at`, `review_note` | Authorship and review (migration `20261007000001`). The design has no notion of who wrote an artifact or whether it has been checked, and a class of student authors needs both. `status` is an `artifact_status` enum: `draft`, `ready`, `approved`. |
+| Added author profile columns (`full_name`, `display_name`, `pronouns`, `affiliation`, `bio`, `avatar_key`) | People in a class work together; naming each other by email address doesn't work. All default to empty, so older code that names its columns keeps working. |
 | Readers see only published artifacts | Approval has to mean something to the people using the app. `artifact_is_published(id)` and the `published` column of the shared coordinates CTE both define it the same way: approved and not deleted, all the way up the parent chain. |
 | Added `artifact_history` | A complete, append-only record of every change to an artifact, written by triggers so no write path can skip it. No foreign key to `artifacts`, so the record outlives a hard delete. |
 | Trigger enforces an acyclic artifact tree | Coordinate inheritance walks up `parent_id`; a cycle would loop forever. Also caps chain depth at 64. |

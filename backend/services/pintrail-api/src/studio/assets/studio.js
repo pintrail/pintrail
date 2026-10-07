@@ -612,6 +612,41 @@
     if (e.key === "Escape" && document.body.classList.contains("nav-open")) setNav(false);
   });
 
+  // --- profile photo ------------------------------------------------------
+  // Sent as the raw request body; the server crops, resizes, and re-encodes it.
+  document.addEventListener("change", async function (e) {
+    const input = e.target.closest("[data-avatar-input]");
+    if (!input || !input.files.length) return;
+    const file = input.files[0];
+    const box = input.closest("#profile-photo");
+    const status = box.querySelector("[data-avatar-status]");
+    status.classList.remove("err");
+    status.textContent = "Uploading…";
+    try {
+      const res = await fetch("/studio/profile/photo", {
+        method: "POST",
+        headers: { "X-CSRF-Token": input.dataset.csrf, "Content-Type": file.type || "application/octet-stream" },
+        body: file,
+      });
+      if (!res.ok) {
+        let msg = "Upload failed (" + res.status + ").";
+        try { msg = (await res.json()).error || msg; } catch (_) {}
+        if (res.status === 413) msg = "That file is too large. Use a photo under 20 MB.";
+        throw new Error(msg);
+      }
+      const holder = document.createElement("div");
+      holder.innerHTML = await res.text();
+      const fresh = holder.firstElementChild;
+      box.replaceWith(fresh);
+      htmx.process(fresh);
+      htmx.trigger(document.body, "profile-photo-changed");
+    } catch (err) {
+      status.classList.add("err");
+      status.textContent = err.message;
+      input.value = "";
+    }
+  });
+
   // --- times in the reader's own zone -------------------------------------
   const DATE_FMT = new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" });
   function localTimes(root) {

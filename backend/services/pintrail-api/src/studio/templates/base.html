@@ -98,6 +98,7 @@
     .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; }
     .hint { color: var(--muted); font-size: .82rem; margin-top: .3rem; }
     .flash { padding: .6rem .8rem; border-radius: .5rem; margin-bottom: 1rem; border: 1px solid var(--line); }
+    .flash.ok { color: var(--ok); border-color: color-mix(in srgb, var(--ok) 40%, var(--line)); }
     .flash.err { color: var(--danger); border-color: color-mix(in srgb, var(--danger) 40%, var(--line)); }
 
     .gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: .8rem; }
@@ -275,6 +276,21 @@
     .deleted-row:last-child { border-bottom: 0; }
     .map-legend { display: flex; gap: .9rem; flex-wrap: wrap; font-size: .82rem; color: var(--muted); }
     .map-legend span { display: inline-flex; align-items: center; gap: .3rem; }
+    /* people */
+    .avatar { border-radius: 50%; object-fit: cover; flex-shrink: 0; display: inline-grid; place-items: center; vertical-align: middle; }
+    .avatar-sm { width: 1.6rem; height: 1.6rem; font-size: .66rem; }
+    .avatar-md { width: 2.2rem; height: 2.2rem; font-size: .85rem; }
+    .avatar-xl { width: 6rem; height: 6rem; font-size: 2rem; }
+    .avatar-initials { background: hsl(var(--h) 55% 88%); color: hsl(var(--h) 55% 28%); font-weight: 650; letter-spacing: .02em; }
+    @media (prefers-color-scheme: dark) { .avatar-initials { background: hsl(var(--h) 35% 26%); color: hsl(var(--h) 70% 85%); } }
+    .who-chip { display: inline-flex; align-items: center; gap: .35rem; vertical-align: middle; }
+    .me-link { display: inline-flex; align-items: center; gap: .5rem; color: var(--ink); border-radius: 2rem; padding: .15rem .6rem .15rem .15rem; }
+    .me-link:hover { background: var(--chip); }
+    .me-link .who { color: var(--ink); }
+    .photo-row { display: flex; gap: 1.1rem; align-items: center; flex-wrap: wrap; }
+    .photo-row > div { flex: 1; min-width: 14rem; }
+    .btn-file { display: inline-block; cursor: pointer; border: 1px solid var(--line); border-radius: .5rem; background: var(--panel); }
+    .h-who { display: inline-flex; align-items: center; gap: .3rem; }
   </style>
   <script src="/studio/assets/htmx.min.js" defer></script>
   <script src="/studio/assets/leaflet.js" defer></script>
@@ -288,8 +304,11 @@
     </button>
     <a class="brand" href="/studio"><span class="dot"></span> Pintrail Studio</a>
     <span class="spacer"></span>
-    <span class="who">{{ author.email }} · {{ author.role }}</span>
-    <a class="btn-sm" href="/studio/password"><span class="wide-only">Change </span>password</a>
+    {% from "studio_macros.html" import avatar %}
+    <a class="me-link" href="/studio/profile" title="Your profile ({{ author.email }})">
+      <span id="header-avatar" hx-get="/studio/profile/header-avatar" hx-trigger="profile-photo-changed from:body" hx-swap="innerHTML">{{ avatar(me) }}</span>
+      <span class="who"><span class="me-name">{{ me.name }}</span><span class="wide-only"> · {{ author.role }}</span></span>
+    </a>
     <form method="post" action="/studio/logout" style="display:inline">
       <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
       <button class="btn-sm">Sign out</button>

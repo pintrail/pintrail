@@ -1,3 +1,4 @@
+{% from "studio_macros.html" import avatar %}
 {# The change history, newest first. Loaded when the History section opens. #}
 {% if entries %}
 <ol class="history">
@@ -5,7 +6,7 @@
   <li>
     <div class="h-head">
       <strong>{{ e.title }}</strong>
-      <span class="hint">{% if e.system %}system{% else %}{{ e.who }}{% endif %} ·
+      <span class="hint h-who">{% if e.who %}{{ avatar(e.who) }} {{ e.who.name }}{% else %}system{% endif %} ·
         <time data-local datetime="{{ e.at }}">{{ e.at[:16] | replace("T", " ") }}</time></span>
     </div>
     {% if e.lines %}

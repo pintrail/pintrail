@@ -8,6 +8,7 @@
 
 pub mod assets;
 pub mod preview;
+pub mod profile;
 pub mod review;
 pub mod routes;
 

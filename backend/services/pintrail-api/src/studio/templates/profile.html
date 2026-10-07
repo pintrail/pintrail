@@ -1,0 +1,45 @@
+{# The signed-in author's own profile. #}
+<div class="card">
+  <h1>Your profile</h1>
+  <p class="subtitle" style="margin:0">Signed in as {{ email }}. This is how you appear to everyone else in the Studio: on artifacts you add, in the review list, and in each artifact's history.</p>
+</div>
+
+{% if welcome %}<p class="flash">Welcome to Pintrail Studio. Tell us your name before you start, so others can see who added what.</p>{% endif %}
+{% if saved %}<p class="flash ok" role="status">{{ saved }}</p>{% endif %}
+{% if error %}<p class="flash err" role="alert">{{ error }}</p>{% endif %}
+
+<div class="card">
+  <h3>Photo</h3>
+  {% include "studio_profile_photo.html" %}
+</div>
+
+<div class="card">
+  <h3>About you</h3>
+  <form hx-post="/studio/profile" hx-target="#detail">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <div class="field-row">
+      <label class="field"><span class="lbl">Full name <span class="req-badge" style="display:inline">required</span></span>
+        <input type="text" name="full_name" value="{{ form.full_name }}" maxlength="120" required autocomplete="name" {{ 'autofocus' if welcome }}>
+        <span class="help">As it would appear in a credit, e.g. <em>Priya Patel</em>.</span></label>
+      <label class="field"><span class="lbl">Display name</span>
+        <input type="text" name="display_name" value="{{ form.display_name }}" maxlength="60" autocomplete="nickname">
+        <span class="help">What people call you, if that's different: <em>Priya</em>, <em>PJ</em>. Shown in the Studio instead of your full name.</span></label>
+    </div>
+    <div class="field-row">
+      <label class="field"><span class="lbl">Pronouns</span>
+        <input type="text" name="pronouns" value="{{ form.pronouns }}" maxlength="40" list="pronoun-suggestions">
+        <datalist id="pronoun-suggestions"><option value="she/her"><option value="he/him"><option value="they/them"></datalist>
+        <span class="help">Optional.</span></label>
+      <label class="field"><span class="lbl">Affiliation</span>
+        <input type="text" name="affiliation" value="{{ form.affiliation }}" maxlength="120" autocomplete="organization-title">
+        <span class="help">Your connection to the project, e.g. <em>COMPSCI 326 student</em> or <em>Campus Sustainability</em>.</span></label>
+    </div>
+    <label class="field"><span class="lbl">Short bio</span>
+      <textarea name="bio" rows="4" maxlength="600">{{ form.bio }}</textarea>
+      <span class="help">Optional, a sentence or two about you and what you're interested in. Up to 600 characters.</span></label>
+    <div class="row" style="margin-top:1rem">
+      <button class="btn-primary" type="submit">Save profile</button>
+      <a class="btn" href="/studio/password">Change password</a>
+    </div>
+  </form>
+</div>

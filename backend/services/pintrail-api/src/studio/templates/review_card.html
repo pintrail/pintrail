@@ -1,3 +1,4 @@
+{% from "studio_macros.html" import who %}
 {# Review status and the actions this author may take on it. Owners submit
    and withdraw; admins approve or send back with a note. #}
 <div class="card review-card status-border-{{ a.status }}">
@@ -5,7 +6,7 @@
   {% if a.status == "draft" %}
     {% if a.review_note %}
     <div class="review-note">
-      <strong>Sent back for changes</strong>{% if a.reviewed_by_email %} by {{ a.reviewed_by_email }}{% endif %}
+      <strong>Sent back for changes</strong>{% if a.reviewed_by %} by {{ who(a.reviewed_by) }}{% endif %}
       {% if a.reviewed_at %}<time data-local datetime="{{ a.reviewed_at }}">{{ a.reviewed_at[:10] }}</time>{% endif %}
       <p>{{ a.review_note }}</p>
     </div>
@@ -15,16 +16,16 @@
   {% elif a.status == "ready" %}
     <p style="margin-top:0">Waiting for review{% if a.submitted_at %} since <time data-local datetime="{{ a.submitted_at }}">{{ a.submitted_at[:10] }}</time>{% endif %}.</p>
   {% else %}
-    <p style="margin-top:0">Approved{% if a.reviewed_by_email %} by {{ a.reviewed_by_email }}{% endif %}{% if a.reviewed_at %} <time data-local datetime="{{ a.reviewed_at }}">{{ a.reviewed_at[:10] }}</time>{% endif %}.
+    <p style="margin-top:0">Approved{% if a.reviewed_by %} by {{ who(a.reviewed_by) }}{% endif %}{% if a.reviewed_at %} <time data-local datetime="{{ a.reviewed_at }}">{{ a.reviewed_at[:10] }}</time>{% endif %}.
     {% if is_owner and not is_admin %}<span class="hint">If you change it, it goes back for review.</span>{% endif %}</p>
   {% endif %}
 
   <div class="row">
-    {% if (is_owner or (is_admin and not a.created_by_email)) and a.status == "draft" %}
+    {% if (is_owner or (is_admin and not a.created_by)) and a.status == "draft" %}
     <button class="btn-sm btn-primary" hx-post="/studio/artifacts/{{ a.id }}/submit"
             hx-vals='{"csrf_token": "{{ csrf_token }}"}' hx-target="#detail">Submit for review</button>
     {% endif %}
-    {% if (is_owner or (is_admin and not a.created_by_email)) and a.status == "ready" %}
+    {% if (is_owner or (is_admin and not a.created_by)) and a.status == "ready" %}
     <button class="btn-sm" hx-post="/studio/artifacts/{{ a.id }}/withdraw"
             hx-vals='{"csrf_token": "{{ csrf_token }}"}' hx-target="#detail">Withdraw</button>
     {% endif %}

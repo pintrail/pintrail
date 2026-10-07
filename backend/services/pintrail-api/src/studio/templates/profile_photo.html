@@ -1,0 +1,17 @@
+{% from "studio_macros.html" import avatar %}
+<div class="photo-row" id="profile-photo">
+  {{ avatar(me, "xl") }}
+  <div>
+    <label class="btn-sm btn-file">
+      <input type="file" accept="image/jpeg,image/png,image/webp" data-avatar-input
+             data-csrf="{{ csrf_token }}" hidden>
+      {% if me.avatar %}Change photo{% else %}Add a photo{% endif %}
+    </label>
+    {% if me.avatar %}
+    <button class="btn-sm" hx-post="/studio/profile/photo/remove" hx-vals='{"csrf_token": "{{ csrf_token }}"}'
+            hx-target="#profile-photo" hx-swap="outerHTML">Remove</button>
+    {% endif %}
+    <p class="hint" style="margin:.4rem 0 0">A clear photo of your face helps your classmates and reviewers know who's who. It's cropped to a square from the middle. On a phone you can take one with the camera.</p>
+    <p class="locate-status" data-avatar-status role="status" aria-live="polite"></p>
+  </div>
+</div>

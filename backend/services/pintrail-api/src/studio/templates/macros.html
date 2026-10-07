@@ -1,0 +1,16 @@
+{# A person's photo, or their initials on a colour of their own. `p` is the
+   value built by profile::person: {name, avatar, initials, hue}. #}
+{% macro avatar(p, size="sm") -%}
+{%- if p.avatar -%}
+<img class="avatar avatar-{{ size }}" src="{{ p.avatar }}" alt="" loading="lazy">
+{%- else -%}
+<span class="avatar avatar-{{ size }} avatar-initials" style="--h:{{ p.hue }}" aria-hidden="true">{{ p.initials }}</span>
+{%- endif -%}
+{%- endmacro %}
+
+{# Photo plus name, for bylines and lists. Falls back to `fallback` when the
+   person is unknown (no owner, or a removed account). #}
+{% macro who(p, fallback="someone") -%}
+{%- if p -%}<span class="who-chip">{{ avatar(p) }}<span>{{ p.name }}</span></span>
+{%- else -%}{{ fallback }}{%- endif -%}
+{%- endmacro %}

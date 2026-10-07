@@ -1,3 +1,4 @@
+{% from "studio_macros.html" import who %}
 {# Artifact detail. Swapped into #detail on selection, or wrapped in page.html
    for a direct load. #}
 <div class="card">
@@ -26,10 +27,10 @@
     {% endif %}
   </div>
   <p class="byline">
-    Added by {{ a.created_by_email or "someone before authorship was recorded" }}
+    Added by {{ who(a.created_by, "someone before authorship was recorded") }}
     <time data-local datetime="{{ a.created_at }}">{{ a.created_at[:10] }}</time>
-    {% if a.updated_by_email and a.updated_at[:16] != a.created_at[:16] %}
-    · last edited by {{ a.updated_by_email }} <time data-local datetime="{{ a.updated_at }}">{{ a.updated_at[:10] }}</time>
+    {% if a.updated_by and a.updated_at[:16] != a.created_at[:16] %}
+    · last edited by {{ who(a.updated_by) }} <time data-local datetime="{{ a.updated_at }}">{{ a.updated_at[:10] }}</time>
     {% endif %}
   </p>
 

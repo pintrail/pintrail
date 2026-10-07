@@ -479,6 +479,7 @@ async fn author_list(
 /// is deliberately absent: it is never echoed back into the page.
 struct CreateFormEcho {
     email: String,
+    full_name: String,
     role: String,
 }
 
@@ -491,7 +492,8 @@ async fn render_author_list(
     echo: Option<CreateFormEcho>,
 ) -> AppResult<Html<String>> {
     let authors = sqlx::query_as::<_, Author>(
-        "SELECT id, email, password_hash, role, is_active, must_change_password, created_at, updated_at \
+        "SELECT id, email, password_hash, role, is_active, must_change_password, created_at, updated_at, \
+                full_name, display_name, avatar_key \
          FROM authors ORDER BY created_at",
     )
     .fetch_all(&state.db)
@@ -502,6 +504,7 @@ async fn render_author_list(
         .map(|a| {
             context! {
                 id => a.id.to_string(),
+                full_name => a.full_name,
                 email => a.email,
                 role => a.role.as_str(),
                 is_active => a.is_active,
@@ -512,9 +515,9 @@ async fn render_author_list(
         })
         .collect();
 
-    let (new_email, new_role) = match echo {
-        Some(e) => (e.email, e.role),
-        None => (String::new(), AuthorRole::Viewer.as_str().to_string()),
+    let (new_email, new_name, new_role) = match echo {
+        Some(e) => (e.email, e.full_name, e.role),
+        None => (String::new(), String::new(), AuthorRole::Viewer.as_str().to_string()),
     };
 
     render(
@@ -528,6 +531,7 @@ async fn render_author_list(
             flash => flash,
             error => error,
             new_email => new_email,
+            new_name => new_name,
             new_role => new_role,
             roles => ["viewer", "editor", "admin"],
         },
@@ -538,6 +542,9 @@ async fn render_author_list(
 pub struct CreateAuthorForm {
     pub csrf_token: String,
     pub email: String,
+    /// Optional here: the author is asked for it on first sign-in anyway.
+    #[serde(default)]
+    pub full_name: String,
     pub role: String,
     pub password: String,
     pub password_confirm: String,
@@ -560,6 +567,7 @@ async fn create_author(
     let reject = |message: String| {
         let echo = CreateFormEcho {
             email: email.clone(),
+            full_name: form.full_name.clone(),
             role: form.role.clone(),
         };
         let state = state.clone();
@@ -589,12 +597,13 @@ async fn create_author(
     let hash = hash_password(&form.password)?;
 
     let inserted = sqlx::query_scalar::<_, Uuid>(
-        "INSERT INTO authors (email, password_hash, role, must_change_password) \
-         VALUES ($1, $2, $3, true) RETURNING id",
+        "INSERT INTO authors (email, password_hash, role, must_change_password, full_name) \
+         VALUES ($1, $2, $3, true, $4) RETURNING id",
     )
     .bind(&email)
     .bind(&hash)
     .bind(role)
+    .bind(form.full_name.split_whitespace().collect::<Vec<_>>().join(" ").chars().take(120).collect::<String>())
     .fetch_one(&state.db)
     .await;
 

@@ -162,7 +162,7 @@ struct QueueRow {
     name: String,
     kind: String,
     status: String,
-    owner: Option<String>,
+    owner_id: Option<Uuid>,
     submitted_at: Option<DateTime<Utc>>,
     reviewed_at: Option<DateTime<Utc>>,
     review_note: String,
@@ -179,7 +179,7 @@ async fn review_queue(
     let rows = sqlx::query_as::<_, QueueRow>(
         r#"
         SELECT a.id, a.name, a.kind::text AS kind, a.status::text AS status,
-               (SELECT email FROM authors WHERE id = a.created_by) AS owner,
+               a.created_by AS owner_id,
                a.submitted_at, a.reviewed_at, a.review_note,
                (SELECT p.name FROM artifacts p WHERE p.id = a.parent_id) AS parent_name
         FROM artifacts a
@@ -189,10 +189,13 @@ async fn review_queue(
     )
     .fetch_all(&state.db)
     .await?;
+    let ids: Vec<Uuid> = rows.iter().filter_map(|r| r.owner_id).collect();
+    let people = super::profile::load_people(&state.db, &ids).await?;
 
     let view = |r: &QueueRow| {
         json!({
-            "id": r.id.to_string(), "name": r.name, "kind": r.kind, "owner": r.owner,
+            "id": r.id.to_string(), "name": r.name, "kind": r.kind,
+            "owner": r.owner_id.and_then(|id| people.get(&id)),
             "submitted_at": r.submitted_at.map(|t| t.to_rfc3339()),
             "reviewed_at": r.reviewed_at.map(|t| t.to_rfc3339()),
             "review_note": r.review_note, "parent_name": r.parent_name,
@@ -204,7 +207,7 @@ async fn review_queue(
         .filter(|r| r.status == "draft" && !r.review_note.is_empty())
         .map(view)
         .collect();
-    let unowned: Vec<Json> = rows.iter().filter(|r| r.owner.is_none()).map(view).collect();
+    let unowned: Vec<Json> = rows.iter().filter(|r| r.owner_id.is_none()).map(view).collect();
     let count = |s: &str| rows.iter().filter(|r| r.status == s).count();
 
     let ctx = context! {
@@ -239,7 +242,8 @@ struct DeletedRow {
     name: String,
     kind: String,
     deleted_at: DateTime<Utc>,
-    deleted_by: Option<String>,
+    deleted_by_id: Option<Uuid>,
+    deleted_by_email: Option<String>,
     nested: i64,
     parent_name: Option<String>,
 }
@@ -256,9 +260,7 @@ async fn deleted(
     let rows = sqlx::query_as::<_, DeletedRow>(
         r#"
         SELECT a.id, a.name, a.kind::text AS kind, a.deleted_at,
-               (SELECT h.actor_email FROM artifact_history h
-                WHERE h.artifact_id = a.id AND h.action = 'deleted'
-                ORDER BY h.id DESC LIMIT 1) AS deleted_by,
+               d.actor_id AS deleted_by_id, d.actor_email AS deleted_by_email,
                (WITH RECURSIVE sub AS (
                     SELECT c.id FROM artifacts c WHERE c.parent_id = a.id AND c.deleted_at = a.deleted_at
                     UNION ALL
@@ -268,6 +270,11 @@ async fn deleted(
                p.name AS parent_name
         FROM artifacts a
         LEFT JOIN artifacts p ON p.id = a.parent_id
+        LEFT JOIN LATERAL (
+            SELECT h.actor_id, h.actor_email FROM artifact_history h
+            WHERE h.artifact_id = a.id AND h.action = 'deleted'
+            ORDER BY h.id DESC LIMIT 1
+        ) d ON true
         WHERE a.deleted_at IS NOT NULL
           AND (p.id IS NULL OR p.deleted_at IS DISTINCT FROM a.deleted_at)
         ORDER BY a.deleted_at DESC
@@ -276,11 +283,15 @@ async fn deleted(
     )
     .fetch_all(&state.db)
     .await?;
+    let ids: Vec<Uuid> = rows.iter().filter_map(|r| r.deleted_by_id).collect();
+    let people = super::profile::load_people(&state.db, &ids).await?;
     let items: Vec<Json> = rows
         .iter()
         .map(|r| json!({
             "id": r.id.to_string(), "name": r.name, "kind": r.kind,
-            "deleted_at": r.deleted_at.to_rfc3339(), "deleted_by": r.deleted_by,
+            "deleted_at": r.deleted_at.to_rfc3339(),
+            "deleted_by": r.deleted_by_id.and_then(|id| people.get(&id)).cloned()
+                .or_else(|| r.deleted_by_email.as_ref().map(|e| json!({ "name": e, "initials": "?", "hue": 0 }))),
             "nested": r.nested, "parent_name": r.parent_name,
         }))
         .collect();
@@ -345,6 +356,7 @@ async fn restore(
 
 #[derive(sqlx::FromRow)]
 struct HistoryRow {
+    actor_id: Option<Uuid>,
     actor_email: Option<String>,
     action: String,
     changes: Json,
@@ -358,14 +370,14 @@ async fn history(
     Path(id): Path<Uuid>,
 ) -> AppResult<Html<String>> {
     let rows = sqlx::query_as::<_, HistoryRow>(
-        "SELECT actor_email, action, changes, at FROM artifact_history \
+        "SELECT actor_id, actor_email, action, changes, at FROM artifact_history \
          WHERE artifact_id = $1 ORDER BY at DESC, id DESC",
     )
     .bind(id)
     .fetch_all(&state.db)
     .await?;
 
-    // Names for parent ids and emails for owner ids that appear in the log,
+    // Names for parent ids and people for owner ids that appear in the log,
     // including artifacts and authors that have since been deleted.
     let names: HashMap<String, String> = sqlx::query_as::<_, (Uuid, String)>("SELECT id, name FROM artifacts")
         .fetch_all(&state.db)
@@ -373,13 +385,15 @@ async fn history(
         .into_iter()
         .map(|(id, n)| (id.to_string(), n))
         .collect();
-    let emails: HashMap<String, String> = sqlx::query_as::<_, (Uuid, String)>("SELECT id, email FROM authors")
+    let emails: HashMap<String, String> = sqlx::query_as::<_, (Uuid, String)>("SELECT id, author_label(id) FROM authors")
         .fetch_all(&state.db)
         .await?
         .into_iter()
         .map(|(id, e)| (id.to_string(), e))
         .collect();
-    let lookup = Lookup { names, emails };
+    let actor_ids: Vec<Uuid> = rows.iter().filter_map(|r| r.actor_id).collect();
+    let people = super::profile::load_people(&state.db, &actor_ids).await?;
+    let lookup = Lookup { names, emails, people };
 
     let entries: Vec<Json> = rows.iter().map(|r| describe(r, &lookup)).collect();
     render(
@@ -394,7 +408,9 @@ async fn history(
 
 struct Lookup {
     names: HashMap<String, String>,
+    /// Owner ids to names, for "Owner changed" entries.
     emails: HashMap<String, String>,
+    people: HashMap<Uuid, Json>,
 }
 
 fn status_label(s: &str) -> &str {
@@ -539,8 +555,11 @@ fn describe(r: &HistoryRow, l: &Lookup) -> Json {
 
     json!({
         "at": r.at.to_rfc3339(),
-        "who": r.actor_email.clone().unwrap_or_else(|| "system".into()),
-        "system": r.actor_email.is_none(),
+        // The person as they are now; for a removed account, the email
+        // recorded at the time.
+        "who": r.actor_id.and_then(|id| l.people.get(&id)).cloned()
+            .or_else(|| r.actor_email.as_ref().map(|e| json!({ "name": e, "initials": "?", "hue": 0 }))),
+        "system": r.actor_id.is_none() && r.actor_email.is_none(),
         "title": title,
         "lines": lines,
     })

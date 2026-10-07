@@ -17,7 +17,8 @@
     {% for a in authors %}
       <tr>
         <td>
-          <div class="primary">{{ a.email }}</div>
+          {% if a.full_name %}<div class="primary">{{ a.full_name }}</div><div class="sub">{{ a.email }}</div>
+          {% else %}<div class="primary">{{ a.email }}</div><div class="sub">No name yet; they're asked on first sign-in</div>{% endif %}
           {% if a.is_self %}<div class="sub">This is you</div>{% endif %}
         </td>
         <td>
@@ -59,6 +60,9 @@
       <div class="form-grid">
         <label class="field"><span>Email</span>
           <input type="email" name="email" value="{{ new_email }}" autocomplete="off" required></label>
+        <label class="field"><span>Full name</span>
+          <input type="text" name="full_name" value="{{ new_name }}" maxlength="120" autocomplete="off">
+          <span class="hint">Optional. If you leave it blank, they're asked for it when they first sign in.</span></label>
         <label class="field"><span>Role</span>
           <select name="role">
             {% for r in roles %}<option value="{{ r }}" {% if r == new_role %}selected{% endif %}>{{ r }}</option>{% endfor %}

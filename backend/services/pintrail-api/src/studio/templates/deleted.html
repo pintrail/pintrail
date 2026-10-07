@@ -1,3 +1,4 @@
+{% from "studio_macros.html" import avatar %}
 {# Admin: recently deleted artifacts, with Restore. #}
 <div class="card">
   <h1>Recently deleted</h1>
@@ -11,7 +12,7 @@
       <div>
         <span class="kind-chip">{{ d.kind }}</span> <strong>{{ d.name or "(untitled)" }}</strong>
         <div class="hint q-meta">
-          deleted {% if d.deleted_by %}by {{ d.deleted_by }} {% endif %}<time data-local datetime="{{ d.deleted_at }}">{{ d.deleted_at[:10] }}</time>
+          deleted {% if d.deleted_by %}by <span class="h-who">{{ avatar(d.deleted_by) }} {{ d.deleted_by.name }}</span> {% endif %}<time data-local datetime="{{ d.deleted_at }}">{{ d.deleted_at[:10] }}</time>
           {% if d.parent_name %} · was inside {{ d.parent_name }}{% endif %}
           {% if d.nested %} · {{ d.nested }} nested artifact{{ "s" if d.nested != 1 }} with it{% endif %}
         </div>

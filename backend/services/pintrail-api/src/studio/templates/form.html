@@ -43,7 +43,7 @@
     <label class="field"><span class="lbl">Owner</span>
       <select name="owner_id">
         <option value="">— no owner —</option>
-        {% for o in owners %}<option value="{{ o.id }}" {{ 'selected' if o.id == form.owner_id }}>{{ o.email }}</option>{% endfor %}
+        {% for o in owners %}<option value="{{ o.id }}" {{ 'selected' if o.id == form.owner_id }}>{{ o.label }}</option>{% endfor %}
       </select>
       <span class="help">Admins only. The owner is the only editor who can change or delete this artifact. Use this to give an artifact to the student who should work on it.</span></label>
     {% endif %}
