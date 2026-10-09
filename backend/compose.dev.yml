@@ -1,0 +1,36 @@
+# Local development: replace the retired MinIO images with Versity.
+# Run from backend/: docker compose -f compose.yml -f compose.dev.yml up -d postgres minio minio-init
+# Keep the service name "minio" because the API and worker already use it.
+services:
+  postgres:
+    ports: !override
+      - "127.0.0.1:5433:5432"
+
+  minio:
+    image: ghcr.io/versity/versitygw:latest
+    command: !override
+      ["--port", ":9000", "--health", "/health", "posix", "/data"]
+    environment: !override
+      ROOT_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID:?set S3_ACCESS_KEY_ID in .env}
+      ROOT_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY:?set S3_SECRET_ACCESS_KEY in .env}
+      VGW_REGION: ${S3_REGION:-us-east-1}
+      VGW_CORS_ALLOW_ORIGIN: ${PUBLIC_BASE_URL:-http://localhost:8080}
+    ports: !override
+      - "127.0.0.1:9000:9000"
+    healthcheck: !override
+      disable: true
+
+  minio-init:
+    image: alpine:3
+    depends_on: !override {}
+    environment: !override
+      S3_BUCKET: ${S3_BUCKET:?set S3_BUCKET in .env}
+    entrypoint: !override
+      ["/bin/sh", "-c", "mkdir -p /data/$${S3_BUCKET} && echo 'bucket ready'"]
+    volumes:
+      - miniodata:/data
+
+  api:
+    depends_on:
+      minio:
+        condition: service_started
