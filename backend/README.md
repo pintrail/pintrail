@@ -31,18 +31,29 @@ Everything in containers:
 
 ```sh
 cd backend
-docker compose up -d --build     # postgres, minio, api, worker
+cp .env.example .env
+docker compose -f compose.yml -f compose.dev.yml up -d --build
 curl localhost:8080/health
 ```
 
 Or just the dependencies, with the binaries on the host for a faster edit loop:
 
 ```sh
-docker compose up -d postgres minio minio-init
 cp .env.example .env
+docker compose -f compose.yml -f compose.dev.yml up -d postgres minio minio-init
 cargo run -p pintrail-api        # migrations run automatically on boot
 cargo run -p pintrail-worker     # in another shell
 ```
+
+`compose.dev.yml` replaces the retired MinIO images with Versity S3 Gateway
+for local development. It keeps the existing `minio` service name and media
+volume, and binds database/storage ports to localhost. Unlike
+`compose.versity.yml`, it does not require production TLS certificate paths.
+The storage service has no container healthcheck in this override; verify it
+with `curl -f http://localhost:9000/health` before starting host binaries.
+
+On Windows, run these commands inside Ubuntu/WSL, where Rust and Docker are
+installed. Navigate to your checkout using its WSL path.
 
 Verify:
 
@@ -54,6 +65,50 @@ curl localhost:8080/health/ready  # readiness -> {"status":"ready"}
 `/health` is deliberately independent of the database so an orchestrator does
 not restart a healthy API during a database blip; `/health/ready` is the one
 that fails when Postgres is unreachable.
+
+## Artifact search indexing
+
+The worker also processes `search_index_jobs` and writes derived text to
+`search_documents`. This stage prepares text; embedding generation and search
+endpoints are subsequent work.
+
+Migration `20261010000001_search_indexing.sql` queues existing non-deleted
+artifacts. Database triggers queue subsequent inserts and searchable edits from
+both the JSON API and Studio. Renaming or reparenting an ancestor also queues
+its descendants, because documents include ancestor names. Coordinate-only
+changes do not alter text and do not enqueue text indexing.
+
+Each artifact document contains its name, kind, ancestor names, and description.
+The SHA-256 content hash detects unchanged text and preserves the document ID
+and timestamp when no rewrite is needed. Attachment/chunk references are
+reserved for later PDF and image indexing; those processors are not implemented
+yet. Soft deletion immediately removes an artifact's search documents; hard
+deletion cascades documents and jobs through foreign keys.
+
+Jobs move through `queued`, `processing`, `processed`, or `failed`. The worker
+uses `FOR UPDATE SKIP LOCKED` to claim jobs, retries failures with bounded
+backoff, and recovers expired claims. Claim tokens prevent an old worker from
+completing a reclaimed job. Document writes and job completion are transactional;
+per-artifact locks serialize different jobs for the same artifact.
+
+Inspect indexing using the SQL terminal:
+
+```sql
+SELECT artifact_id, source_kind, content, updated_at FROM search_documents;
+SELECT artifact_id, status, attempts, error_message FROM search_index_jobs;
+```
+
+Run the workspace tests with local PostgreSQL running:
+
+```sh
+export DATABASE_URL=postgres://pintrail:pintrail@localhost:5433/pintrail
+cargo test --workspace --locked
+```
+
+SQLx creates a separate database for each indexing integration test and applies
+all migrations there. Tests do not edit the development artifact collection or
+call an AI provider. The database account must be able to create test databases;
+the local development account has this capability.
 
 ## Containers
 
