@@ -36,6 +36,11 @@ pub async fn poll_once(
     stuck_timeout_secs: i64,
 ) -> anyhow::Result<()> {
     requeue_stuck(db, stuck_timeout_secs, max_attempts).await?;
+    // Bound cleanup work per poll; failed and unfinished jobs remain inspectable.
+    let pruned = prune_processed(db, 100).await?;
+    if pruned > 0 {
+        tracing::debug!(pruned, "removed old completed search indexing jobs");
+    }
     for job in claim(db, batch_size).await? {
         match process(db, &job).await {
             Ok(outcome) => {
@@ -51,6 +56,25 @@ pub async fn poll_once(
         }
     }
     Ok(())
+}
+
+async fn prune_processed(db: &PgPool, limit: i64) -> anyhow::Result<u64> {
+    Ok(sqlx::query(
+        r#"
+        WITH expired AS (
+            SELECT id FROM search_index_jobs
+            WHERE status = 'processed' AND updated_at < now() - interval '7 days'
+            ORDER BY updated_at, id
+            FOR UPDATE SKIP LOCKED
+            LIMIT $1
+        )
+        DELETE FROM search_index_jobs j USING expired e WHERE j.id = e.id
+        "#,
+    )
+    .bind(limit)
+    .execute(db)
+    .await?
+    .rows_affected())
 }
 
 async fn claim(db: &PgPool, limit: i64) -> anyhow::Result<Vec<Job>> {

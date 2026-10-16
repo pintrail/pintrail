@@ -31,29 +31,18 @@ Everything in containers:
 
 ```sh
 cd backend
-cp .env.example .env
-docker compose -f compose.yml -f compose.dev.yml up -d --build
+docker compose up -d --build     # postgres, minio, api, worker
 curl localhost:8080/health
 ```
 
 Or just the dependencies, with the binaries on the host for a faster edit loop:
 
 ```sh
+docker compose up -d postgres minio minio-init
 cp .env.example .env
-docker compose -f compose.yml -f compose.dev.yml up -d postgres minio minio-init
 cargo run -p pintrail-api        # migrations run automatically on boot
 cargo run -p pintrail-worker     # in another shell
 ```
-
-`compose.dev.yml` replaces the retired MinIO images with Versity S3 Gateway
-for local development. It keeps the existing `minio` service name and media
-volume, and binds database/storage ports to localhost. Unlike
-`compose.versity.yml`, it does not require production TLS certificate paths.
-The storage service has no container healthcheck in this override; verify it
-with `curl -f http://localhost:9000/health` before starting host binaries.
-
-On Windows, run these commands inside Ubuntu/WSL, where Rust and Docker are
-installed. Navigate to your checkout using its WSL path.
 
 Verify:
 
@@ -78,6 +67,11 @@ both the JSON API and Studio. Renaming or reparenting an ancestor also queues
 its descendants, because documents include ancestor names. Coordinate-only
 changes do not alter text and do not enqueue text indexing.
 
+Backfills run gradually: with the default batch size of 10 and five-second poll
+interval, the worker can start roughly 120 jobs per minute before accounting
+for processing time and other worker tasks. A growing `search_documents` table
+after deployment is expected; larger collections take multiple polls.
+
 Each artifact document contains its name, kind, ancestor names, and description.
 The SHA-256 content hash detects unchanged text and preserves the document ID
 and timestamp when no rewrite is needed. Attachment/chunk references are
@@ -90,6 +84,11 @@ uses `FOR UPDATE SKIP LOCKED` to claim jobs, retries failures with bounded
 backoff, and recovers expired claims. Claim tokens prevent an old worker from
 completing a reclaimed job. Document writes and job completion are transactional;
 per-artifact locks serialize different jobs for the same artifact.
+
+Every poll also deletes up to 100 `processed` jobs whose `updated_at` is more
+than seven days old, using `FOR UPDATE SKIP LOCKED` so worker replicas do not
+wait on the same cleanup rows. Recent completed jobs and all queued, processing,
+and failed jobs are retained. Cleanup does not delete search documents or artifacts.
 
 Inspect indexing using the SQL terminal:
 

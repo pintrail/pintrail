@@ -220,3 +220,89 @@ async fn failed_jobs_retry_with_backoff_and_stop_at_the_attempt_limit(
     assert!(claim(&db, 1).await?.is_empty());
     Ok(())
 }
+
+#[sqlx::test(migrations = "../../migrations")]
+async fn cleanup_is_bounded_and_preserves_recent_failed_and_unfinished_jobs(
+    db: PgPool,
+) -> anyhow::Result<()> {
+    let id = artifact(&db, "Garden", None).await?;
+    poll_once(&db, 100, 3, 300).await?;
+    let original = document(&db, id).await?;
+
+    // Insert historical timestamps directly: the update trigger sets updated_at
+    // to now(), so changing an existing row would not simulate old history.
+    sqlx::query(
+        "INSERT INTO search_index_jobs (artifact_id, status, updated_at) \
+         SELECT $1, 'processed', now() - interval '8 days' FROM generate_series(1, 3)",
+    )
+    .bind(id)
+    .execute(&db)
+    .await?;
+    let failed: Uuid = sqlx::query_scalar(
+        "INSERT INTO search_index_jobs (artifact_id, status, error_message, updated_at) \
+         VALUES ($1, 'failed', 'keep for inspection', now() - interval '8 days') RETURNING id",
+    )
+    .bind(id)
+    .fetch_one(&db)
+    .await?;
+    let queued: Uuid = sqlx::query_scalar(
+        "INSERT INTO search_index_jobs (artifact_id, updated_at) \
+         VALUES ($1, now() - interval '8 days') RETURNING id",
+    )
+    .bind(id)
+    .fetch_one(&db)
+    .await?;
+    let processing: Uuid = sqlx::query_scalar(
+        "INSERT INTO search_index_jobs \
+         (artifact_id, status, claimed_at, claim_token, updated_at) \
+         VALUES ($1, 'processing', now(), gen_random_uuid(), now() - interval '8 days') \
+         RETURNING id",
+    )
+    .bind(id)
+    .fetch_one(&db)
+    .await?;
+
+    // Concurrent cleanup calls take separate batches and together remove only
+    // the three expired successes, even though each can delete up to two.
+    let (first, second) = tokio::try_join!(prune_processed(&db, 2), prune_processed(&db, 2))?;
+    assert!(first <= 2 && second <= 2);
+    assert_eq!(first + second, 3);
+    assert_eq!(prune_processed(&db, 2).await?, 0);
+    let retained: Vec<Uuid> = sqlx::query_scalar("SELECT id FROM search_index_jobs")
+        .fetch_all(&db)
+        .await?;
+    assert_eq!(
+        retained.len(),
+        4,
+        "recent success plus three unfinished/failed jobs"
+    );
+    assert!(retained.contains(&failed));
+    assert!(retained.contains(&queued));
+    assert!(retained.contains(&processing));
+    assert_eq!(original, document(&db, id).await?);
+    Ok(())
+}
+
+#[sqlx::test(migrations = "../../migrations")]
+async fn idle_poll_prunes_old_jobs_without_removing_search_content(
+    db: PgPool,
+) -> anyhow::Result<()> {
+    let id = artifact(&db, "Garden", None).await?;
+    poll_once(&db, 100, 3, 300).await?;
+    let original = document(&db, id).await?;
+    sqlx::query(
+        "INSERT INTO search_index_jobs (artifact_id, status, updated_at) \
+         VALUES ($1, 'processed', now() - interval '8 days')",
+    )
+    .bind(id)
+    .execute(&db)
+    .await?;
+
+    poll_once(&db, 100, 3, 300).await?;
+    let remaining: i64 = sqlx::query_scalar("SELECT count(*) FROM search_index_jobs")
+        .fetch_one(&db)
+        .await?;
+    assert_eq!(remaining, 1, "only the recent completed job remains");
+    assert_eq!(original, document(&db, id).await?);
+    Ok(())
+}
