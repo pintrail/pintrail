@@ -83,7 +83,7 @@ pub static MANUAL: &[Section] = &[
             page!("artifacts", "Artifacts", "The things worth stopping for: what an artifact is and what it holds."),
             page!("nesting", "Artifacts inside artifacts", "How a building holds its roof, its rooms, and its systems."),
             page!("location", "Location", "The pin on the map, why it matters, and how an artifact can use its parent's."),
-            page!("kinds", "Kinds", "Building, room, artwork, installation, rooftop, or other: what each one is for."),
+            page!("kinds", "Kinds", "For this collection, use Other and tags; the existing kind list is still available."),
             page!("tags", "Tags", "Themes people search by, and how to keep them consistent."),
             page!("topics", "Topics", "One shared page that many artifacts link to, like LEED certification."),
             page!("trails", "Trails", "A walk through artifacts in order, with a note at each stop."),
