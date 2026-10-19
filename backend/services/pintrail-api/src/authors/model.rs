@@ -44,6 +44,8 @@ impl std::str::FromStr for AuthorRole {
     }
 }
 
+// Mirrors the table row for sqlx::FromRow; not every column is read yet.
+#[allow(dead_code)]
 #[derive(Debug, Clone, sqlx::FromRow)]
 pub struct Author {
     pub id: Uuid,
@@ -127,15 +129,6 @@ pub fn looks_like_email(candidate: &str) -> bool {
         }
         None => false,
     }
-}
-
-#[derive(Debug, Clone, sqlx::FromRow)]
-pub struct AuthorSession {
-    pub id: Uuid,
-    pub author_id: Uuid,
-    pub token_hash: String,
-    pub expires_at: DateTime<Utc>,
-    pub created_at: DateTime<Utc>,
 }
 
 #[cfg(test)]

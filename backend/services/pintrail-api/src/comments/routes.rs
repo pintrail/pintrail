@@ -129,7 +129,7 @@ async fn create(
         return Err(AppError::TooManyRequests);
     }
 
-    let row = sqlx::query_as::<_, CommentRow>(&format!(
+    let row = sqlx::query_as::<_, CommentRow>(
         r#"
         WITH inserted AS (
             INSERT INTO comments (artifact_id, reader_id, body)
@@ -140,8 +140,8 @@ async fn create(
                r.display_name, c.created_at, c.updated_at
         FROM inserted c
         JOIN readers r ON r.id = c.reader_id
-        "#
-    ))
+        "#,
+    )
     .bind(artifact_id)
     .bind(reader.0.id)
     .bind(text)

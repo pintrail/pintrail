@@ -121,7 +121,7 @@ async fn register(
             // Someone who genuinely mistyped their password recovers through
             // the password-reset flow, which proves mailbox control first.
             let token =
-                issue_verification_token(&mut *tx, reader.id, ReaderTokenPurpose::VerifyEmail)
+                issue_verification_token(&mut tx, reader.id, ReaderTokenPurpose::VerifyEmail)
                     .await?;
             tx.commit().await?;
 
@@ -157,7 +157,7 @@ async fn register(
             })?;
 
             let token =
-                issue_verification_token(&mut *tx, reader_id, ReaderTokenPurpose::VerifyEmail)
+                issue_verification_token(&mut tx, reader_id, ReaderTokenPurpose::VerifyEmail)
                     .await?;
             tx.commit().await?;
 
@@ -250,7 +250,7 @@ async fn resend_verification(
 
     if let Some(reader) = reader {
         let token =
-            issue_verification_token(&mut *tx, reader.id, ReaderTokenPurpose::VerifyEmail).await?;
+            issue_verification_token(&mut tx, reader.id, ReaderTokenPurpose::VerifyEmail).await?;
         tx.commit().await?;
 
         state.mailer.send(mail::verification_email(
@@ -385,8 +385,7 @@ async fn request_password_reset(
 
     if let Some(reader) = reader {
         let token =
-            issue_verification_token(&mut *tx, reader.id, ReaderTokenPurpose::ResetPassword)
-                .await?;
+            issue_verification_token(&mut tx, reader.id, ReaderTokenPurpose::ResetPassword).await?;
         tx.commit().await?;
 
         state.mailer.send(mail::password_reset_email(

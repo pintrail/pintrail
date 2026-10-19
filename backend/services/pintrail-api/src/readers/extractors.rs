@@ -32,6 +32,8 @@ impl AuthenticatedReader {
 }
 
 impl VerifiedReader {
+    // Kept for symmetry with AuthenticatedReader::into_inner.
+    #[allow(dead_code)]
     pub fn into_inner(self) -> Reader {
         self.0
     }

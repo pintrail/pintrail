@@ -135,6 +135,6 @@ mod tests {
     #[test]
     fn reset_tokens_are_shorter_lived_than_verification_tokens() {
         // A reset link grants account takeover; a verification link does not.
-        assert!(RESET_TTL_HOURS < VERIFY_TTL_HOURS);
+        const { assert!(RESET_TTL_HOURS < VERIFY_TTL_HOURS) };
     }
 }

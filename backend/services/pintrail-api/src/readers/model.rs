@@ -10,6 +10,8 @@ pub enum ReaderTokenPurpose {
     ResetPassword,
 }
 
+// Mirrors the table row for sqlx::FromRow; not every column is read yet.
+#[allow(dead_code)]
 #[derive(Debug, Clone, sqlx::FromRow)]
 pub struct Reader {
     pub id: Uuid,
