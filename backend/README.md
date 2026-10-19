@@ -70,6 +70,60 @@ curl localhost:8080/health/ready  # readiness -> {"status":"ready"}
 not restart a healthy API during a database blip; `/health/ready` is the one
 that fails when Postgres is unreachable.
 
+## Artifact search indexing
+
+The worker also processes `search_index_jobs` and writes derived text to
+`search_documents`. This stage prepares text; embedding generation and search
+endpoints are subsequent work.
+
+Migration `20261010000001_search_indexing.sql` queues existing non-deleted
+artifacts. Database triggers queue subsequent inserts and searchable edits from
+both the JSON API and Studio. Renaming or reparenting an ancestor also queues
+its descendants, because documents include ancestor names. Coordinate-only
+changes do not alter text and do not enqueue text indexing.
+
+Backfills run gradually: with the default batch size of 10 and five-second poll
+interval, the worker can start roughly 120 jobs per minute before accounting
+for processing time and other worker tasks. A growing `search_documents` table
+after deployment is expected; larger collections take multiple polls.
+
+Each artifact document contains its name, kind, ancestor names, and description.
+The SHA-256 content hash detects unchanged text and preserves the document ID
+and timestamp when no rewrite is needed. Attachment/chunk references are
+reserved for later PDF and image indexing; those processors are not implemented
+yet. Soft deletion immediately removes an artifact's search documents; hard
+deletion cascades documents and jobs through foreign keys.
+
+Jobs move through `queued`, `processing`, `processed`, or `failed`. The worker
+uses `FOR UPDATE SKIP LOCKED` to claim jobs, retries failures with bounded
+backoff, and recovers expired claims. Claim tokens prevent an old worker from
+completing a reclaimed job. Document writes and job completion are transactional;
+per-artifact locks serialize different jobs for the same artifact.
+
+Every poll also deletes up to 100 `processed` jobs whose `updated_at` is more
+than seven days old, using `FOR UPDATE SKIP LOCKED` so worker replicas do not
+wait on the same cleanup rows. Recent completed jobs and all queued, processing,
+and failed jobs are retained. Cleanup does not delete search documents or artifacts.
+
+Inspect indexing using the SQL terminal:
+
+```sql
+SELECT artifact_id, source_kind, content, updated_at FROM search_documents;
+SELECT artifact_id, status, attempts, error_message FROM search_index_jobs;
+```
+
+Run the workspace tests with local PostgreSQL running:
+
+```sh
+export DATABASE_URL=postgres://pintrail:pintrail@localhost:5433/pintrail
+cargo test --workspace --locked
+```
+
+SQLx creates a separate database for each indexing integration test and applies
+all migrations there. Tests do not edit the development artifact collection or
+call an AI provider. The database account must be able to create test databases;
+the local development account has this capability.
+
 ## Containers
 
 One `Dockerfile`, two targets. The workspace compiles once in a shared builder

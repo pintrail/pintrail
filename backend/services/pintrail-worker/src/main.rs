@@ -1,4 +1,4 @@
-//! Attachment processing worker.
+//! Attachment processing and artifact search indexing worker.
 //!
 //! Claims queued attachments from Postgres with `FOR UPDATE SKIP LOCKED`,
 //! turns originals into what the app displays, and writes the output back to
@@ -7,6 +7,7 @@
 
 mod media;
 mod queue;
+mod search_index;
 
 use std::time::Duration;
 
@@ -127,6 +128,18 @@ async fn run(db: &PgPool, storage: &Storage, config: &Config) {
                     // A failed cycle must not kill the worker; the next tick
                     // retries.
                     tracing::error!(error = ?err, "poll cycle failed");
+                }
+                // Keep the queues independent: a media failure must not prevent
+                // text indexing, and an empty media queue must not skip it.
+                if let Err(err) = search_index::poll_once(
+                    db,
+                    config.batch_size,
+                    config.max_attempts,
+                    config.stuck_timeout_secs,
+                )
+                .await
+                {
+                    tracing::error!(error = ?err, "search indexing cycle failed");
                 }
             }
             _ = shutdown_signal() => break,
