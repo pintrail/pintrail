@@ -60,7 +60,11 @@ async fn main() -> anyhow::Result<()> {
         }
         [] | ["migrate"] | ["create-author", _, _] | ["reset-password", _] => {}
         other => {
-            eprint!("unrecognized command: {}\n\n{}", other.join(" "), cli::USAGE);
+            eprint!(
+                "unrecognized command: {}\n\n{}",
+                other.join(" "),
+                cli::USAGE
+            );
             std::process::exit(2);
         }
     }
@@ -128,13 +132,9 @@ fn router(state: AppState) -> Router {
         .merge(comments::router())
         // The panel is merged last and wrapped so an expired session lands on
         // the sign-in page rather than a bare JSON 401.
-        .merge(admin::router().layer(axum::middleware::from_fn(
-            admin::redirect_unauthenticated,
-        )))
+        .merge(admin::router().layer(axum::middleware::from_fn(admin::redirect_unauthenticated)))
         .merge(studio::assets::router())
-        .merge(studio::router().layer(axum::middleware::from_fn(
-            studio::redirect_unauthenticated,
-        )))
+        .merge(studio::router().layer(axum::middleware::from_fn(studio::redirect_unauthenticated)))
         .layer(TraceLayer::new_for_http())
         .with_state(state)
 }

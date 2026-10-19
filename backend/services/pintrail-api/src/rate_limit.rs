@@ -85,7 +85,9 @@ impl RateLimiter {
         let mut buckets = self.buckets.lock().expect("rate limiter mutex poisoned");
 
         let bucket = buckets.entry(key.to_string()).or_default();
-        bucket.hits.retain(|t| now.duration_since(*t) < quota.window);
+        bucket
+            .hits
+            .retain(|t| now.duration_since(*t) < quota.window);
 
         if bucket.hits.len() >= quota.max_events {
             return Err(AppError::TooManyRequests);

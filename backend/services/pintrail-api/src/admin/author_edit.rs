@@ -83,16 +83,18 @@ async fn render_page(
     error: Option<String>,
 ) -> AppResult<Html<String>> {
     let t = load(state, id).await?;
-    let owned_artifacts: i64 =
-        sqlx::query_scalar("SELECT count(*) FROM artifacts WHERE created_by = $1 AND deleted_at IS NULL")
-            .bind(id)
-            .fetch_one(&state.db)
-            .await?;
-    let owned_trails: i64 =
-        sqlx::query_scalar("SELECT count(*) FROM trails WHERE owner_type = 'author' AND owner_id = $1")
-            .bind(id)
-            .fetch_one(&state.db)
-            .await?;
+    let owned_artifacts: i64 = sqlx::query_scalar(
+        "SELECT count(*) FROM artifacts WHERE created_by = $1 AND deleted_at IS NULL",
+    )
+    .bind(id)
+    .fetch_one(&state.db)
+    .await?;
+    let owned_trails: i64 = sqlx::query_scalar(
+        "SELECT count(*) FROM trails WHERE owner_type = 'author' AND owner_id = $1",
+    )
+    .bind(id)
+    .fetch_one(&state.db)
+    .await?;
     // Who can take over their work: other active editors and admins.
     let others: Vec<(Uuid, String, String)> = sqlx::query_as(
         "SELECT id, full_name, email FROM authors \
@@ -105,7 +107,11 @@ async fn render_page(
     let others: Vec<_> = others
         .into_iter()
         .map(|(oid, name, email)| {
-            let label = if name.trim().is_empty() { email } else { format!("{name} ({email})") };
+            let label = if name.trim().is_empty() {
+                email
+            } else {
+                format!("{name} ({email})")
+            };
             context! { id => oid.to_string(), label => label }
         })
         .collect();
@@ -134,8 +140,16 @@ async fn render_page(
 }
 
 /// Re-renders the page with an error, for any rejected form.
-async fn fail(admin: &Author, state: &AppState, jar: &CookieJar, id: Uuid, msg: String) -> AppResult<Response> {
-    Ok(render_page(admin, state, jar, id, None, Some(msg)).await?.into_response())
+async fn fail(
+    admin: &Author,
+    state: &AppState,
+    jar: &CookieJar,
+    id: Uuid,
+    msg: String,
+) -> AppResult<Response> {
+    Ok(render_page(admin, state, jar, id, None, Some(msg))
+        .await?
+        .into_response())
 }
 
 // --- account details ----------------------------------------------------------
@@ -163,11 +177,25 @@ async fn update(
 
     let email = f.email.trim().to_string();
     if !looks_like_email(&email) {
-        return fail(&admin.0, &state, &jar, id, "Enter a valid email address.".into()).await;
+        return fail(
+            &admin.0,
+            &state,
+            &jar,
+            id,
+            "Enter a valid email address.".into(),
+        )
+        .await;
     }
     let full_name: String = f.full_name.split_whitespace().collect::<Vec<_>>().join(" ");
     if full_name.chars().count() > 120 {
-        return fail(&admin.0, &state, &jar, id, "The full name can be at most 120 characters.".into()).await;
+        return fail(
+            &admin.0,
+            &state,
+            &jar,
+            id,
+            "The full name can be at most 120 characters.".into(),
+        )
+        .await;
     }
     let role = match f.role.as_deref() {
         // Your own role isn't changeable here: demoting yourself would lock
@@ -181,17 +209,25 @@ async fn update(
     };
 
     let mut tx = state.db.begin().await?;
-    let result = sqlx::query("UPDATE authors SET email = $2, full_name = $3, role = $4 WHERE id = $1")
-        .bind(id)
-        .bind(&email)
-        .bind(&full_name)
-        .bind(role)
-        .execute(&mut *tx)
-        .await;
+    let result =
+        sqlx::query("UPDATE authors SET email = $2, full_name = $3, role = $4 WHERE id = $1")
+            .bind(id)
+            .bind(&email)
+            .bind(&full_name)
+            .bind(role)
+            .execute(&mut *tx)
+            .await;
     match result {
         Ok(_) => {}
         Err(sqlx::Error::Database(db)) if db.is_unique_violation() => {
-            return fail(&admin.0, &state, &jar, id, format!("Another author already uses {email}.")).await;
+            return fail(
+                &admin.0,
+                &state,
+                &jar,
+                id,
+                format!("Another author already uses {email}."),
+            )
+            .await;
         }
         Err(e) => return Err(e.into()),
     }
@@ -200,7 +236,14 @@ async fn update(
             .fetch_one(&mut *tx)
             .await?;
     if active_admins == 0 {
-        return fail(&admin.0, &state, &jar, id, "That change would leave no active admin.".into()).await;
+        return fail(
+            &admin.0,
+            &state,
+            &jar,
+            id,
+            "That change would leave no active admin.".into(),
+        )
+        .await;
     }
     // A new sign-in address, or less access, should take effect now rather
     // than whenever their session cookie runs out.
@@ -234,13 +277,27 @@ async fn reset_password(
     require_csrf(&jar, &f.csrf_token)?;
     load(&state, id).await?;
     if id == admin.0.id {
-        return fail(&admin.0, &state, &jar, id, "Change your own password from the Studio, under your profile.".into()).await;
+        return fail(
+            &admin.0,
+            &state,
+            &jar,
+            id,
+            "Change your own password from the Studio, under your profile.".into(),
+        )
+        .await;
     }
     if let Err(e) = validate_password(&f.password) {
         return fail(&admin.0, &state, &jar, id, capitalize(&e)).await;
     }
     if f.password != f.password_confirm {
-        return fail(&admin.0, &state, &jar, id, "The two passwords do not match.".into()).await;
+        return fail(
+            &admin.0,
+            &state,
+            &jar,
+            id,
+            "The two passwords do not match.".into(),
+        )
+        .await;
     }
     let hash = hash_password(&f.password)?;
     let mut tx = state.db.begin().await?;
@@ -289,10 +346,24 @@ async fn delete(
     require_csrf(&jar, &f.csrf_token)?;
     let t = load(&state, id).await?;
     if id == admin.0.id {
-        return fail(&admin.0, &state, &jar, id, "You can't delete your own account; ask another admin.".into()).await;
+        return fail(
+            &admin.0,
+            &state,
+            &jar,
+            id,
+            "You can't delete your own account; ask another admin.".into(),
+        )
+        .await;
     }
     if !f.confirm_email.trim().eq_ignore_ascii_case(&t.email) {
-        return fail(&admin.0, &state, &jar, id, "Type their email exactly to confirm the delete.".into()).await;
+        return fail(
+            &admin.0,
+            &state,
+            &jar,
+            id,
+            "Type their email exactly to confirm the delete.".into(),
+        )
+        .await;
     }
 
     let mut tx = crate::audit::begin_as(&state.db, admin.0.id).await?;
@@ -306,7 +377,14 @@ async fn delete(
     let mut moved_to: Option<Uuid> = None;
     if owns > 0 {
         let Ok(to) = f.transfer_to.parse::<Uuid>() else {
-            return fail(&admin.0, &state, &jar, id, "Choose who gets their artifacts and trails.".into()).await;
+            return fail(
+                &admin.0,
+                &state,
+                &jar,
+                id,
+                "Choose who gets their artifacts and trails.".into(),
+            )
+            .await;
         };
         let ok: Option<bool> = sqlx::query_scalar(
             "SELECT is_active AND role IN ('editor', 'admin') FROM authors WHERE id = $1 AND id <> $2",
@@ -316,7 +394,14 @@ async fn delete(
         .fetch_optional(&mut *tx)
         .await?;
         if ok != Some(true) {
-            return fail(&admin.0, &state, &jar, id, "Choose an active editor or admin to take over their work.".into()).await;
+            return fail(
+                &admin.0,
+                &state,
+                &jar,
+                id,
+                "Choose an active editor or admin to take over their work.".into(),
+            )
+            .await;
         }
         // Deleted artifacts move too, so a later restore has an owner.
         sqlx::query("UPDATE artifacts SET created_by = $2 WHERE created_by = $1")
@@ -324,21 +409,33 @@ async fn delete(
             .bind(to)
             .execute(&mut *tx)
             .await?;
-        sqlx::query("UPDATE trails SET owner_id = $2 WHERE owner_type = 'author' AND owner_id = $1")
-            .bind(id)
-            .bind(to)
-            .execute(&mut *tx)
-            .await?;
+        sqlx::query(
+            "UPDATE trails SET owner_id = $2 WHERE owner_type = 'author' AND owner_id = $1",
+        )
+        .bind(id)
+        .bind(to)
+        .execute(&mut *tx)
+        .await?;
         moved_to = Some(to);
     }
 
-    sqlx::query("DELETE FROM authors WHERE id = $1").bind(id).execute(&mut *tx).await?;
+    sqlx::query("DELETE FROM authors WHERE id = $1")
+        .bind(id)
+        .execute(&mut *tx)
+        .await?;
     let active_admins: i64 =
         sqlx::query_scalar("SELECT count(*) FROM authors WHERE role = 'admin' AND is_active")
             .fetch_one(&mut *tx)
             .await?;
     if active_admins == 0 {
-        return fail(&admin.0, &state, &jar, id, "That would leave no active admin.".into()).await;
+        return fail(
+            &admin.0,
+            &state,
+            &jar,
+            id,
+            "That would leave no active admin.".into(),
+        )
+        .await;
     }
     tx.commit().await?;
 

@@ -12,9 +12,9 @@ use super::auth::{
 };
 use super::extractors::AuthenticatedReader;
 use super::model::{Reader, ReaderTokenPurpose, ReaderView};
+use crate::client_ip::ClientIp;
 use crate::crypto::{hash_password, hash_token, verify_dummy_password, verify_password};
 use crate::error::{AppError, AppResult};
-use crate::client_ip::ClientIp;
 use crate::mail;
 use crate::rate_limit::{EMAIL_TRIGGER_PER_IP, LOGIN_PER_ACCOUNT, LOGIN_PER_IP};
 use crate::state::AppState;
@@ -28,7 +28,10 @@ pub fn router() -> Router<AppState> {
         .route("/readers/logout", post(logout))
         .route("/readers/me", get(me))
         .route("/readers/password-reset", post(request_password_reset))
-        .route("/readers/password-reset/confirm", post(confirm_password_reset))
+        .route(
+            "/readers/password-reset/confirm",
+            post(confirm_password_reset),
+        )
 }
 
 /// The response every registration and password-reset request returns,
@@ -68,7 +71,9 @@ async fn register(
 ) -> AppResult<(StatusCode, Json<Value>)> {
     // Every call here can send mail, so the limit protects other people's
     // inboxes as much as this service.
-    state.limiter.check(&format!("register:{ip}"), EMAIL_TRIGGER_PER_IP)?;
+    state
+        .limiter
+        .check(&format!("register:{ip}"), EMAIL_TRIGGER_PER_IP)?;
 
     let email = body.email.trim();
 
@@ -226,7 +231,9 @@ async fn resend_verification(
     ClientIp(ip): ClientIp,
     Json(body): Json<EmailRequest>,
 ) -> AppResult<(StatusCode, Json<Value>)> {
-    state.limiter.check(&format!("resend:{ip}"), EMAIL_TRIGGER_PER_IP)?;
+    state
+        .limiter
+        .check(&format!("resend:{ip}"), EMAIL_TRIGGER_PER_IP)?;
 
     let email = body.email.trim();
     let mut tx = state.db.begin().await?;
@@ -359,7 +366,9 @@ async fn request_password_reset(
     ClientIp(ip): ClientIp,
     Json(body): Json<EmailRequest>,
 ) -> AppResult<(StatusCode, Json<Value>)> {
-    state.limiter.check(&format!("reset:{ip}"), EMAIL_TRIGGER_PER_IP)?;
+    state
+        .limiter
+        .check(&format!("reset:{ip}"), EMAIL_TRIGGER_PER_IP)?;
 
     let email = body.email.trim();
     let mut tx = state.db.begin().await?;
@@ -447,5 +456,7 @@ async fn confirm_password_reset(
     tx.commit().await?;
     tracing::info!(reader_id = %reader_id, revoked, "password reset completed");
 
-    Ok(Json(json!({ "status": "password updated", "sessions_revoked": revoked })))
+    Ok(Json(
+        json!({ "status": "password updated", "sessions_revoked": revoked }),
+    ))
 }

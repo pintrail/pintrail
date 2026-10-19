@@ -21,7 +21,10 @@ use crate::error::{AppError, AppResult};
 ///
 /// `set_config(..., true)` scopes the setting to this transaction, so it
 /// cannot leak to the next request that borrows the pooled connection.
-pub async fn begin_as(db: &PgPool, actor: Uuid) -> Result<Transaction<'static, Postgres>, sqlx::Error> {
+pub async fn begin_as(
+    db: &PgPool,
+    actor: Uuid,
+) -> Result<Transaction<'static, Postgres>, sqlx::Error> {
     let mut tx = db.begin().await?;
     sqlx::query("SELECT set_config('pintrail.actor_id', $1, true)")
         .bind(actor.to_string())
@@ -71,7 +74,11 @@ pub async fn ensure_can_modify<'e, E: sqlx::PgExecutor<'e>>(
 /// nested inside it. An admin may delete anything. An editor may delete only
 /// when every artifact in the subtree is theirs and none of it is approved,
 /// so one mis-tap can't take a classmate's work or reviewed work with it.
-pub async fn can_delete<'e, E: sqlx::PgExecutor<'e>>(ex: E, author: &Author, id: Uuid) -> AppResult<bool> {
+pub async fn can_delete<'e, E: sqlx::PgExecutor<'e>>(
+    ex: E,
+    author: &Author,
+    id: Uuid,
+) -> AppResult<bool> {
     if is_admin(author) {
         return Ok(true);
     }
@@ -118,7 +125,11 @@ pub async fn reopen_if_approved(
 
 /// Records that `author` changed something hanging off the artifact (a link,
 /// a photo), so "last edited by" and the review status reflect it.
-pub async fn touch(tx: &mut Transaction<'_, Postgres>, author: &Author, id: Uuid) -> Result<(), sqlx::Error> {
+pub async fn touch(
+    tx: &mut Transaction<'_, Postgres>,
+    author: &Author,
+    id: Uuid,
+) -> Result<(), sqlx::Error> {
     sqlx::query("UPDATE artifacts SET updated_at = now(), updated_by = $2 WHERE id = $1")
         .bind(id)
         .bind(author.id)

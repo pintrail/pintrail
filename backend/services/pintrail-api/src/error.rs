@@ -93,7 +93,9 @@ impl IntoResponse for AppError {
 
         let mut response = (status, Json(json!({ "error": message }))).into_response();
         if needs_password_change {
-            response.extensions_mut().insert(PasswordChangeRequiredMarker);
+            response
+                .extensions_mut()
+                .insert(PasswordChangeRequiredMarker);
         }
         response
     }

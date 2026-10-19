@@ -101,12 +101,11 @@ pub fn duplicate_registration_email(to: &str) -> Email {
     Email {
         to: to.to_string(),
         subject: "Someone tried to register your Pintrail account".to_string(),
-        body:
-            "Someone attempted to create a Pintrail account with this email address, \
+        body: "Someone attempted to create a Pintrail account with this email address, \
              but one already exists.\n\n\
              If that was you, try signing in instead, or use the password reset flow \
              if you have forgotten your password.\n\n\
              If it was not you, no action is needed."
-                .to_string(),
+            .to_string(),
     }
 }

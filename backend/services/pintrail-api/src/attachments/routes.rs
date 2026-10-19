@@ -16,10 +16,7 @@ use crate::state::AppState;
 
 pub fn router() -> Router<AppState> {
     Router::new()
-        .route(
-            "/artifacts/{id}/attachments",
-            get(list_for_artifact_route),
-        )
+        .route("/artifacts/{id}/attachments", get(list_for_artifact_route))
         .route(
             "/artifacts/{id}/attachments/upload-intent",
             post(upload_intent),
@@ -256,13 +253,13 @@ async fn complete_upload(
     if size > max {
         state.storage.delete(&row.original_storage_key).await?;
 
-        sqlx::query(
-            "UPDATE attachments SET status = 'failed', error_message = $2 WHERE id = $1",
-        )
-        .bind(id)
-        .bind(format!("upload of {size} bytes exceeds the {max} byte limit"))
-        .execute(&state.db)
-        .await?;
+        sqlx::query("UPDATE attachments SET status = 'failed', error_message = $2 WHERE id = $1")
+            .bind(id)
+            .bind(format!(
+                "upload of {size} bytes exceeds the {max} byte limit"
+            ))
+            .execute(&state.db)
+            .await?;
 
         return Err(AppError::BadRequest(format!(
             "upload of {size} bytes exceeds the {max} byte limit"

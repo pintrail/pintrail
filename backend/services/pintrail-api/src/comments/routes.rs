@@ -21,10 +21,7 @@ const MAX_BODY_CHARS: usize = 4000;
 
 pub fn router() -> Router<AppState> {
     Router::new()
-        .route(
-            "/artifacts/{id}/comments",
-            get(list).post(create),
-        )
+        .route("/artifacts/{id}/comments", get(list).post(create))
         .route("/comments/{id}", delete(remove))
 }
 

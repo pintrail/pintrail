@@ -8,7 +8,9 @@ use uuid::Uuid;
 /// order here is load-bearing: reordering these silently changes who can do
 /// what. New levels must be inserted at the correct privilege position, not
 /// appended.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, sqlx::Type)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, sqlx::Type,
+)]
 #[sqlx(type_name = "author_role", rename_all = "lowercase")]
 #[serde(rename_all = "lowercase")]
 pub enum AuthorRole {
@@ -150,7 +152,10 @@ mod tests {
     #[test]
     fn role_parses_case_insensitively() {
         assert_eq!("ADMIN".parse::<AuthorRole>().unwrap(), AuthorRole::Admin);
-        assert_eq!(" editor ".parse::<AuthorRole>().unwrap(), AuthorRole::Editor);
+        assert_eq!(
+            " editor ".parse::<AuthorRole>().unwrap(),
+            AuthorRole::Editor
+        );
         assert!("root".parse::<AuthorRole>().is_err());
     }
 
