@@ -157,6 +157,54 @@ The site stays up on the old version all through steps 1–4. So a broken build,
 - **The working tree must be clean.** A deploy must match a commit exactly. Never edit code on the server; commit, push, and deploy instead.
 - **`COMPOSE_FILE` must be set** (§3).
 
+### Automatic deploys
+
+`deploy/auto-deploy.sh` deploys `main` without anyone logging in. A systemd timer runs it every five minutes. Each run:
+
+1. Takes a lock, so two deploys never overlap.
+2. Fetches `origin/main` and compares it with the last deployed commit in `backups/deploy.log`. If nothing changed, it exits quietly.
+3. Asks GitHub whether the CI workflow (`.github/workflows/ci.yml`) passed on that commit. If CI is still running, it waits for the next run.
+4. Runs `deploy/redeploy.sh --yes` for exactly that commit: backup, migrations, containers, health checks.
+
+It never rolls back on its own. When CI fails on main, or a deploy fails, it logs that, optionally opens a GitHub issue, and does not retry that commit (so a failed migration is not re-run every five minutes). The next commit on main is tried as usual.
+
+A commit that was deployed before is never redeployed automatically. That keeps a rollback in place: after `deploy/rollback.sh`, `main` still points at the bad commit, and the timer leaves it alone until a new commit lands.
+
+**Install it once on the server** (needs `sudo` for the unit files; the deploy itself runs as the deploy user):
+
+1. Edit `User=` and the three paths in `deploy/systemd/pintrail-autodeploy.service` to match the host. Check with a dry run first, as the deploy user:
+   ```sh
+   cd ~/pintrail/backend
+   deploy/auto-deploy.sh --dry-run
+   ```
+   It needs `git`, `curl`, `python3` and `flock` (util-linux), all standard on Ubuntu and Debian.
+2. Optional but recommended: add a GitHub token to `backend/.env`. Without one the GitHub API allows 60 requests an hour per IP address, shared with everyone behind the same campus address. A fine-grained token for `pintrail/pintrail` with **Actions: read** is enough; add **Issues: write** and `AUTODEPLOY_ISSUES=1` to get an issue when something fails.
+   ```sh
+   AUTODEPLOY_GITHUB_TOKEN=github_pat_...
+   AUTODEPLOY_ISSUES=1
+   ```
+3. Install and start the timer:
+   ```sh
+   sudo cp deploy/systemd/pintrail-autodeploy.{service,timer} /etc/systemd/system/
+   sudo systemctl daemon-reload
+   sudo systemctl enable --now pintrail-autodeploy.timer
+   ```
+   The copies in `/etc/systemd/system` do not update with the repository. Copy them again if the unit files change.
+
+**Day to day:**
+
+| Task | Command |
+|---|---|
+| When it next runs | `systemctl list-timers pintrail-autodeploy.timer` |
+| What it did | `journalctl -u pintrail-autodeploy.service -n 100` |
+| Run a check now | `sudo systemctl start pintrail-autodeploy.service` |
+| Pause automatic deploys | `touch backups/auto-deploy.paused` (delete the file to resume) |
+| Commits it gave up on | `cat backups/auto-deploy.state` |
+| Retry a commit it gave up on | Deploy it by hand with `deploy/redeploy.sh --ref <commit>` |
+| Turn it off | `sudo systemctl disable --now pintrail-autodeploy.timer` |
+
+**Before merging a risky migration** (anything that is not purely additive, §7), pause automatic deploys, merge, and deploy by hand so someone is watching.
+
 ## 6. Rolling back
 
 ### Code only (the usual case)
