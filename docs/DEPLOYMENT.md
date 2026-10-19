@@ -124,7 +124,7 @@ The script shows the commits and any new migrations about to go out, and asks yo
 | Step | Command it runs | If this step fails |
 |---|---|---|
 | 1. Check out | `git fetch`, then `git checkout --detach <commit>` | Nothing running was touched. |
-| 2. Build | `docker compose build --pull` | Nothing running was touched. |
+| 2. Get images | `docker pull` the commit's images from GHCR (see *Images* below); builds on the host only if none were published | Nothing running was touched. |
 | 3. Back up | `pg_dump` into `backups/` | Nothing running was touched. |
 | 4. Migrate | `docker compose run --rm api migrate` | Nothing running was touched (see below). |
 | 5. Replace containers | `docker compose up -d --remove-orphans` | The new version is (partly) running. Roll back. |
@@ -144,6 +144,7 @@ The site stays up on the old version all through steps 1–4. So a broken build,
 | `--yes`, `-y` | Don't ask for confirmation. |
 | `--no-fetch` | Don't run `git fetch` first. |
 | `--skip-backup` | Don't take a database backup. Only use this if you just took one another way. |
+| `--build` | Build the images on the server instead of pulling them. For emergencies, such as GHCR being down. |
 
 | Environment variable | Default | Meaning |
 |---|---|---|
@@ -157,6 +158,31 @@ The site stays up on the old version all through steps 1–4. So a broken build,
 - **The working tree must be clean.** A deploy must match a commit exactly. Never edit code on the server; commit, push, and deploy instead.
 - **`COMPOSE_FILE` must be set** (§3).
 
+### Images
+
+CI builds the API and worker images for every commit on `main`, after the tests pass, and publishes them to GitHub's container registry:
+
+- `ghcr.io/pintrail/pintrail-api:<commit>` and `:main`
+- `ghcr.io/pintrail/pintrail-worker:<commit>` and `:main`
+
+`redeploy.sh` sets `PINTRAIL_TAG` to the commit it deploys and pulls those images, so the server never compiles Rust and the image that runs is the one CI tested. Once the new version passes its health checks, the script tags the images `deployed`. `compose.prod.yml` uses that tag when `PINTRAIL_TAG` is unset, so `docker compose` commands you run by hand (`run --rm api create-author`, `restart`, `logs`) use the last successful deploy.
+
+The server builds on the host instead, under the same names, when:
+
+- `--build` is passed;
+- the commit has no published images (it is not on `main`, or CI has not finished);
+- the commit is from before CI published images, which matters when rolling back to one.
+
+The images are built for `linux/amd64`.
+
+**Registry access, once per server.** GHCR packages start private. Either make both packages public (GitHub → the `pintrail` organization → **Packages** → each package → **Package settings** → **Change visibility**), or log the deploy user in with a token that has `read:packages`:
+
+```sh
+docker login ghcr.io -u <github-user>     # paste the token as the password
+```
+
+The code is open source, so public images reveal nothing new. They contain no secrets; `.env` is excluded by `.dockerignore`.
+
 ### Automatic deploys
 
 `deploy/auto-deploy.sh` deploys `main` without anyone logging in. A systemd timer runs it every five minutes. Each run:
@@ -164,7 +190,7 @@ The site stays up on the old version all through steps 1–4. So a broken build,
 1. Takes a lock, so two deploys never overlap.
 2. Fetches `origin/main` and compares it with the last deployed commit in `backups/deploy.log`. If nothing changed, it exits quietly.
 3. Asks GitHub whether the CI workflow (`.github/workflows/ci.yml`) passed on that commit. If CI is still running, it waits for the next run.
-4. Runs `deploy/redeploy.sh --yes` for exactly that commit: backup, migrations, containers, health checks.
+4. Runs `deploy/redeploy.sh --yes` for exactly that commit: pull its images, back up, migrate, replace the containers, check health. A green CI run on `main` means that commit's images are published.
 
 It never rolls back on its own. When CI fails on main, or a deploy fails, it logs that, optionally opens a GitHub issue, and does not retry that commit (so a failed migration is not re-run every five minutes). The next commit on main is tried as usual.
 
