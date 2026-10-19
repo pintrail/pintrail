@@ -1,0 +1,11 @@
+# Checks for a new commit on main every five minutes.
+[Unit]
+Description=Check every five minutes whether PinTrail needs deploying
+
+[Timer]
+OnBootSec=5min
+OnUnitInactiveSec=5min
+Persistent=false
+
+[Install]
+WantedBy=timers.target
