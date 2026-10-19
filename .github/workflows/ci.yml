@@ -1,0 +1,91 @@
+# Backend CI: format, lint and test the Rust workspace in backend/.
+#
+# Runs on every push to main (every merged PR) and on pull requests into
+# main, so breakage shows up before a merge as well as after it. The
+# automated deploy (#77) only deploys commits whose run here passed.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+# A newer push to the same branch makes an in-progress run pointless.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+
+    services:
+      # The SQLx integration tests create a throwaway database per test and
+      # apply every migration to it, so the account must be able to create
+      # databases; the image's superuser can.
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: pintrail
+          POSTGRES_PASSWORD: pintrail
+          POSTGRES_DB: pintrail
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U pintrail -d pintrail"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgres://pintrail:pintrail@localhost:5432/pintrail
+      CARGO_TERM_COLOR: always
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # The migration check below compares against the previous commit.
+          fetch-depth: 0
+
+      # Migrations that have run anywhere must never change: SQLx refuses to
+      # start when an applied migration's checksum differs, which on the
+      # server would stop the API. New migrations are always new files.
+      - name: Existing migrations are unchanged
+        env:
+          BASE: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          if [ -z "$BASE" ] || [ "$BASE" = 0000000000000000000000000000000000000000 ]; then
+            echo "no previous commit to compare against"; exit 0
+          fi
+          changed=$(git diff --name-only --diff-filter=MDR "$BASE" HEAD -- migrations)
+          if [ -n "$changed" ]; then
+            echo "::error::These existing migrations were edited, renamed or deleted:"
+            echo "$changed"
+            echo "Add a new migration file instead."
+            exit 1
+          fi
+
+      # rust-toolchain.toml picks the channel and adds rustfmt and clippy.
+      - name: Install the Rust toolchain
+        run: rustup toolchain install
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: backend
+
+      - name: Format
+        run: cargo fmt --all --check
+
+      - name: Lint
+        run: cargo clippy --workspace --all-targets --locked -- -D warnings
+
+      - name: Test
+        run: cargo test --workspace --locked
