@@ -27,22 +27,37 @@ it on `PATH`, or build with `PATH="$HOME/.cargo/bin:$PATH" cargo build`.
 
 ## Getting started
 
+Requires **Docker Compose 2.24.4 or newer**: the override uses `!override` to replace
+ports and service settings rather than merge them. Check with `docker compose version`.
+See [Docker Compose merge rules](https://docs.docker.com/reference/compose-file/merge/#replace-value).
+
 Everything in containers:
 
 ```sh
 cd backend
-docker compose up -d --build     # postgres, minio, api, worker
+cp .env.example .env
+docker compose -f compose.yml -f compose.dev.yml up -d --build
 curl localhost:8080/health
 ```
 
 Or just the dependencies, with the binaries on the host for a faster edit loop:
 
 ```sh
-docker compose up -d postgres minio minio-init
 cp .env.example .env
+docker compose -f compose.yml -f compose.dev.yml up -d postgres minio minio-init
 cargo run -p pintrail-api        # migrations run automatically on boot
 cargo run -p pintrail-worker     # in another shell
 ```
+
+`compose.dev.yml` replaces the unavailable MinIO development images with Versity S3 Gateway **v1.8.0**
+for local development. It keeps the existing `minio` service name and media
+volume, and binds database/storage ports to localhost. Unlike
+`compose.versity.yml`, it does not require production TLS certificate paths.
+The storage service has no container healthcheck in this override; verify it
+with `curl -f http://localhost:9000/health` before starting host binaries.
+
+On Windows, run these commands inside Ubuntu/WSL, where Rust and Docker are
+installed. Navigate to your checkout using its WSL path.
 
 Verify:
 
