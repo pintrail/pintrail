@@ -46,7 +46,13 @@ services:
       S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY:?set S3_SECRET_ACCESS_KEY}
       S3_BUCKET: ${S3_BUCKET:?set S3_BUCKET}
 
+  # Images come from GHCR, published by CI for every commit on main.
+  # deploy/redeploy.sh sets PINTRAIL_TAG to the commit it deploys, pulls (or,
+  # failing that, builds) <image>:<commit>, and once the new version is
+  # healthy tags it "deployed". Unset, PINTRAIL_TAG means "deployed", so a
+  # docker compose command run by hand uses the last successful deploy.
   api:
+    image: ghcr.io/pintrail/pintrail-api:${PINTRAIL_TAG:-deployed}
     environment:
       <<: *prod-app-env
       BIND_ADDR: 0.0.0.0:8080
@@ -67,6 +73,7 @@ services:
     ports: !override []
 
   worker:
+    image: ghcr.io/pintrail/pintrail-worker:${PINTRAIL_TAG:-deployed}
     environment:
       <<: *prod-app-env
       WORKER_POLL_INTERVAL_SECS: ${WORKER_POLL_INTERVAL_SECS:-5}

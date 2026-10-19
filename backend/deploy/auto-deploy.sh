@@ -102,6 +102,12 @@ main() {
       log "no CI run found for ${target:0:10} yet; will check again next run"
       exit 0
       ;;
+    cancelled | skipped)
+      # Superseded or skipped run; a newer commit will come along.
+      log "CI run on ${target:0:10} was $ci; not deploying it"
+      ((dry_run)) || give_up "$target" "ci-$ci"
+      exit 0
+      ;;
     *)
       warn "CI ended '$ci' on ${target:0:10}; not deploying it"
       ((dry_run)) && exit 0

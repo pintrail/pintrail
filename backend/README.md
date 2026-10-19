@@ -146,6 +146,8 @@ docker build --target api    -t pintrail-api    .
 docker build --target worker -t pintrail-worker .
 ```
 
+In production these are not built on the server. CI builds both for every commit on `main` and publishes `ghcr.io/pintrail/pintrail-{api,worker}:<commit>`, which `deploy/redeploy.sh` pulls (docs/DEPLOYMENT.md, *Images*).
+
 **The worker image carries `libheif-examples` and `poppler-utils`**; the API
 image does not. The media pipeline shells out to `heif-convert` and `pdftoppm`
 rather than linking them, so their absence is not a build error — it is every

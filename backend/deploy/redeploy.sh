@@ -11,6 +11,8 @@
 #   --no-fetch        do not `git fetch` first (used by rollback.sh)
 #   --skip-backup     do not dump the database first. Only for when a backup
 #                     was just taken some other way.
+#   --build           build the images on this host instead of pulling the
+#                     ones CI published (an emergency, or GHCR is down)
 #   -y, --yes         do not ask for confirmation
 #
 # Environment: COMPOSE_FILE (required; set it in backend/.env), DOCKER,
@@ -18,20 +20,27 @@
 #
 # Order matters, and each step stops the deploy on failure:
 #   1. check out the commit        4. run migrations (new image, one-off)
-#   2. build images                5. replace the running containers
+#   2. pull (or build) images      5. replace the running containers
 #   3. back up the database        6. wait for the API healthcheck
-# The old containers keep serving through steps 1-4, so a failed build,
+# The old containers keep serving through steps 1-4, so a failed pull, build,
 # backup, or migration leaves the site up on the previous version.
+#
+# Images: CI publishes ghcr.io/pintrail/pintrail-{api,worker}:<commit> for
+# every commit on main. Step 2 pulls those (PINTRAIL_TAG=<commit>), and after
+# step 6 they are tagged "deployed", which hand-run compose commands use. A
+# commit with no published images (from before CI published them, or not on
+# main) is built on this host instead, under the same names.
 
 set -Eeuo pipefail
 
 main() {
-  local ref=main fetch=1 backup=1 assume_yes=0
+  local ref=main fetch=1 backup=1 assume_yes=0 build=0
   while (($#)); do
     case $1 in
       --ref) ref=${2:?--ref needs a value}; shift 2 ;;
       --no-fetch) fetch=0; shift ;;
       --skip-backup) backup=0; shift ;;
+      --build) build=1; shift ;;
       -y | --yes) assume_yes=1; shift ;;
       -h | --help) sed -n '2,/^$/s/^# \{0,1\}//p' "$0"; exit 0 ;;
       *) echo "unknown option: $1 (see --help)" >&2; exit 2 ;;
@@ -77,8 +86,17 @@ main() {
   git checkout --quiet --detach "$to"
 
   stage=build
-  log "building images"
-  compose build --pull
+  export PINTRAIL_TAG=$to
+  if ((build)); then
+    log "building images on this host (--build)"
+    compose build --pull
+  elif ! uses_registry_images; then
+    log "this commit's compose files do not use published images; building on this host"
+    compose build --pull
+  elif ! pull_images "$to"; then
+    warn "no published images for ${to:0:10}; building on this host instead"
+    compose build --pull
+  fi
 
   stage=backup
   local backup_file=
@@ -104,6 +122,8 @@ main() {
   log "waiting for the api healthcheck (up to ${HEALTH_TIMEOUT}s)"
   wait_for_service api
   wait_for_service worker
+
+  uses_registry_images && mark_deployed "$to"
 
   stage=done
   record_deploy "$from" "$to" "$backup_file"
