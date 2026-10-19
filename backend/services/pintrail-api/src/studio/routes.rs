@@ -20,7 +20,14 @@ use crate::error::{AppError, AppResult, PasswordChangeRequiredMarker};
 use crate::rate_limit::{LOGIN_PER_ACCOUNT, LOGIN_PER_IP};
 use crate::state::AppState;
 
-const KINDS: [&str; 6] = ["building", "room", "artwork", "installation", "rooftop", "other"];
+const KINDS: [&str; 6] = [
+    "building",
+    "room",
+    "artwork",
+    "installation",
+    "rooftop",
+    "other",
+];
 
 pub(super) fn environment() -> Environment<'static> {
     let mut env = Environment::new();
@@ -28,40 +35,86 @@ pub(super) fn environment() -> Environment<'static> {
     // in .html -- artifact names and descriptions are author-controlled but
     // still rendered to a browser, and escaping is the default here.
     for (name, src) in [
-        ("studio_base.html", include_str!("templates/base.html") as &str),
+        (
+            "studio_base.html",
+            include_str!("templates/base.html") as &str,
+        ),
         ("studio_login.html", include_str!("templates/login.html")),
         ("studio_page.html", include_str!("templates/page.html")),
         ("studio_tree.html", include_str!("templates/tree.html")),
-        ("studio_welcome.html", include_str!("templates/welcome.html")),
+        (
+            "studio_welcome.html",
+            include_str!("templates/welcome.html"),
+        ),
         ("studio_detail.html", include_str!("templates/detail.html")),
         ("studio_form.html", include_str!("templates/form.html")),
-        ("studio_attachments.html", include_str!("templates/attachments.html")),
-        ("studio_password.html", include_str!("templates/password.html")),
+        (
+            "studio_attachments.html",
+            include_str!("templates/attachments.html"),
+        ),
+        (
+            "studio_password.html",
+            include_str!("templates/password.html"),
+        ),
         ("studio_links.html", include_str!("templates/links.html")),
         ("studio_map.html", include_str!("templates/map.html")),
-        ("studio_history.html", include_str!("templates/history.html")),
+        (
+            "studio_history.html",
+            include_str!("templates/history.html"),
+        ),
         ("studio_review.html", include_str!("templates/review.html")),
-        ("studio_deleted.html", include_str!("templates/deleted.html")),
-        ("studio_review_card.html", include_str!("templates/review_card.html")),
+        (
+            "studio_deleted.html",
+            include_str!("templates/deleted.html"),
+        ),
+        (
+            "studio_review_card.html",
+            include_str!("templates/review_card.html"),
+        ),
         ("studio_macros.html", include_str!("templates/macros.html")),
         ("studio_trails.html", include_str!("templates/trails.html")),
         ("studio_trail.html", include_str!("templates/trail.html")),
-        ("studio_trail_form.html", include_str!("templates/trail_form.html")),
-        ("studio_trail_stops.html", include_str!("templates/trail_stops.html")),
+        (
+            "studio_trail_form.html",
+            include_str!("templates/trail_form.html"),
+        ),
+        (
+            "studio_trail_stops.html",
+            include_str!("templates/trail_stops.html"),
+        ),
         ("studio_topics.html", include_str!("templates/topics.html")),
-        ("studio_artifact_topics.html", include_str!("templates/artifact_topics.html")),
-        ("studio_topic_artifacts.html", include_str!("templates/topic_artifacts.html")),
+        (
+            "studio_artifact_topics.html",
+            include_str!("templates/artifact_topics.html"),
+        ),
+        (
+            "studio_topic_artifacts.html",
+            include_str!("templates/topic_artifacts.html"),
+        ),
         ("studio_help.html", include_str!("templates/help.html")),
-        ("studio_help_index.html", include_str!("templates/help_index.html")),
-        ("studio_help_panel.html", include_str!("templates/help_panel.html")),
+        (
+            "studio_help_index.html",
+            include_str!("templates/help_index.html"),
+        ),
+        (
+            "studio_help_panel.html",
+            include_str!("templates/help_panel.html"),
+        ),
         (
             "studio_avatar.html",
             r#"{% from "studio_macros.html" import avatar %}{{ avatar(me) }}"#,
         ),
-        ("studio_profile.html", include_str!("templates/profile.html")),
-        ("studio_profile_photo.html", include_str!("templates/profile_photo.html")),
+        (
+            "studio_profile.html",
+            include_str!("templates/profile.html"),
+        ),
+        (
+            "studio_profile_photo.html",
+            include_str!("templates/profile_photo.html"),
+        ),
     ] {
-        env.add_template(name, src).expect("studio template compiles");
+        env.add_template(name, src)
+            .expect("studio template compiles");
     }
     env.add_global(
         "status_labels",
@@ -129,7 +182,11 @@ pub(super) fn respond(
     if headers.contains_key("hx-request") {
         render(env, fragment, ctx)
     } else {
-        render(env, "studio_page.html", context! { fragment => fragment, ..ctx })
+        render(
+            env,
+            "studio_page.html",
+            context! { fragment => fragment, ..ctx },
+        )
     }
 }
 
@@ -153,7 +210,9 @@ pub(super) fn base_ctx(author: &Author, session_token: &str) -> Value {
 }
 
 pub(super) fn session_token(jar: &CookieJar) -> String {
-    jar.get(SESSION_COOKIE).map(|c| c.value().to_string()).unwrap_or_default()
+    jar.get(SESSION_COOKIE)
+        .map(|c| c.value().to_string())
+        .unwrap_or_default()
 }
 
 pub(super) fn require_editor(author: &Author) -> AppResult<()> {
@@ -175,7 +234,11 @@ pub(super) fn require_csrf(jar: &CookieJar, submitted: &str) -> AppResult<()> {
 // --- auth ------------------------------------------------------------------
 
 async fn login_form() -> AppResult<Html<String>> {
-    render(&environment(), "studio_login.html", context! { title => "Sign in" })
+    render(
+        &environment(),
+        "studio_login.html",
+        context! { title => "Sign in" },
+    )
 }
 
 #[derive(Debug, Deserialize)]
@@ -227,19 +290,29 @@ async fn login_submit(
     }
 
     let token = generate_session_token();
-    sqlx::query("INSERT INTO author_sessions (author_id, token_hash, expires_at) VALUES ($1,$2,$3)")
-        .bind(author.id)
-        .bind(&token.hash)
-        .bind(token.expires_at)
-        .execute(&state.db)
-        .await?;
+    sqlx::query(
+        "INSERT INTO author_sessions (author_id, token_hash, expires_at) VALUES ($1,$2,$3)",
+    )
+    .bind(author.id)
+    .bind(&token.hash)
+    .bind(token.expires_at)
+    .execute(&state.db)
+    .await?;
 
     state.limiter.reset(&account_key);
     state.limiter.reset(&ip_key);
     tracing::info!(author_id = %author.id, "author signed in to studio");
 
-    let jar = jar.add(crate::authors::routes::session_cookie(token.raw, &state, token.expires_at));
-    let landing = if author.must_change_password { "/studio/password" } else { "/studio" };
+    let jar = jar.add(crate::authors::routes::session_cookie(
+        token.raw,
+        &state,
+        token.expires_at,
+    ));
+    let landing = if author.must_change_password {
+        "/studio/password"
+    } else {
+        "/studio"
+    };
     Ok((jar, Redirect::to(landing)).into_response())
 }
 
@@ -263,7 +336,11 @@ async fn password_form(
     SessionAuthor(author): SessionAuthor,
     jar: CookieJar,
 ) -> AppResult<Html<String>> {
-    render(&environment(), "studio_password.html", password_ctx(&author, &jar, None))
+    render(
+        &environment(),
+        "studio_password.html",
+        password_ctx(&author, &jar, None),
+    )
 }
 
 #[derive(Debug, Deserialize)]
@@ -311,11 +388,13 @@ async fn password_submit(
     let current_session = hash_session_token(&session_token(&jar));
 
     let mut tx = state.db.begin().await?;
-    sqlx::query("UPDATE authors SET password_hash = $1, must_change_password = false WHERE id = $2")
-        .bind(&hash)
-        .bind(author.id)
-        .execute(&mut *tx)
-        .await?;
+    sqlx::query(
+        "UPDATE authors SET password_hash = $1, must_change_password = false WHERE id = $2",
+    )
+    .bind(&hash)
+    .bind(author.id)
+    .execute(&mut *tx)
+    .await?;
     // Same reasoning as the CLI reset: sessions opened under the old password
     // should not outlive it. This one stays, so the author is not bounced out.
     sqlx::query("DELETE FROM author_sessions WHERE author_id = $1 AND token_hash <> $2")
@@ -327,7 +406,11 @@ async fn password_submit(
 
     tracing::info!(author_id = %author.id, "author changed password");
 
-    let landing = if author.role == AuthorRole::Admin { "/admin" } else { "/studio" };
+    let landing = if author.role == AuthorRole::Admin {
+        "/admin"
+    } else {
+        "/studio"
+    };
     Ok(Redirect::to(landing).into_response())
 }
 
@@ -341,8 +424,11 @@ async fn logout(
         .bind(hash_session_token(&session_token(&jar)))
         .execute(&state.db)
         .await?;
-    let mut removal =
-        crate::authors::routes::session_cookie(String::new(), &state, Utc::now() - chrono::Duration::days(1));
+    let mut removal = crate::authors::routes::session_cookie(
+        String::new(),
+        &state,
+        Utc::now() - chrono::Duration::days(1),
+    );
     removal.make_removal();
     Ok((jar.add(removal), Redirect::to("/studio/login")).into_response())
 }
@@ -375,10 +461,7 @@ async fn home(
     Ok(render(&environment(), "studio_page.html", ctx)?.into_response())
 }
 
-async fn welcome(
-    author: AuthenticatedAuthor,
-    jar: CookieJar,
-) -> AppResult<Html<String>> {
+async fn welcome(author: AuthenticatedAuthor, jar: CookieJar) -> AppResult<Html<String>> {
     render(
         &environment(),
         "studio_welcome.html",
@@ -427,9 +510,16 @@ async fn detail(
 /// with it. `can_edit` here means "may change this artifact" (it drives the
 /// links and media controls); `can_create` is the general editor right to
 /// add artifacts, including inside someone else's.
-async fn detail_ctx(state: &AppState, author: &Author, jar: &CookieJar, id: Uuid) -> AppResult<Value> {
+async fn detail_ctx(
+    state: &AppState,
+    author: &Author,
+    jar: &CookieJar,
+    id: Uuid,
+) -> AppResult<Value> {
     let d = load_detail(state, id).await?;
-    let own = crate::audit::Ownership { created_by: d.row.created_by };
+    let own = crate::audit::Ownership {
+        created_by: d.row.created_by,
+    };
     let can_modify = crate::audit::may_modify(author, &own);
     let can_delete = crate::audit::can_delete(&state.db, author, id).await?;
     Ok(context! {
@@ -454,10 +544,12 @@ async fn attachments(
     let views = crate::attachments::list_for_artifact(&state, id, true).await?;
     // Still-processing rows drive the fragment to poll again.
     let processing = views.iter().any(|m| {
-        matches!(m.status,
+        matches!(
+            m.status,
             crate::attachments::model::ProcessingStatus::Queued
-            | crate::attachments::model::ProcessingStatus::Processing
-            | crate::attachments::model::ProcessingStatus::PendingUpload)
+                | crate::attachments::model::ProcessingStatus::Processing
+                | crate::attachments::model::ProcessingStatus::PendingUpload
+        )
     });
     render(
         &environment(),
@@ -484,15 +576,16 @@ async fn new_form(
     require_editor(&author.0)?;
     // Started from a topic's page ("+ Add an artifact linked here"): the new
     // artifact is linked to that topic when it's created.
-    let link_topic: Option<(Uuid, String)> = match q.topic {
-        Some(t) => sqlx::query_as(
-            "SELECT id, name FROM artifacts WHERE id = $1 AND is_topic AND deleted_at IS NULL",
-        )
-        .bind(t)
-        .fetch_optional(&state.db)
-        .await?,
-        None => None,
-    };
+    let link_topic: Option<(Uuid, String)> =
+        match q.topic {
+            Some(t) => sqlx::query_as(
+                "SELECT id, name FROM artifacts WHERE id = $1 AND is_topic AND deleted_at IS NULL",
+            )
+            .bind(t)
+            .fetch_optional(&state.db)
+            .await?,
+            None => None,
+        };
     let form = context! {
         name => "", kind => "building", description => "", tags => "",
         parent_id => q.parent.map(|u| u.to_string()).unwrap_or_default(), lat => "", lng => "",
@@ -549,8 +642,15 @@ pub(super) async fn render_form(
     error: Option<&str>,
 ) -> AppResult<Html<String>> {
     // A topic has no kind, parent, or location, so its form has none either.
-    let topic = form.get_attr("is_topic").map(|v| v.is_true()).unwrap_or(false);
-    let parents = if topic { Value::from(()) } else { load_parent_options(state, edit_id).await? };
+    let topic = form
+        .get_attr("is_topic")
+        .map(|v| v.is_true())
+        .unwrap_or(false);
+    let parents = if topic {
+        Value::from(())
+    } else {
+        load_parent_options(state, edit_id).await?
+    };
     let tag_suggestions = load_tag_suggestions(state).await?;
     // Admins can hand an artifact to another author (or claim one that
     // predates authorship). Everyone else owns what they create.
@@ -560,10 +660,30 @@ pub(super) async fn render_form(
         Value::from(())
     };
     let (title, heading, action, submit_label) = match (edit_id, topic) {
-        (Some(id), false) => ("Edit", "Edit artifact", format!("/studio/artifacts/{id}"), "Save changes"),
-        (Some(id), true) => ("Edit", "Edit topic", format!("/studio/artifacts/{id}"), "Save changes"),
-        (None, false) => ("New artifact", "New artifact", "/studio/artifacts".to_string(), "Create"),
-        (None, true) => ("New topic", "New topic", "/studio/artifacts".to_string(), "Create topic"),
+        (Some(id), false) => (
+            "Edit",
+            "Edit artifact",
+            format!("/studio/artifacts/{id}"),
+            "Save changes",
+        ),
+        (Some(id), true) => (
+            "Edit",
+            "Edit topic",
+            format!("/studio/artifacts/{id}"),
+            "Save changes",
+        ),
+        (None, false) => (
+            "New artifact",
+            "New artifact",
+            "/studio/artifacts".to_string(),
+            "Create",
+        ),
+        (None, true) => (
+            "New topic",
+            "New topic",
+            "/studio/artifacts".to_string(),
+            "Create topic",
+        ),
     };
     let ctx = context! {
         title => title,
@@ -644,7 +764,12 @@ impl ArtifactForm {
     fn validate(&self, self_id: Option<Uuid>, topic: bool) -> Result<ValidArtifact, String> {
         let name = self.name.trim();
         if name.is_empty() {
-            return Err(if topic { "Give the topic a name." } else { "Give the artifact a name." }.into());
+            return Err(if topic {
+                "Give the topic a name."
+            } else {
+                "Give the artifact a name."
+            }
+            .into());
         }
         if name.chars().count() > 200 {
             return Err("The name is too long (200 characters at most).".into());
@@ -673,7 +798,9 @@ impl ArtifactForm {
 
         let parent = match self.parent_id.trim() {
             "" => None,
-            s => Some(Uuid::parse_str(s).map_err(|_| "Choose a parent from the list.".to_string())?),
+            s => {
+                Some(Uuid::parse_str(s).map_err(|_| "Choose a parent from the list.".to_string())?)
+            }
         };
         if parent.is_some() && parent == self_id {
             return Err("An artifact cannot be inside itself.".into());
@@ -681,9 +808,11 @@ impl ArtifactForm {
 
         let (lat, lng) = parse_coords(&self.lat, &self.lng)?;
         if parent.is_none() && lat.is_none() {
-            return Err("A top-level artifact needs a location. Click the map to place it, \
+            return Err(
+                "A top-level artifact needs a location. Click the map to place it, \
                         or choose the artifact it sits inside under Inside (parent)."
-                .into());
+                    .into(),
+            );
         }
 
         Ok(ValidArtifact {
@@ -704,7 +833,10 @@ fn parse_coords(lat: &str, lng: &str) -> Result<(Option<f64>, Option<f64>), Stri
     let (lat, lng) = match (lat.trim(), lng.trim()) {
         (pair, "") if pair.contains(',') => {
             let mut it = pair.splitn(2, ',');
-            (it.next().unwrap_or("").trim().to_string(), it.next().unwrap_or("").trim().to_string())
+            (
+                it.next().unwrap_or("").trim().to_string(),
+                it.next().unwrap_or("").trim().to_string(),
+            )
         }
         (a, b) => (a.to_string(), b.to_string()),
     };
@@ -720,11 +852,16 @@ fn parse_coords(lat: &str, lng: &str) -> Result<(Option<f64>, Option<f64>), Stri
     };
     let (lat, lng) = (num(&lat, "latitude")?, num(&lng, "longitude")?);
     match (lat, lng) {
-        (Some(_), None) | (None, Some(_)) => {
-            Err("Enter both latitude and longitude, or clear both to inherit the parent's location.".into())
+        (Some(_), None) | (None, Some(_)) => Err(
+            "Enter both latitude and longitude, or clear both to inherit the parent's location."
+                .into(),
+        ),
+        (Some(a), _) if !(-90.0..=90.0).contains(&a) => {
+            Err("Latitude must be between -90 and 90.".into())
         }
-        (Some(a), _) if !(-90.0..=90.0).contains(&a) => Err("Latitude must be between -90 and 90.".into()),
-        (_, Some(b)) if !(-180.0..=180.0).contains(&b) => Err("Longitude must be between -180 and 180.".into()),
+        (_, Some(b)) if !(-180.0..=180.0).contains(&b) => {
+            Err("Longitude must be between -180 and 180.".into())
+        }
         pair => Ok(pair),
     }
 }
@@ -739,7 +876,9 @@ pub(crate) fn parse_tags(raw: &str) -> Result<Vec<String>, String> {
             continue;
         }
         if tag.chars().count() > 60 {
-            return Err(format!("The tag \u{201c}{tag}\u{201d} is too long (60 characters at most)."));
+            return Err(format!(
+                "The tag \u{201c}{tag}\u{201d} is too long (60 characters at most)."
+            ));
         }
         if !out.iter().any(|t| t.to_lowercase() == tag.to_lowercase()) {
             out.push(tag);
@@ -757,7 +896,10 @@ fn form_db_error(err: sqlx::Error) -> Result<String, AppError> {
     match map_db_error(err) {
         AppError::BadRequest(m) | AppError::Conflict(m) => {
             if m.contains("cycle") {
-                Ok("That parent is inside this artifact already, so it can't also contain it.".into())
+                Ok(
+                    "That parent is inside this artifact already, so it can't also contain it."
+                        .into(),
+                )
             } else {
                 Ok(m)
             }
@@ -806,9 +948,17 @@ async fn create(
     let v = match form.validate(None, topic) {
         Ok(v) => v,
         Err(msg) => {
-            return Ok(render_form(&state, &author.0, &jar, &headers, None, form.echo(), Some(&msg))
-                .await?
-                .into_response())
+            return Ok(render_form(
+                &state,
+                &author.0,
+                &jar,
+                &headers,
+                None,
+                form.echo(),
+                Some(&msg),
+            )
+            .await?
+            .into_response())
         }
     };
 
@@ -830,13 +980,24 @@ async fn create(
         Ok(id) => id,
         Err(e) => {
             let msg = form_db_error(e)?;
-            return Ok(render_form(&state, &author.0, &jar, &headers, None, form.echo(), Some(&msg))
-                .await?
-                .into_response());
+            return Ok(render_form(
+                &state,
+                &author.0,
+                &jar,
+                &headers,
+                None,
+                form.echo(),
+                Some(&msg),
+            )
+            .await?
+            .into_response());
         }
     };
     replace_tags(&mut tx, id, &v.tags).await?;
-    let link_topic = form.link_topic.as_deref().and_then(|s| Uuid::parse_str(s.trim()).ok());
+    let link_topic = form
+        .link_topic
+        .as_deref()
+        .and_then(|s| Uuid::parse_str(s.trim()).ok());
     if let (Some(t), false) = (link_topic, topic) {
         // The topic was deleted meanwhile: the artifact is still worth
         // keeping, just without the link.
@@ -856,7 +1017,14 @@ async fn create(
     let ctx = context! { just_created => true, ..ctx };
     let body = respond(&environment(), &headers, "studio_detail.html", ctx)?;
     let url = format!("/studio/artifacts/{id}");
-    Ok(([("HX-Trigger", "refresh-tree".to_string()), ("HX-Push-Url", url)], body).into_response())
+    Ok((
+        [
+            ("HX-Trigger", "refresh-tree".to_string()),
+            ("HX-Push-Url", url),
+        ],
+        body,
+    )
+        .into_response())
 }
 
 async fn update(
@@ -878,9 +1046,17 @@ async fn update(
     let v = match form.validate(Some(id), topic) {
         Ok(v) => v,
         Err(msg) => {
-            return Ok(render_form(&state, &author.0, &jar, &headers, Some(id), form.echo(), Some(&msg))
-                .await?
-                .into_response())
+            return Ok(render_form(
+                &state,
+                &author.0,
+                &jar,
+                &headers,
+                Some(id),
+                form.echo(),
+                Some(&msg),
+            )
+            .await?
+            .into_response())
         }
     };
 
@@ -902,9 +1078,17 @@ async fn update(
         Ok(r) => r.rows_affected(),
         Err(e) => {
             let msg = form_db_error(e)?;
-            return Ok(render_form(&state, &author.0, &jar, &headers, Some(id), form.echo(), Some(&msg))
-                .await?
-                .into_response());
+            return Ok(render_form(
+                &state,
+                &author.0,
+                &jar,
+                &headers,
+                Some(id),
+                form.echo(),
+                Some(&msg),
+            )
+            .await?
+            .into_response());
         }
     };
     if affected == 0 {
@@ -912,8 +1096,14 @@ async fn update(
     }
     replace_tags(&mut tx, id, &v.tags).await?;
     if crate::audit::is_admin(&author.0) {
-        if let Some(owner) = form.owner_id.as_deref().map(str::trim).filter(|s| !s.is_empty()) {
-            let owner = Uuid::parse_str(owner).map_err(|_| AppError::BadRequest("invalid owner".into()))?;
+        if let Some(owner) = form
+            .owner_id
+            .as_deref()
+            .map(str::trim)
+            .filter(|s| !s.is_empty())
+        {
+            let owner =
+                Uuid::parse_str(owner).map_err(|_| AppError::BadRequest("invalid owner".into()))?;
             sqlx::query("UPDATE artifacts SET created_by = $2 WHERE id = $1 AND created_by IS DISTINCT FROM $2")
                 .bind(id)
                 .bind(owner)
@@ -999,9 +1189,11 @@ async fn delete_attachment(
 
     let views = crate::attachments::list_for_artifact(&state, artifact_id, true).await?;
     let processing = views.iter().any(|m| {
-        matches!(m.status,
+        matches!(
+            m.status,
             crate::attachments::model::ProcessingStatus::Queued
-            | crate::attachments::model::ProcessingStatus::Processing)
+                | crate::attachments::model::ProcessingStatus::Processing
+        )
     });
     render(
         &environment(),
@@ -1030,7 +1222,14 @@ pub(super) async fn detail_after_change(
     // Put the saved artifact's address in the location bar, so a reload or a
     // shared link lands back on it rather than on the welcome page.
     let url = format!("/studio/artifacts/{id}");
-    Ok(([("HX-Trigger", "refresh-tree".to_string()), ("HX-Push-Url", url)], body).into_response())
+    Ok((
+        [
+            ("HX-Trigger", "refresh-tree".to_string()),
+            ("HX-Push-Url", url),
+        ],
+        body,
+    )
+        .into_response())
 }
 
 // --- map overview --------------------------------------------------------
@@ -1070,7 +1269,9 @@ async fn map_view(
         ORDER BY a.name, a.id
         "#
     );
-    let rows = sqlx::query_as::<_, MapRow>(&sql).fetch_all(&state.db).await?;
+    let rows = sqlx::query_as::<_, MapRow>(&sql)
+        .fetch_all(&state.db)
+        .await?;
 
     let item = |r: &MapRow| {
         serde_json::json!({
@@ -1093,7 +1294,10 @@ async fn map_view(
     let mut unplaced = Vec::new();
     for r in rows.iter().filter(|r| r.location_source_id != Some(r.id)) {
         match r.location_source_id.and_then(|src| index.get(&src)) {
-            Some(&i) => markers[i]["inside"].as_array_mut().expect("array").push(item(r)),
+            Some(&i) => markers[i]["inside"]
+                .as_array_mut()
+                .expect("array")
+                .push(item(r)),
             None => unplaced.push(item(r)),
         }
     }
@@ -1101,7 +1305,10 @@ async fn map_view(
     let mut all_tags: Vec<String> = Vec::new();
     for r in &rows {
         for t in &r.tags {
-            if !all_tags.iter().any(|x| x.to_lowercase() == t.to_lowercase()) {
+            if !all_tags
+                .iter()
+                .any(|x| x.to_lowercase() == t.to_lowercase())
+            {
                 all_tags.push(t.clone());
             }
         }
@@ -1157,9 +1364,10 @@ impl LinkRow {
             .and_then(|u| u.host_str())
             .map(|h| h.trim_start_matches("www.").to_string())
             .unwrap_or_default();
-        let favicon = parsed
-            .as_ref()
-            .and_then(|u| u.host_str().map(|h| format!("{}://{}/favicon.ico", u.scheme(), h)));
+        let favicon = parsed.as_ref().and_then(|u| {
+            u.host_str()
+                .map(|h| format!("{}://{}/favicon.ico", u.scheme(), h))
+        });
         serde_json::json!({
             "id": self.id.to_string(),
             "url": self.url,
@@ -1227,7 +1435,6 @@ async fn render_links(
     )
 }
 
-
 async fn ensure_artifact(state: &AppState, id: Uuid) -> AppResult<()> {
     let exists: bool = sqlx::query_scalar(
         "SELECT EXISTS (SELECT 1 FROM artifacts WHERE id = $1 AND deleted_at IS NULL)",
@@ -1235,7 +1442,11 @@ async fn ensure_artifact(state: &AppState, id: Uuid) -> AppResult<()> {
     .bind(id)
     .fetch_one(&state.db)
     .await?;
-    if exists { Ok(()) } else { Err(AppError::NotFound("artifact")) }
+    if exists {
+        Ok(())
+    } else {
+        Err(AppError::NotFound("artifact"))
+    }
 }
 
 fn clean_note(note: &str) -> Result<String, String> {
@@ -1274,10 +1485,13 @@ async fn add_link(
     crate::audit::ensure_can_modify(&state.db, &author.0, id).await?;
 
     let draft = context! { url => form.url.clone(), note => form.note.clone() };
-    let checked = super::preview::normalize_url(&form.url).and_then(|u| Ok((u, clean_note(&form.note)?)));
+    let checked =
+        super::preview::normalize_url(&form.url).and_then(|u| Ok((u, clean_note(&form.note)?)));
     let (url, note) = match checked {
         Ok(v) => v,
-        Err(msg) => return render_links(&state, &author.0, &jar, id, Some(&msg), draft, None).await,
+        Err(msg) => {
+            return render_links(&state, &author.0, &jar, id, Some(&msg), draft, None).await
+        }
     };
 
     let preview = super::preview::fetch(&url).await.unwrap_or_default();
@@ -1327,18 +1541,32 @@ async fn update_link(
     crate::audit::ensure_can_modify(&state.db, &author.0, link.artifact_id).await?;
 
     let draft = context! { url => form.url.clone(), note => form.note.clone() };
-    let checked = super::preview::normalize_url(&form.url).and_then(|u| Ok((u, clean_note(&form.note)?)));
+    let checked =
+        super::preview::normalize_url(&form.url).and_then(|u| Ok((u, clean_note(&form.note)?)));
     let (url, note) = match checked {
         Ok(v) => v,
         Err(msg) => {
-            return render_links(&state, &author.0, &jar, link.artifact_id, Some(&msg), draft, Some(link_id)).await
+            return render_links(
+                &state,
+                &author.0,
+                &jar,
+                link.artifact_id,
+                Some(&msg),
+                draft,
+                Some(link_id),
+            )
+            .await
         }
     };
 
     // Re-read the page only when the address changed, or the first fetch
     // came back empty and the author is effectively asking to try again.
     let refetch = url.as_str() != link.url || link.preview_title.is_none();
-    let preview = if refetch { super::preview::fetch(&url).await.unwrap_or_default() } else { Default::default() };
+    let preview = if refetch {
+        super::preview::fetch(&url).await.unwrap_or_default()
+    } else {
+        Default::default()
+    };
     let mut tx = crate::audit::begin_as(&state.db, author.0.id).await?;
     if refetch {
         sqlx::query(
@@ -1364,7 +1592,16 @@ async fn update_link(
     }
     crate::audit::touch(&mut tx, &author.0, link.artifact_id).await?;
     tx.commit().await?;
-    render_links(&state, &author.0, &jar, link.artifact_id, None, Value::from(()), None).await
+    render_links(
+        &state,
+        &author.0,
+        &jar,
+        link.artifact_id,
+        None,
+        Value::from(()),
+        None,
+    )
+    .await
 }
 
 async fn delete_link(
@@ -1385,7 +1622,16 @@ async fn delete_link(
         .await?;
     crate::audit::touch(&mut tx, &author.0, artifact_id).await?;
     tx.commit().await?;
-    render_links(&state, &author.0, &jar, artifact_id, None, Value::from(()), None).await
+    render_links(
+        &state,
+        &author.0,
+        &jar,
+        artifact_id,
+        None,
+        Value::from(()),
+        None,
+    )
+    .await
 }
 
 /// Saves a drag-and-drop reorder. `ids` is the full list in its new order;
@@ -1465,10 +1711,12 @@ async fn load_tree(state: &AppState, mine: Option<Uuid>) -> AppResult<Value> {
         let flat: Vec<serde_json::Value> = rows
             .iter()
             .filter(|r| owned.contains(&r.id))
-            .map(|r| serde_json::json!({
-                "id": r.id.to_string(), "kind": r.kind, "name": r.name,
-                "status": r.status, "children": [],
-            }))
+            .map(|r| {
+                serde_json::json!({
+                    "id": r.id.to_string(), "kind": r.kind, "name": r.name,
+                    "status": r.status, "children": [],
+                })
+            })
             .collect();
         return Ok(Value::from_serialize(&flat));
     }
@@ -1481,7 +1729,10 @@ async fn load_tree(state: &AppState, mine: Option<Uuid>) -> AppResult<Value> {
         children.entry(row.parent_id).or_default().push(row);
     }
 
-    fn build(id: Option<Uuid>, children: &std::collections::HashMap<Option<Uuid>, Vec<&TreeRow>>) -> Vec<serde_json::Value> {
+    fn build(
+        id: Option<Uuid>,
+        children: &std::collections::HashMap<Option<Uuid>, Vec<&TreeRow>>,
+    ) -> Vec<serde_json::Value> {
         children
             .get(&id)
             .map(|kids| {
@@ -1615,7 +1866,10 @@ async fn load_detail(state: &AppState, id: Uuid) -> AppResult<Detail> {
         .collect();
 
     let tags = load_tags(state, id).await?;
-    let ids: Vec<Uuid> = [row.created_by, row.updated_by, row.reviewed_by].into_iter().flatten().collect();
+    let ids: Vec<Uuid> = [row.created_by, row.updated_by, row.reviewed_by]
+        .into_iter()
+        .flatten()
+        .collect();
     let people = super::profile::load_people(&state.db, &ids).await?;
     let (link_count, media_count, linked_count): (i64, i64, i64) = sqlx::query_as(
         "SELECT (SELECT count(*) FROM artifact_links WHERE artifact_id = $1), \
@@ -1626,14 +1880,24 @@ async fn load_detail(state: &AppState, id: Uuid) -> AppResult<Detail> {
     .bind(id)
     .fetch_one(&state.db)
     .await?;
-    Ok(Detail { people, row, children, tags, link_count, media_count, linked_count })
+    Ok(Detail {
+        people,
+        row,
+        children,
+        tags,
+        link_count,
+        media_count,
+        linked_count,
+    })
 }
 
 async fn load_tags(state: &AppState, id: Uuid) -> AppResult<Vec<String>> {
-    Ok(sqlx::query_scalar("SELECT tag FROM artifact_tags WHERE artifact_id = $1 ORDER BY lower(tag)")
-        .bind(id)
-        .fetch_all(&state.db)
-        .await?)
+    Ok(sqlx::query_scalar(
+        "SELECT tag FROM artifact_tags WHERE artifact_id = $1 ORDER BY lower(tag)",
+    )
+    .bind(id)
+    .fetch_all(&state.db)
+    .await?)
 }
 
 /// Every tag in use, most common first, for the form's autocomplete. One
@@ -1707,7 +1971,11 @@ async fn load_owner_options(state: &AppState) -> AppResult<Value> {
     let opts: Vec<serde_json::Value> = rows
         .iter()
         .map(|(id, name, email)| {
-            let label = if name.trim().is_empty() { email.clone() } else { format!("{name} ({email})") };
+            let label = if name.trim().is_empty() {
+                email.clone()
+            } else {
+                format!("{name} ({email})")
+            };
             serde_json::json!({ "id": id.to_string(), "label": label })
         })
         .collect();
@@ -1721,8 +1989,12 @@ fn map_db_error(err: sqlx::Error) -> AppError {
     if let sqlx::Error::Database(db) = &err {
         match db.code().as_deref() {
             Some("23514") => return AppError::BadRequest(db.message().to_string()),
-            Some("23503") => return AppError::BadRequest("the selected parent does not exist".into()),
-            Some("23505") => return AppError::Conflict("that beacon id is already assigned".into()),
+            Some("23503") => {
+                return AppError::BadRequest("the selected parent does not exist".into())
+            }
+            Some("23505") => {
+                return AppError::Conflict("that beacon id is already assigned".into())
+            }
             _ => {}
         }
     }
@@ -1731,14 +2003,21 @@ fn map_db_error(err: sqlx::Error) -> AppError {
 
 /// Sends an expired studio session to the sign-in page instead of a bare JSON
 /// 401. Skips the login page and assets so there is no redirect loop.
-pub async fn redirect_unauthenticated(req: axum::extract::Request, next: axum::middleware::Next) -> Response {
+pub async fn redirect_unauthenticated(
+    req: axum::extract::Request,
+    next: axum::middleware::Next,
+) -> Response {
     let path = req.uri().path().to_string();
     let exempt = path == "/studio/login" || path.starts_with("/studio/assets/");
     let response = next.run(req).await;
     if !exempt && response.status() == StatusCode::UNAUTHORIZED {
         return Redirect::to("/studio/login").into_response();
     }
-    if response.extensions().get::<PasswordChangeRequiredMarker>().is_some() {
+    if response
+        .extensions()
+        .get::<PasswordChangeRequiredMarker>()
+        .is_some()
+    {
         return Redirect::to("/studio/password").into_response();
     }
     response

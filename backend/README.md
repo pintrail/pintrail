@@ -112,6 +112,16 @@ SELECT artifact_id, source_kind, content, updated_at FROM search_documents;
 SELECT artifact_id, status, attempts, error_message FROM search_index_jobs;
 ```
 
+CI ([.github/workflows/ci.yml](../.github/workflows/ci.yml)) runs on every push to
+`main` and on pull requests into it. It fails if an existing migration file was
+edited, then runs the same three checks you can run locally:
+
+```sh
+cargo fmt --all --check
+cargo clippy --workspace --all-targets --locked -- -D warnings
+cargo test --workspace --locked      # needs DATABASE_URL, see below
+```
+
 Run the workspace tests with local PostgreSQL running:
 
 ```sh

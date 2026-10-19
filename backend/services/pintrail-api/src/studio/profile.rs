@@ -67,10 +67,16 @@ pub fn avatar_url(id: Uuid, key: Option<&str>) -> Option<String> {
 /// Up to two initials: first and last word of the name.
 pub fn initials(name: &str) -> String {
     let base = name.split('@').next().unwrap_or(name);
-    let words: Vec<&str> = base.split(|c: char| c.is_whitespace() || c == '.' || c == '_' || c == '-')
+    let words: Vec<&str> = base
+        .split(|c: char| c.is_whitespace() || c == '.' || c == '_' || c == '-')
         .filter(|w| !w.is_empty())
         .collect();
-    let first = |w: &str| w.chars().next().map(|c| c.to_uppercase().to_string()).unwrap_or_default();
+    let first = |w: &str| {
+        w.chars()
+            .next()
+            .map(|c| c.to_uppercase().to_string())
+            .unwrap_or_default()
+    };
     match words.as_slice() {
         [] => "?".into(),
         [one] => first(one),
@@ -100,12 +106,11 @@ pub async fn load_people(db: &PgPool, ids: &[Uuid]) -> Result<HashMap<Uuid, Json
     if ids.is_empty() {
         return Ok(HashMap::new());
     }
-    let rows: Vec<(Uuid, String, Option<String>)> = sqlx::query_as(
-        "SELECT id, author_label(id), avatar_key FROM authors WHERE id = ANY($1)",
-    )
-    .bind(ids)
-    .fetch_all(db)
-    .await?;
+    let rows: Vec<(Uuid, String, Option<String>)> =
+        sqlx::query_as("SELECT id, author_label(id), avatar_key FROM authors WHERE id = ANY($1)")
+            .bind(ids)
+            .fetch_all(db)
+            .await?;
     Ok(rows
         .into_iter()
         .map(|(id, label, key)| (id, person(id, &label, key.as_deref())))
@@ -155,8 +160,17 @@ async fn profile_form(
         full_name => p.full_name, display_name => p.display_name, pronouns => p.pronouns,
         affiliation => p.affiliation, bio => p.bio,
     };
-    render_profile(&author, &jar, &headers, &p.email, p.avatar_key.as_deref(), form, q.welcome.is_some(),
-        q.saved.is_some().then_some("Profile saved."), None)
+    render_profile(
+        &author,
+        &jar,
+        &headers,
+        &p.email,
+        p.avatar_key.as_deref(),
+        form,
+        q.welcome.is_some(),
+        q.saved.is_some().then_some("Profile saved."),
+        None,
+    )
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -172,12 +186,15 @@ fn render_profile(
     error: Option<&str>,
 ) -> AppResult<Html<String>> {
     let a = &author.0;
-    let label = [form.get_attr("display_name").ok(), form.get_attr("full_name").ok()]
-        .into_iter()
-        .flatten()
-        .filter_map(|v| v.as_str().map(str::to_string))
-        .find(|s| !s.trim().is_empty())
-        .unwrap_or_else(|| email.to_string());
+    let label = [
+        form.get_attr("display_name").ok(),
+        form.get_attr("full_name").ok(),
+    ]
+    .into_iter()
+    .flatten()
+    .filter_map(|v| v.as_str().map(str::to_string))
+    .find(|s| !s.trim().is_empty())
+    .unwrap_or_else(|| email.to_string());
     let ctx = context! {
         title => "Your profile",
         form => form,
@@ -246,8 +263,18 @@ async fn profile_submit(
         None
     };
     if let Some(msg) = problem {
-        return Ok(render_profile(&author, &jar, &headers, &p.email, p.avatar_key.as_deref(), form, false, None, Some(msg))?
-            .into_response());
+        return Ok(render_profile(
+            &author,
+            &jar,
+            &headers,
+            &p.email,
+            p.avatar_key.as_deref(),
+            form,
+            false,
+            None,
+            Some(msg),
+        )?
+        .into_response());
     }
 
     sqlx::query(
@@ -281,7 +308,10 @@ async fn upload_photo(
     headers: HeaderMap,
     body: Bytes,
 ) -> AppResult<Response> {
-    let token = headers.get("X-CSRF-Token").and_then(|v| v.to_str().ok()).unwrap_or("");
+    let token = headers
+        .get("X-CSRF-Token")
+        .and_then(|v| v.to_str().ok())
+        .unwrap_or("");
     require_csrf(&jar, token)?;
     if body.is_empty() {
         return Err(AppError::BadRequest("choose a photo".into()));
@@ -294,7 +324,11 @@ async fn upload_photo(
         .map_err(AppError::BadRequest)?;
 
     let key = format!("avatars/{}/{}.webp", author.0.id, Uuid::new_v4().simple());
-    state.storage.put(&key, webp, "image/webp").await.map_err(AppError::Internal)?;
+    state
+        .storage
+        .put(&key, webp, "image/webp")
+        .await
+        .map_err(AppError::Internal)?;
     let old: Option<String> = sqlx::query_scalar(
         "UPDATE authors a SET avatar_key = $2 FROM authors o WHERE a.id = $1 AND o.id = a.id \
          RETURNING o.avatar_key",
@@ -335,7 +369,11 @@ async fn remove_photo(
 }
 
 /// The photo card, re-rendered after a change.
-async fn photo_fragment(state: &AppState, author: &AuthenticatedAuthor, jar: &CookieJar) -> AppResult<Response> {
+async fn photo_fragment(
+    state: &AppState,
+    author: &AuthenticatedAuthor,
+    jar: &CookieJar,
+) -> AppResult<Response> {
     let p = load_profile(&state.db, author.0.id).await?;
     let label = [p.display_name.as_str(), p.full_name.as_str()]
         .into_iter()
@@ -355,7 +393,10 @@ async fn photo_fragment(state: &AppState, author: &AuthenticatedAuthor, jar: &Co
 }
 
 /// The small photo in the page header, refreshed after the photo changes.
-async fn header_avatar(author: AuthenticatedAuthor, State(state): State<AppState>) -> AppResult<Html<String>> {
+async fn header_avatar(
+    author: AuthenticatedAuthor,
+    State(state): State<AppState>,
+) -> AppResult<Html<String>> {
     let key: Option<String> = sqlx::query_scalar("SELECT avatar_key FROM authors WHERE id = $1")
         .bind(author.0.id)
         .fetch_one(&state.db)
@@ -370,7 +411,8 @@ async fn header_avatar(author: AuthenticatedAuthor, State(state): State<AppState
 /// Decodes a JPEG, PNG, WebP, or GIF, applies the camera's rotation, crops
 /// the centre square, and returns it as a WebP.
 fn process_photo(bytes: &[u8]) -> Result<Vec<u8>, String> {
-    let unreadable = || "That file isn't a photo we can read. Use a JPEG, PNG, or WebP.".to_string();
+    let unreadable =
+        || "That file isn't a photo we can read. Use a JPEG, PNG, or WebP.".to_string();
     let reader = ImageReader::new(std::io::Cursor::new(bytes))
         .with_guessed_format()
         .map_err(|_| unreadable())?;
@@ -417,7 +459,10 @@ async fn avatar(
         StatusCode::OK,
         [
             (header::CONTENT_TYPE, "image/webp"),
-            (header::CACHE_CONTROL, "private, max-age=31536000, immutable"),
+            (
+                header::CACHE_CONTROL,
+                "private, max-age=31536000, immutable",
+            ),
         ],
         bytes,
     )

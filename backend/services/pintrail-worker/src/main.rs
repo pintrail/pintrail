@@ -198,21 +198,22 @@ async fn process(storage: &Storage, job: &Job) -> anyhow::Result<queue::Success>
     // runtime; this hands them to the blocking pool.
     let kind = job.kind;
     let mime = job.original_mime_type.clone();
-    let processed = tokio::task::spawn_blocking(move || -> anyhow::Result<Option<media::Processed>> {
-        match kind {
-            AttachmentKind::Image => Ok(Some(media::process_image(&original, &mime)?)),
-            AttachmentKind::Pdf => Ok(Some(media::process_pdf(&original)?)),
-            // A text block has nothing to render.
-            AttachmentKind::Text => Ok(None),
-            // Rejected at upload time; reaching here means the allowlist and
-            // this dispatch have drifted apart.
-            AttachmentKind::Audio | AttachmentKind::Video => {
-                anyhow::bail!("{kind:?} processing is not implemented in v1")
+    let processed =
+        tokio::task::spawn_blocking(move || -> anyhow::Result<Option<media::Processed>> {
+            match kind {
+                AttachmentKind::Image => Ok(Some(media::process_image(&original, &mime)?)),
+                AttachmentKind::Pdf => Ok(Some(media::process_pdf(&original)?)),
+                // A text block has nothing to render.
+                AttachmentKind::Text => Ok(None),
+                // Rejected at upload time; reaching here means the allowlist and
+                // this dispatch have drifted apart.
+                AttachmentKind::Audio | AttachmentKind::Video => {
+                    anyhow::bail!("{kind:?} processing is not implemented in v1")
+                }
             }
-        }
-    })
-    .await
-    .context("processing task panicked")??;
+        })
+        .await
+        .context("processing task panicked")??;
 
     let Some(processed) = processed else {
         // Nothing to render: the original is what gets served.

@@ -18,6 +18,8 @@ pub enum AttachmentKind {
     Text,
 }
 
+// Mirrors the table row for sqlx::FromRow; not every column is read yet.
+#[allow(dead_code)]
 #[derive(Debug, Clone, sqlx::FromRow)]
 pub struct Job {
     pub id: Uuid,
@@ -143,7 +145,11 @@ pub async fn mark_failed(
 /// A worker killed mid-job leaves its claim behind, and nothing else would
 /// ever pick it up — `SKIP LOCKED` only skips *locked* rows, and the lock died
 /// with the connection. This is the crash-recovery half of the queue design.
-pub async fn requeue_stuck(db: &PgPool, timeout_secs: i64, max_attempts: i32) -> anyhow::Result<u64> {
+pub async fn requeue_stuck(
+    db: &PgPool,
+    timeout_secs: i64,
+    max_attempts: i32,
+) -> anyhow::Result<u64> {
     let requeued = sqlx::query(
         r#"
         UPDATE attachments

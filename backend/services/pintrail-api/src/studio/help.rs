@@ -71,81 +71,219 @@ pub static MANUAL: &[Section] = &[
     Section {
         title: "Getting started",
         pages: &[
-            page!("welcome", "Welcome to the Studio", "What the Studio is for, and the five things to do first."),
-            page!("signing-in", "Signing in and your profile", "Your first sign-in, choosing a password, and filling in your profile."),
-            page!("finding-your-way", "Finding your way around", "The sidebar, the main area, the buttons, and where help lives."),
-            page!("who-can-do-what", "Who can do what", "Viewers, editors, and admins, and why you can change only what you made."),
+            page!(
+                "welcome",
+                "Welcome to the Studio",
+                "What the Studio is for, and the five things to do first."
+            ),
+            page!(
+                "signing-in",
+                "Signing in and your profile",
+                "Your first sign-in, choosing a password, and filling in your profile."
+            ),
+            page!(
+                "finding-your-way",
+                "Finding your way around",
+                "The sidebar, the main area, the buttons, and where help lives."
+            ),
+            page!(
+                "who-can-do-what",
+                "Who can do what",
+                "Viewers, editors, and admins, and why you can change only what you made."
+            ),
         ],
     },
     Section {
         title: "Key ideas",
         pages: &[
-            page!("artifacts", "Artifacts", "The things worth stopping for: what an artifact is and what it holds."),
-            page!("nesting", "Artifacts inside artifacts", "How a building holds its roof, its rooms, and its systems."),
-            page!("location", "Location", "The pin on the map, why it matters, and how an artifact can use its parent's."),
-            page!("kinds", "Kinds", "Building, room, artwork, installation, rooftop, or other: what each one is for."),
-            page!("tags", "Tags", "Themes people search by, and how to keep them consistent."),
-            page!("topics", "Topics", "One shared page that many artifacts link to, like LEED certification."),
-            page!("trails", "Trails", "A walk through artifacts in order, with a note at each stop."),
-            page!("review-and-the-app", "Review, and what the app shows", "Draft, ready for review, approved: and why only approved artifacts reach phones."),
-            page!("tags-kinds-topics", "Kinds, tags, topics, or nesting?", "Four ways to group artifacts, and how to choose between them."),
+            page!(
+                "artifacts",
+                "Artifacts",
+                "The things worth stopping for: what an artifact is and what it holds."
+            ),
+            page!(
+                "nesting",
+                "Artifacts inside artifacts",
+                "How a building holds its roof, its rooms, and its systems."
+            ),
+            page!(
+                "location",
+                "Location",
+                "The pin on the map, why it matters, and how an artifact can use its parent's."
+            ),
+            page!(
+                "kinds",
+                "Kinds",
+                "Building, room, artwork, installation, rooftop, or other: what each one is for."
+            ),
+            page!(
+                "tags",
+                "Tags",
+                "Themes people search by, and how to keep them consistent."
+            ),
+            page!(
+                "topics",
+                "Topics",
+                "One shared page that many artifacts link to, like LEED certification."
+            ),
+            page!(
+                "trails",
+                "Trails",
+                "A walk through artifacts in order, with a note at each stop."
+            ),
+            page!(
+                "review-and-the-app",
+                "Review, and what the app shows",
+                "Draft, ready for review, approved: and why only approved artifacts reach phones."
+            ),
+            page!(
+                "tags-kinds-topics",
+                "Kinds, tags, topics, or nesting?",
+                "Four ways to group artifacts, and how to choose between them."
+            ),
         ],
     },
     Section {
         title: "Working with artifacts",
         pages: &[
-            page!("adding-an-artifact", "Adding an artifact", "Create it with its name and place, then fill it in."),
-            page!("adding-inside", "Adding an artifact inside another", "Rooms, roofs, and systems that belong to a building."),
-            page!("editing", "Editing an artifact", "Changing the details, moving it, and what happens to an approved one."),
-            page!("writing-descriptions", "Writing a good description", "What to say, how long, and an example to follow."),
-            page!("links", "Source links", "Adding the pages your facts come from, and putting them in order."),
-            page!("media", "Photos and PDFs", "Uploading, what file types work, and taking photos on your phone."),
-            page!("deleting", "Deleting and restoring", "What Delete removes, who can delete, and getting something back."),
-            page!("history", "History", "Every change to an artifact, who made it, and when."),
+            page!(
+                "adding-an-artifact",
+                "Adding an artifact",
+                "Create it with its name and place, then fill it in."
+            ),
+            page!(
+                "adding-inside",
+                "Adding an artifact inside another",
+                "Rooms, roofs, and systems that belong to a building."
+            ),
+            page!(
+                "editing",
+                "Editing an artifact",
+                "Changing the details, moving it, and what happens to an approved one."
+            ),
+            page!(
+                "writing-descriptions",
+                "Writing a good description",
+                "What to say, how long, and an example to follow."
+            ),
+            page!(
+                "links",
+                "Source links",
+                "Adding the pages your facts come from, and putting them in order."
+            ),
+            page!(
+                "media",
+                "Photos and PDFs",
+                "Uploading, what file types work, and taking photos on your phone."
+            ),
+            page!(
+                "deleting",
+                "Deleting and restoring",
+                "What Delete removes, who can delete, and getting something back."
+            ),
+            page!(
+                "history",
+                "History",
+                "Every change to an artifact, who made it, and when."
+            ),
         ],
     },
     Section {
         title: "Topics",
         pages: &[
-            page!("creating-a-topic", "Creating a topic", "Starting a shared page, and what to write on it."),
-            page!("linking-topics", "Linking artifacts to a topic", "Linking from either side, notes on a link, and adding a whole set at once."),
+            page!(
+                "creating-a-topic",
+                "Creating a topic",
+                "Starting a shared page, and what to write on it."
+            ),
+            page!(
+                "linking-topics",
+                "Linking artifacts to a topic",
+                "Linking from either side, notes on a link, and adding a whole set at once."
+            ),
         ],
     },
     Section {
         title: "Trails",
         pages: &[
-            page!("creating-a-trail", "Creating a trail", "Title, description, and who can see it."),
-            page!("trail-stops", "Stops", "Adding stops, putting them in walking order, and notes at each."),
-            page!("sharing-a-trail", "Sharing a trail", "Private, anyone with the link, or public."),
+            page!(
+                "creating-a-trail",
+                "Creating a trail",
+                "Title, description, and who can see it."
+            ),
+            page!(
+                "trail-stops",
+                "Stops",
+                "Adding stops, putting them in walking order, and notes at each."
+            ),
+            page!(
+                "sharing-a-trail",
+                "Sharing a trail",
+                "Private, anyone with the link, or public."
+            ),
         ],
     },
     Section {
         title: "The map and review",
         pages: &[
-            page!("map", "The map", "Every artifact on one map, with filters by kind, status, and tag."),
-            page!("submitting-for-review", "Submitting for review", "Sending a finished artifact to your instructor, and what comes back."),
-            page!("reviewing", "Reviewing (admins)", "The review queue, approving, and sending back with a note."),
+            page!(
+                "map",
+                "The map",
+                "Every artifact on one map, with filters by kind, status, and tag."
+            ),
+            page!(
+                "submitting-for-review",
+                "Submitting for review",
+                "Sending a finished artifact to your instructor, and what comes back."
+            ),
+            page!(
+                "reviewing",
+                "Reviewing (admins)",
+                "The review queue, approving, and sending back with a note."
+            ),
         ],
     },
     Section {
         title: "On your phone",
-        pages: &[
-            page!("phone", "Using the Studio on your phone", "Adding artifacts on site: your location, the camera, and the menu."),
-        ],
+        pages: &[page!(
+            "phone",
+            "Using the Studio on your phone",
+            "Adding artifacts on site: your location, the camera, and the menu."
+        )],
     },
     Section {
         title: "For admins",
         pages: &[
-            page!("managing-authors", "Managing authors", "Adding people, roles, resetting passwords, suspending, and deleting."),
-            page!("owners-and-recovery", "Owners and recovering deleted work", "Giving an artifact to someone else, and restoring a deleted one."),
-            page!("moderation", "Comments and explorers' trails", "What the admin panel is for beyond authors."),
+            page!(
+                "managing-authors",
+                "Managing authors",
+                "Adding people, roles, resetting passwords, suspending, and deleting."
+            ),
+            page!(
+                "owners-and-recovery",
+                "Owners and recovering deleted work",
+                "Giving an artifact to someone else, and restoring a deleted one."
+            ),
+            page!(
+                "moderation",
+                "Comments and explorers' trails",
+                "What the admin panel is for beyond authors."
+            ),
         ],
     },
     Section {
         title: "Reference",
         pages: &[
-            page!("glossary", "Glossary", "Every term the Studio uses, in one place."),
-            page!("troubleshooting", "Troubleshooting", "When something doesn't work the way you expect."),
+            page!(
+                "glossary",
+                "Glossary",
+                "Every term the Studio uses, in one place."
+            ),
+            page!(
+                "troubleshooting",
+                "Troubleshooting",
+                "When something doesn't work the way you expect."
+            ),
         ],
     },
 ];
@@ -191,7 +329,8 @@ fn slugify(text: &str) -> String {
 }
 
 fn render_markdown(source: &str) -> Rendered {
-    let options = Options::ENABLE_TABLES | Options::ENABLE_SMART_PUNCTUATION | Options::ENABLE_STRIKETHROUGH;
+    let options =
+        Options::ENABLE_TABLES | Options::ENABLE_SMART_PUNCTUATION | Options::ENABLE_STRIKETHROUGH;
     let mut events: Vec<Event> = Parser::new_ext(source, options).collect();
 
     // Give each heading an id from its text, and note the level-2 ones.
@@ -234,7 +373,9 @@ fn render_markdown(source: &str) -> Rendered {
         .filter_map(|e| match e {
             Event::Text(t) | Event::Code(t) => Some(t.as_ref()),
             Event::SoftBreak | Event::HardBreak => Some(" "),
-            Event::End(TagEnd::Paragraph | TagEnd::Item | TagEnd::Heading(_) | TagEnd::TableCell) => Some(" "),
+            Event::End(
+                TagEnd::Paragraph | TagEnd::Item | TagEnd::Heading(_) | TagEnd::TableCell,
+            ) => Some(" "),
             _ => None,
         })
         .collect::<String>()
@@ -246,16 +387,27 @@ fn render_markdown(source: &str) -> Rendered {
     html::push_html(&mut out, events.into_iter());
 
     // Callouts: a blockquote opening with one of these bold words.
-    for (word, class) in [("Example", "example"), ("Tip", "tip"), ("Note", "note"), ("Watch out", "warn")] {
+    for (word, class) in [
+        ("Example", "example"),
+        ("Tip", "tip"),
+        ("Note", "note"),
+        ("Watch out", "warn"),
+    ] {
         out = out.replace(
             &format!("<blockquote>\n<p><strong>{word}"),
             &format!("<blockquote class=\"callout {class}\">\n<p><strong>{word}"),
         );
     }
     // Wide tables scroll sideways on a phone instead of stretching the page.
-    out = out.replace("<table>", "<div class=\"table-wrap\"><table>").replace("</table>", "</table></div>");
+    out = out
+        .replace("<table>", "<div class=\"table-wrap\"><table>")
+        .replace("</table>", "</table></div>");
 
-    Rendered { html: out, outline, text }
+    Rendered {
+        html: out,
+        outline,
+        text,
+    }
 }
 
 fn find(slug: &str) -> Option<(usize, &'static Section, &'static Page)> {
@@ -272,7 +424,10 @@ fn find(slug: &str) -> Option<(usize, &'static Section, &'static Page)> {
 }
 
 fn all_pages() -> Vec<(&'static Section, &'static Page)> {
-    MANUAL.iter().flat_map(|s| s.pages.iter().map(move |p| (s, p))).collect()
+    MANUAL
+        .iter()
+        .flat_map(|s| s.pages.iter().map(move |p| (s, p)))
+        .collect()
 }
 
 /// The contents, for the side navigation and the index.
@@ -336,7 +491,11 @@ async fn page(
     let (n, section, p) = find(&slug).ok_or(AppError::NotFound("help page"))?;
     let r = &rendered()[p.slug];
     let pages = all_pages();
-    let link = |i: usize| pages.get(i).map(|(_, p)| json!({ "slug": p.slug, "title": p.title }));
+    let link = |i: usize| {
+        pages
+            .get(i)
+            .map(|(_, p)| json!({ "slug": p.slug, "title": p.title }))
+    };
     let ctx = context! {
         title => p.title,
         slug => p.slug,
@@ -368,7 +527,11 @@ mod tests {
             assert!(slugs.insert(p.slug), "duplicate slug {}", p.slug);
             let r = render_markdown(p.source);
             assert!(!r.html.is_empty(), "{} is empty", p.slug);
-            assert!(!p.source.starts_with("# "), "{} repeats its title as a heading", p.slug);
+            assert!(
+                !p.source.starts_with("# "),
+                "{} repeats its title as a heading",
+                p.slug
+            );
         }
     }
 
@@ -381,10 +544,15 @@ mod tests {
             for part in html.split("href=\"/studio/help/").skip(1) {
                 let target = &part[..part.find('"').unwrap()];
                 let (slug, anchor) = target.split_once('#').unwrap_or((target, ""));
-                let (_, _, to) = find(slug).unwrap_or_else(|| panic!("{}: link to missing page {slug}", p.slug));
+                let (_, _, to) =
+                    find(slug).unwrap_or_else(|| panic!("{}: link to missing page {slug}", p.slug));
                 if !anchor.is_empty() {
                     let to_html = render_markdown(to.source).html;
-                    assert!(to_html.contains(&format!("id=\"{anchor}\"")), "{}: no #{anchor} on {slug}", p.slug);
+                    assert!(
+                        to_html.contains(&format!("id=\"{anchor}\"")),
+                        "{}: no #{anchor} on {slug}",
+                        p.slug
+                    );
                 }
             }
         }
@@ -402,11 +570,15 @@ mod tests {
             for call in src.split("help(\"").skip(1) {
                 let args: Vec<&str> = call[..call.find(") }}").unwrap()].split("\", \"").collect();
                 let slug = args[0].trim_end_matches('"');
-                let (_, _, page) = find(slug).unwrap_or_else(|| panic!("{path:?}: help({slug}) has no page"));
+                let (_, _, page) =
+                    find(slug).unwrap_or_else(|| panic!("{path:?}: help({slug}) has no page"));
                 if let Some(anchor) = args.get(2) {
                     let anchor = anchor.trim_end_matches('"');
                     let html = render_markdown(page.source).html;
-                    assert!(html.contains(&format!("id=\"{anchor}\"")), "{path:?}: no #{anchor} on {slug}");
+                    assert!(
+                        html.contains(&format!("id=\"{anchor}\"")),
+                        "{path:?}: no #{anchor} on {slug}"
+                    );
                 }
                 checked += 1;
             }

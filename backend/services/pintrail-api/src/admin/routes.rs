@@ -172,12 +172,14 @@ async fn login_submit(
 
     let token = generate_session_token();
 
-    sqlx::query("INSERT INTO author_sessions (author_id, token_hash, expires_at) VALUES ($1,$2,$3)")
-        .bind(author.id)
-        .bind(&token.hash)
-        .bind(token.expires_at)
-        .execute(&state.db)
-        .await?;
+    sqlx::query(
+        "INSERT INTO author_sessions (author_id, token_hash, expires_at) VALUES ($1,$2,$3)",
+    )
+    .bind(author.id)
+    .bind(&token.hash)
+    .bind(token.expires_at)
+    .execute(&state.db)
+    .await?;
 
     state.limiter.reset(&account_key);
     state.limiter.reset(&ip_key);
@@ -473,7 +475,9 @@ async fn author_list(
     jar: CookieJar,
     Query(query): Query<AuthorListQuery>,
 ) -> AppResult<Html<String>> {
-    let deleted = query.deleted.map(|email| format!("Deleted {email}. Their artifacts and trails were kept."));
+    let deleted = query
+        .deleted
+        .map(|email| format!("Deleted {email}. Their artifacts and trails were kept."));
     let flash = deleted.or(query.created.map(|email| {
         format!(
             "Created {email}. They will be asked to choose a new password \
@@ -526,7 +530,11 @@ async fn render_author_list(
 
     let (new_email, new_name, new_role) = match echo {
         Some(e) => (e.email, e.full_name, e.role),
-        None => (String::new(), String::new(), AuthorRole::Viewer.as_str().to_string()),
+        None => (
+            String::new(),
+            String::new(),
+            AuthorRole::Viewer.as_str().to_string(),
+        ),
     };
 
     render(
@@ -612,7 +620,15 @@ async fn create_author(
     .bind(&email)
     .bind(&hash)
     .bind(role)
-    .bind(form.full_name.split_whitespace().collect::<Vec<_>>().join(" ").chars().take(120).collect::<String>())
+    .bind(
+        form.full_name
+            .split_whitespace()
+            .collect::<Vec<_>>()
+            .join(" ")
+            .chars()
+            .take(120)
+            .collect::<String>(),
+    )
     .fetch_one(&state.db)
     .await;
 
@@ -679,12 +695,13 @@ async fn toggle_author(
 
     let mut tx = state.db.begin().await?;
 
-    let now_active: bool =
-        sqlx::query_scalar("UPDATE authors SET is_active = NOT is_active WHERE id = $1 RETURNING is_active")
-            .bind(id)
-            .fetch_optional(&mut *tx)
-            .await?
-            .ok_or(AppError::NotFound("author"))?;
+    let now_active: bool = sqlx::query_scalar(
+        "UPDATE authors SET is_active = NOT is_active WHERE id = $1 RETURNING is_active",
+    )
+    .bind(id)
+    .fetch_optional(&mut *tx)
+    .await?
+    .ok_or(AppError::NotFound("author"))?;
 
     let active_admins: i64 =
         sqlx::query_scalar("SELECT count(*) FROM authors WHERE role = 'admin' AND is_active")
@@ -710,7 +727,11 @@ async fn toggle_author(
 
     tracing::info!(actor = %admin.0.id, target = %id, now_active, "author toggled");
     if form.back == "edit" {
-        let saved = if now_active { "reactivated" } else { "suspended" };
+        let saved = if now_active {
+            "reactivated"
+        } else {
+            "suspended"
+        };
         return Ok(Redirect::to(&format!("/admin/authors/{id}?saved={saved}")));
     }
     Ok(Redirect::to("/admin/authors"))
@@ -737,7 +758,11 @@ pub async fn redirect_unauthenticated(
     if !is_login_page && response.status() == StatusCode::UNAUTHORIZED {
         return Redirect::to("/admin/login").into_response();
     }
-    if response.extensions().get::<PasswordChangeRequiredMarker>().is_some() {
+    if response
+        .extensions()
+        .get::<PasswordChangeRequiredMarker>()
+        .is_some()
+    {
         return Redirect::to("/studio/password").into_response();
     }
 

@@ -39,7 +39,8 @@ pub fn normalize_url(raw: &str) -> Result<Url, String> {
     } else {
         format!("https://{raw}")
     };
-    let url = Url::parse(&with_scheme).map_err(|_| "That doesn't look like a web address.".to_string())?;
+    let url = Url::parse(&with_scheme)
+        .map_err(|_| "That doesn't look like a web address.".to_string())?;
     match url.scheme() {
         "http" | "https" => {}
         _ => return Err("Only http and https links are allowed.".into()),
@@ -133,7 +134,11 @@ async fn ensure_public(url: &Url) -> Result<(), String> {
             return Err("private address".into());
         }
     }
-    if any { Ok(()) } else { Err("no address".into()) }
+    if any {
+        Ok(())
+    } else {
+        Err("no address".into())
+    }
 }
 
 fn literal_is_private(url: &Url) -> bool {
@@ -175,7 +180,8 @@ fn is_public_ip(ip: IpAddr) -> bool {
 }
 
 fn contains_ci(hay: &[u8], needle: &[u8]) -> bool {
-    hay.windows(needle.len()).any(|w| w.eq_ignore_ascii_case(needle))
+    hay.windows(needle.len())
+        .any(|w| w.eq_ignore_ascii_case(needle))
 }
 
 // --- HTML metadata extraction -------------------------------------------------
@@ -200,7 +206,10 @@ pub fn parse(html: &str, base: &Url) -> Preview {
             .or_else(|| attr(&attrs, "name"))
             .map(|k| k.to_ascii_lowercase());
         let Some(key) = key else { continue };
-        let Some(content) = attr(&attrs, "content").map(|c| clean(&c)).filter(|c| !c.is_empty()) else {
+        let Some(content) = attr(&attrs, "content")
+            .map(|c| clean(&c))
+            .filter(|c| !c.is_empty())
+        else {
             continue;
         };
         let slot = match key.as_str() {
@@ -281,7 +290,10 @@ fn attr(attrs: &str, name: &str) -> Option<String> {
         let (start, end) = match bytes[j] {
             q @ (b'"' | b'\'') => {
                 let s = j + 1;
-                let e = attrs[s..].find(q as char).map(|r| s + r).unwrap_or(attrs.len());
+                let e = attrs[s..]
+                    .find(q as char)
+                    .map(|r| s + r)
+                    .unwrap_or(attrs.len());
                 (s, e)
             }
             _ => {
@@ -313,7 +325,10 @@ fn clean(s: &str) -> String {
     while let Some(amp) = rest.find('&') {
         out.push_str(&rest[..amp]);
         rest = &rest[amp..];
-        let Some(semi) = rest.as_bytes()[..rest.len().min(12)].iter().position(|&b| b == b';') else {
+        let Some(semi) = rest.as_bytes()[..rest.len().min(12)]
+            .iter()
+            .position(|&b| b == b';')
+        else {
             out.push('&');
             rest = &rest[1..];
             continue;
@@ -384,7 +399,10 @@ mod tests {
         let p = parse(html, &base());
         assert_eq!(p.title.as_deref(), Some("Solar at UMass & Beyond"));
         assert_eq!(p.description.as_deref(), Some("The OG description"));
-        assert_eq!(p.image_url.as_deref(), Some("https://www.umass.edu/img/solar.jpg"));
+        assert_eq!(
+            p.image_url.as_deref(),
+            Some("https://www.umass.edu/img/solar.jpg")
+        );
         assert_eq!(p.site_name.as_deref(), Some("UMass Amherst"));
     }
 
@@ -409,7 +427,10 @@ mod tests {
 
     #[test]
     fn normalizes_urls() {
-        assert_eq!(normalize_url("umass.edu/x").unwrap().as_str(), "https://umass.edu/x");
+        assert_eq!(
+            normalize_url("umass.edu/x").unwrap().as_str(),
+            "https://umass.edu/x"
+        );
         assert!(normalize_url("javascript:alert(1)").is_err());
         assert!(normalize_url("ftp://umass.edu").is_err());
         assert!(normalize_url("notaurl").is_err());
@@ -418,11 +439,25 @@ mod tests {
 
     #[test]
     fn blocks_private_addresses() {
-        for ip in ["127.0.0.1", "10.1.2.3", "192.168.0.5", "172.16.4.4", "169.254.169.254", "100.64.1.1", "::1", "fd00::1", "::ffff:10.0.0.1"] {
+        for ip in [
+            "127.0.0.1",
+            "10.1.2.3",
+            "192.168.0.5",
+            "172.16.4.4",
+            "169.254.169.254",
+            "100.64.1.1",
+            "::1",
+            "fd00::1",
+            "::ffff:10.0.0.1",
+        ] {
             assert!(!is_public_ip(ip.parse().unwrap()), "{ip} should be private");
         }
         assert!(is_public_ip("128.119.8.148".parse().unwrap()));
-        assert!(literal_is_private(&Url::parse("http://169.254.169.254/latest").unwrap()));
-        assert!(!literal_is_private(&Url::parse("https://www.umass.edu/").unwrap()));
+        assert!(literal_is_private(
+            &Url::parse("http://169.254.169.254/latest").unwrap()
+        ));
+        assert!(!literal_is_private(
+            &Url::parse("https://www.umass.edu/").unwrap()
+        ));
     }
 }

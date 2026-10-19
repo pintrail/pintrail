@@ -6,7 +6,9 @@ use serde::Deserialize;
 use serde_json::{json, Value};
 use uuid::Uuid;
 
-use super::model::{Artifact, ArtifactDetail, CreateArtifact, SyncEntry, TopicLink, UpdateArtifact};
+use super::model::{
+    Artifact, ArtifactDetail, CreateArtifact, SyncEntry, TopicLink, UpdateArtifact,
+};
 use crate::authors::extractors::RequireEditor;
 use crate::error::{AppError, AppResult};
 use crate::identity::Identity;
@@ -56,7 +58,11 @@ WITH RECURSIVE resolved AS (
 /// 404s a reader asking about an artifact that isn't published. Authors see
 /// every artifact, drafts included. 404 rather than 403, so a draft's
 /// existence isn't disclosed.
-pub(crate) async fn ensure_visible(state: &AppState, identity: &Identity, id: Uuid) -> AppResult<()> {
+pub(crate) async fn ensure_visible(
+    state: &AppState,
+    identity: &Identity,
+    id: Uuid,
+) -> AppResult<()> {
     if identity.is_author() {
         return Ok(());
     }
@@ -64,7 +70,11 @@ pub(crate) async fn ensure_visible(state: &AppState, identity: &Identity, id: Uu
         .bind(id)
         .fetch_one(&state.db)
         .await?;
-    if published { Ok(()) } else { Err(AppError::NotFound("artifact")) }
+    if published {
+        Ok(())
+    } else {
+        Err(AppError::NotFound("artifact"))
+    }
 }
 
 #[derive(Debug, Deserialize)]
@@ -253,9 +263,15 @@ async fn detail(
         .bind(reader)
         .fetch_all(&state.db)
         .await?;
-    let key = if artifact.is_topic { "linked_artifacts" } else { "topics" };
+    let key = if artifact.is_topic {
+        "linked_artifacts"
+    } else {
+        "topics"
+    };
 
-    Ok(Json(json!({ "artifact": artifact, "attachments": attachments, key: links })))
+    Ok(Json(
+        json!({ "artifact": artifact, "attachments": attachments, key: links }),
+    ))
 }
 
 async fn create(
@@ -289,7 +305,10 @@ async fn create(
 
     tracing::info!(actor = %editor.0.id, artifact_id = %artifact.id, "artifact created");
 
-    Ok((StatusCode::CREATED, Json(json!({ "artifact_id": artifact.id }))))
+    Ok((
+        StatusCode::CREATED,
+        Json(json!({ "artifact_id": artifact.id })),
+    ))
 }
 
 async fn update(
@@ -354,7 +373,9 @@ async fn update(
 
     tracing::info!(actor = %editor.0.id, artifact_id = %artifact.id, "artifact updated");
 
-    Ok(Json(json!({ "artifact_id": artifact.id, "sync_version": artifact.sync_version })))
+    Ok(Json(
+        json!({ "artifact_id": artifact.id, "sync_version": artifact.sync_version }),
+    ))
 }
 
 /// Soft-deletes an artifact and everything beneath it.

@@ -43,7 +43,11 @@ pub fn router() -> Router<AppState> {
 }
 
 fn require_admin(author: &Author) -> AppResult<()> {
-    if audit::is_admin(author) { Ok(()) } else { Err(AppError::Forbidden) }
+    if audit::is_admin(author) {
+        Ok(())
+    } else {
+        Err(AppError::Forbidden)
+    }
 }
 
 // --- status changes ------------------------------------------------------------
@@ -201,13 +205,21 @@ async fn review_queue(
             "review_note": r.review_note, "parent_name": r.parent_name,
         })
     };
-    let waiting: Vec<Json> = rows.iter().filter(|r| r.status == "ready").map(view).collect();
+    let waiting: Vec<Json> = rows
+        .iter()
+        .filter(|r| r.status == "ready")
+        .map(view)
+        .collect();
     let sent_back: Vec<Json> = rows
         .iter()
         .filter(|r| r.status == "draft" && !r.review_note.is_empty())
         .map(view)
         .collect();
-    let unowned: Vec<Json> = rows.iter().filter(|r| r.owner_id.is_none()).map(view).collect();
+    let unowned: Vec<Json> = rows
+        .iter()
+        .filter(|r| r.owner_id.is_none())
+        .map(view)
+        .collect();
     let count = |s: &str| rows.iter().filter(|r| r.status == s).count();
 
     let ctx = context! {
@@ -222,7 +234,10 @@ async fn review_queue(
 }
 
 /// The number on the sidebar's Review button.
-async fn review_count(author: AuthenticatedAuthor, State(state): State<AppState>) -> AppResult<Html<String>> {
+async fn review_count(
+    author: AuthenticatedAuthor,
+    State(state): State<AppState>,
+) -> AppResult<Html<String>> {
     if !audit::is_admin(&author.0) {
         return Ok(Html(String::new()));
     }
@@ -231,7 +246,11 @@ async fn review_count(author: AuthenticatedAuthor, State(state): State<AppState>
     )
     .fetch_one(&state.db)
     .await?;
-    Ok(Html(if n > 0 { format!("<span class=\"count\">{n}</span>") } else { String::new() }))
+    Ok(Html(if n > 0 {
+        format!("<span class=\"count\">{n}</span>")
+    } else {
+        String::new()
+    }))
 }
 
 // --- recently deleted --------------------------------------------------------------
@@ -379,18 +398,20 @@ async fn history(
 
     // Names for parent ids and people for owner ids that appear in the log,
     // including artifacts and authors that have since been deleted.
-    let names: HashMap<String, String> = sqlx::query_as::<_, (Uuid, String)>("SELECT id, name FROM artifacts")
-        .fetch_all(&state.db)
-        .await?
-        .into_iter()
-        .map(|(id, n)| (id.to_string(), n))
-        .collect();
-    let emails: HashMap<String, String> = sqlx::query_as::<_, (Uuid, String)>("SELECT id, author_label(id) FROM authors")
-        .fetch_all(&state.db)
-        .await?
-        .into_iter()
-        .map(|(id, e)| (id.to_string(), e))
-        .collect();
+    let names: HashMap<String, String> =
+        sqlx::query_as::<_, (Uuid, String)>("SELECT id, name FROM artifacts")
+            .fetch_all(&state.db)
+            .await?
+            .into_iter()
+            .map(|(id, n)| (id.to_string(), n))
+            .collect();
+    let emails: HashMap<String, String> =
+        sqlx::query_as::<_, (Uuid, String)>("SELECT id, author_label(id) FROM authors")
+            .fetch_all(&state.db)
+            .await?
+            .into_iter()
+            .map(|(id, e)| (id.to_string(), e))
+            .collect();
     let actor_ids: Vec<Uuid> = rows.iter().filter_map(|r| r.actor_id).collect();
     let people = super::profile::load_people(&state.db, &actor_ids).await?;
     let topic: bool = sqlx::query_scalar("SELECT is_topic FROM artifacts WHERE id = $1")
@@ -398,7 +419,12 @@ async fn history(
         .fetch_optional(&state.db)
         .await?
         .unwrap_or(false);
-    let lookup = Lookup { names, emails, people, topic };
+    let lookup = Lookup {
+        names,
+        emails,
+        people,
+        topic,
+    };
 
     let entries: Vec<Json> = rows.iter().map(|r| describe(r, &lookup)).collect();
     render(
@@ -438,8 +464,16 @@ fn show(field: &str, v: &Json, l: &Lookup) -> String {
             "created_by" => "no owner".into(),
             _ => "(empty)".into(),
         },
-        ("parent_id", Json::String(s)) => l.names.get(s).cloned().unwrap_or_else(|| "a deleted artifact".into()),
-        ("created_by", Json::String(s)) => l.emails.get(s).cloned().unwrap_or_else(|| "a removed account".into()),
+        ("parent_id", Json::String(s)) => l
+            .names
+            .get(s)
+            .cloned()
+            .unwrap_or_else(|| "a deleted artifact".into()),
+        ("created_by", Json::String(s)) => l
+            .emails
+            .get(s)
+            .cloned()
+            .unwrap_or_else(|| "a removed account".into()),
         ("status", Json::String(s)) => status_label(s).into(),
         (_, Json::String(s)) if s.is_empty() => "(empty)".into(),
         (_, Json::String(s)) => s.clone(),
@@ -482,17 +516,42 @@ fn describe(r: &HistoryRow, l: &Lookup) -> Json {
                 };
                 out.push(json!({ "label": "Location", "from": pair("from"), "to": pair("to"), "long": false }));
             }
-            let order = ["name", "kind", "parent_id", "description", "lat", "lng", "beacon_id",
-                         "status", "review_note", "created_by", "url", "note", "caption"];
+            let order = [
+                "name",
+                "kind",
+                "parent_id",
+                "description",
+                "lat",
+                "lng",
+                "beacon_id",
+                "status",
+                "review_note",
+                "created_by",
+                "url",
+                "note",
+                "caption",
+            ];
             for f in order {
-                if skip.contains(&f) || ((f == "lat" || f == "lng") && map.contains_key("lat") && map.contains_key("lng")) {
+                if skip.contains(&f)
+                    || ((f == "lat" || f == "lng")
+                        && map.contains_key("lat")
+                        && map.contains_key("lng"))
+                {
                     continue;
                 }
-                if let Some(v) = map.get(f).filter(|v| v.get("from").is_some() || v.get("to").is_some()) {
+                if let Some(v) = map
+                    .get(f)
+                    .filter(|v| v.get("from").is_some() || v.get("to").is_some())
+                {
                     let from = show(f, v.get("from").unwrap_or(&Json::Null), l);
                     let to = show(f, v.get("to").unwrap_or(&Json::Null), l);
-                    let long = f == "description" || f == "review_note" || from.len() > 80 || to.len() > 80;
-                    out.push(json!({ "label": field_label(f), "from": from, "to": to, "long": long }));
+                    let long = f == "description"
+                        || f == "review_note"
+                        || from.len() > 80
+                        || to.len() > 80;
+                    out.push(
+                        json!({ "label": field_label(f), "from": from, "to": to, "long": long }),
+                    );
                 }
             }
         }
@@ -500,11 +559,20 @@ fn describe(r: &HistoryRow, l: &Lookup) -> Json {
     };
 
     let status_to = c.pointer("/status/to").and_then(Json::as_str).unwrap_or("");
-    let status_from = c.pointer("/status/from").and_then(Json::as_str).unwrap_or("");
-    let note_to = c.pointer("/review_note/to").and_then(Json::as_str).unwrap_or("");
+    let status_from = c
+        .pointer("/status/from")
+        .and_then(Json::as_str)
+        .unwrap_or("");
+    let note_to = c
+        .pointer("/review_note/to")
+        .and_then(Json::as_str)
+        .unwrap_or("");
 
     let (title, lines): (String, Vec<Json>) = match r.action.as_str() {
-        "imported" => ("History starts here".into(), vec![json!({ "text": s("note") })]),
+        "imported" => (
+            "History starts here".into(),
+            vec![json!({ "text": s("note") })],
+        ),
         "created" => {
             let mut lines = vec![];
             for f in ["name", "kind", "parent_id", "status"] {
@@ -517,13 +585,18 @@ fn describe(r: &HistoryRow, l: &Lookup) -> Json {
             }
             match (c.get("lat"), c.get("lng")) {
                 _ if l.topic => {}
-                (Some(a), Some(b)) => lines.push(json!({ "label": "Location", "value": format!("{a}, {b}") })),
+                (Some(a), Some(b)) => {
+                    lines.push(json!({ "label": "Location", "value": format!("{a}, {b}") }))
+                }
                 _ => lines.push(json!({ "label": "Location", "value": "parent's location" })),
             }
             if let Some(d) = c.get("description").and_then(Json::as_str) {
                 lines.push(json!({ "label": "Description", "value": d, "long": true }));
             }
-            (if l.topic { "Topic created" } else { "Created" }.into(), lines)
+            (
+                if l.topic { "Topic created" } else { "Created" }.into(),
+                lines,
+            )
         }
         "edited" => ("Edited".into(), diff_lines(&[])),
         "owner" => ("Owner changed".into(), diff_lines(&[])),
@@ -532,13 +605,18 @@ fn describe(r: &HistoryRow, l: &Lookup) -> Json {
                 (_, "ready") if status_from == "approved" => "Back in review after changes",
                 (_, "ready") => "Submitted for review",
                 (_, "approved") => "Approved",
-                ("ready", "draft") | ("approved", "draft") if !note_to.is_empty() => "Sent back for changes",
+                ("ready", "draft") | ("approved", "draft") if !note_to.is_empty() => {
+                    "Sent back for changes"
+                }
                 ("ready", "draft") => "Withdrawn from review",
                 _ => "Status changed",
             };
             let mut lines = diff_lines(&["status", "review_note"]);
             if !note_to.is_empty() {
-                lines.insert(0, json!({ "label": "Note", "value": note_to, "long": true }));
+                lines.insert(
+                    0,
+                    json!({ "label": "Note", "value": note_to, "long": true }),
+                );
             }
             (title.into(), lines)
         }
@@ -548,13 +626,20 @@ fn describe(r: &HistoryRow, l: &Lookup) -> Json {
         "tag_removed" => (format!("Tag removed: {}", s("tag")), vec![]),
         "link_added" => ("Link added".into(), {
             let mut v = vec![json!({ "label": "Address", "value": s("url") })];
-            if !s("note").is_empty() { v.push(json!({ "label": "Note", "value": s("note") })); }
+            if !s("note").is_empty() {
+                v.push(json!({ "label": "Note", "value": s("note") }));
+            }
             v
         }),
-        "link_removed" => ("Link removed".into(), vec![json!({ "label": "Address", "value": s("url") })]),
+        "link_removed" => (
+            "Link removed".into(),
+            vec![json!({ "label": "Address", "value": s("url") })],
+        ),
         "link_edited" => ("Link edited".into(), {
             let mut v = diff_lines(&[]);
-            if c.get("url").is_none() { v.insert(0, json!({ "label": "Link", "value": s("link") })); }
+            if c.get("url").is_none() {
+                v.insert(0, json!({ "label": "Link", "value": s("link") }));
+            }
             v
         }),
         "links_reordered" => ("Links reordered".into(), vec![]),
@@ -563,11 +648,16 @@ fn describe(r: &HistoryRow, l: &Lookup) -> Json {
         "media_edited" => (format!("Caption changed: {}", s("file")), diff_lines(&[])),
         "topic_added" => (format!("Linked to topic: {}", s("topic")), {
             let mut v = vec![];
-            if !s("note").is_empty() { v.push(json!({ "label": "Note", "value": s("note") })); }
+            if !s("note").is_empty() {
+                v.push(json!({ "label": "Note", "value": s("note") }));
+            }
             v
         }),
         "topic_removed" => (format!("Unlinked from topic: {}", s("topic")), vec![]),
-        "topic_edited" => (format!("Note changed on topic: {}", s("topic")), diff_lines(&[])),
+        "topic_edited" => (
+            format!("Note changed on topic: {}", s("topic")),
+            diff_lines(&[]),
+        ),
         "topic_artifact_added" => (format!("Artifact linked: {}", s("artifact")), vec![]),
         "topic_artifact_removed" => (format!("Artifact unlinked: {}", s("artifact")), vec![]),
         other => (other.replace('_', " "), diff_lines(&[])),
@@ -584,4 +674,3 @@ fn describe(r: &HistoryRow, l: &Lookup) -> Json {
         "lines": lines,
     })
 }
-

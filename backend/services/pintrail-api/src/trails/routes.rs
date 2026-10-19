@@ -84,7 +84,19 @@ async fn list(
 
     // Two shapes, one query: either everything this caller owns (any
     // visibility), or the public catalogue.
-    let rows = sqlx::query_as::<_, (Uuid, String, String, OwnerType, TrailVisibility, i64, chrono::DateTime<chrono::Utc>, chrono::DateTime<chrono::Utc>)>(
+    let rows = sqlx::query_as::<
+        _,
+        (
+            Uuid,
+            String,
+            String,
+            OwnerType,
+            TrailVisibility,
+            i64,
+            chrono::DateTime<chrono::Utc>,
+            chrono::DateTime<chrono::Utc>,
+        ),
+    >(
         r#"
         SELECT t.id, t.title, t.description, t.owner_type, t.visibility,
                (SELECT count(*) FROM trail_stops s WHERE s.trail_id = t.id) AS stop_count,
@@ -109,7 +121,16 @@ async fn list(
     let trails: Vec<TrailSummary> = rows
         .into_iter()
         .map(
-            |(id, title, description, owner_type, visibility, stop_count, created_at, updated_at)| {
+            |(
+                id,
+                title,
+                description,
+                owner_type,
+                visibility,
+                stop_count,
+                created_at,
+                updated_at,
+            )| {
                 TrailSummary {
                     id,
                     title,
@@ -130,14 +151,20 @@ async fn list(
 /// Public author trails are the curated set everyone sees in the app, so only
 /// an admin may make one public (the Studio applies the same rule). Explorers'
 /// own trails are theirs to share.
-fn ensure_may_publish(identity: &Identity, visibility: Option<TrailVisibility>, current: Option<TrailVisibility>) -> AppResult<()> {
+fn ensure_may_publish(
+    identity: &Identity,
+    visibility: Option<TrailVisibility>,
+    current: Option<TrailVisibility>,
+) -> AppResult<()> {
     match identity {
         Identity::Author(a)
             if visibility == Some(TrailVisibility::Public)
                 && current != Some(TrailVisibility::Public)
                 && !crate::audit::is_admin(a) =>
         {
-            Err(AppError::BadRequest("only an admin can make an author trail public".into()))
+            Err(AppError::BadRequest(
+                "only an admin can make an author trail public".into(),
+            ))
         }
         _ => Ok(()),
     }
@@ -217,7 +244,9 @@ async fn detail(
         return Err(AppError::NotFound("trail"));
     }
 
-    Ok(Json(json!({ "trail": build_detail(&state, trail, is_owner, !identity.is_author()).await? })))
+    Ok(Json(
+        json!({ "trail": build_detail(&state, trail, is_owner, !identity.is_author()).await? }),
+    ))
 }
 
 /// Resolves an unlisted share link.
@@ -243,7 +272,9 @@ async fn resolve_share_token(
         return Err(AppError::NotFound("trail"));
     }
 
-    Ok(Json(json!({ "trail": build_detail(&state, trail, false, !identity.is_author()).await? })))
+    Ok(Json(
+        json!({ "trail": build_detail(&state, trail, false, !identity.is_author()).await? }),
+    ))
 }
 
 async fn update(
@@ -287,7 +318,9 @@ async fn update(
     .fetch_one(&state.db)
     .await?;
 
-    Ok(Json(json!({ "trail": build_detail(&state, updated, true, !identity.is_author()).await? })))
+    Ok(Json(
+        json!({ "trail": build_detail(&state, updated, true, !identity.is_author()).await? }),
+    ))
 }
 
 /// Replaces the whole ordered stop list.
@@ -364,13 +397,11 @@ pub(crate) fn new_share_token() -> String {
 }
 
 async fn load_trail(state: &AppState, id: Uuid) -> AppResult<Trail> {
-    sqlx::query_as::<_, Trail>(&format!(
-        "SELECT {TRAIL_COLUMNS} FROM trails WHERE id = $1"
-    ))
-    .bind(id)
-    .fetch_optional(&state.db)
-    .await?
-    .ok_or(AppError::NotFound("trail"))
+    sqlx::query_as::<_, Trail>(&format!("SELECT {TRAIL_COLUMNS} FROM trails WHERE id = $1"))
+        .bind(id)
+        .fetch_optional(&state.db)
+        .await?
+        .ok_or(AppError::NotFound("trail"))
 }
 
 /// Loads a trail the caller owns, or reports it as missing.
@@ -387,7 +418,11 @@ async fn load_owned_trail(state: &AppState, id: Uuid, identity: &Identity) -> Ap
     Ok(trail)
 }
 
-async fn load_stops(state: &AppState, trail_id: Uuid, reader: bool) -> AppResult<Vec<TrailStopView>> {
+async fn load_stops(
+    state: &AppState,
+    trail_id: Uuid,
+    reader: bool,
+) -> AppResult<Vec<TrailStopView>> {
     let rows = sqlx::query_as::<_, TrailStopRow>(STOPS_QUERY)
         .bind(trail_id)
         .bind(reader)
@@ -397,7 +432,12 @@ async fn load_stops(state: &AppState, trail_id: Uuid, reader: bool) -> AppResult
     Ok(rows.into_iter().map(TrailStopView::from).collect())
 }
 
-async fn build_detail(state: &AppState, trail: Trail, is_owner: bool, reader: bool) -> AppResult<TrailDetail> {
+async fn build_detail(
+    state: &AppState,
+    trail: Trail,
+    is_owner: bool,
+    reader: bool,
+) -> AppResult<TrailDetail> {
     let stops = load_stops(state, trail.id, reader).await?;
 
     Ok(TrailDetail {
