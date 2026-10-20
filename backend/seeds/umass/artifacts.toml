@@ -1,0 +1,1110 @@
+# UMass sustainability artifacts: the curated seed (issue #81).
+#
+# This file is the deliverable. generate_sql.py turns it into SQL; see
+# README.md for how to fetch, curate, generate and load.
+#
+# Every description is written in our own words. The facts come from the
+# pages listed under each artifact's links, which load as the artifact's
+# source links. UMass's own text and photos are not copied (the sources state
+# no license). A "check" line is a note for the fact checker: something to
+# confirm before the artifact is approved in production. Delete it once done.
+#
+# Fields:
+#   key          stable id; never change it once loaded (the database id is
+#                derived from it). lowercase-with-dashes.
+#   name         as people on campus would call it
+#   lat, lng     only on things with their own location. Something inside a
+#                building leaves them out and names the building as parent,
+#                so it inherits the building's location.
+#   parent       key of the building or site it belongs to
+#   topic        true for a shared page that other artifacts link to
+#   topics       [{ key = "...", note = "..." }] topics this artifact links to
+#   tags         lowercase words people would search for
+#   sources      where the record came from (candidate ids from
+#                build_candidates.py); for provenance, not loaded
+#   check        open question for the fact checker; not loaded
+#   description  what it is, why it matters, how it works
+#   [[artifact.link]]  url and a short note on what it is the source for
+#
+# Kind is always "other" for now, with tags carrying the type (#56).
+
+# ===========================================================================
+# Topics: shared pages that several artifacts link to
+# ===========================================================================
+
+[[artifact]]
+key = "topic-campus-solar"
+name = "Solar power at UMass Amherst"
+topic = true
+tags = ["energy", "solar"]
+sources = ["explorer:41bef75f-de95-44b8-892e-6b7639f5737a"]
+description = """
+UMass Amherst generates electricity from about 10 megawatts of solar panels spread across campus: on the roofs of five buildings and on canopies over parking lots, plus a solar array on the university farm in South Deerfield.
+
+Why it matters: the campus solar is enough to power roughly 1,400 Massachusetts homes. Power the panels make can be used on campus, fed into the grid, or stored in the two campus battery systems.
+
+How it grew: the first parking canopy went up at the Robsham Visitor Center in 2016. In 2016 and 2017 a larger round added rooftop arrays and two big canopies, about 5 megawatts, bought through a power purchase agreement: a company owns the panels and UMass buys all the electricity they make. More canopies have been added since.
+
+Look for the rooftop arrays and canopies that link to this page."""
+
+[[artifact.link]]
+url = "https://www.umass.edu/sustainability/operations-and-infrastructure/energy"
+note = "Current totals: about 10 MW on five rooftops and five-plus parking lots, two batteries, homes equivalent"
+
+[[artifact]]
+key = "topic-permaculture"
+name = "UMass Permaculture gardens"
+topic = true
+tags = ["food", "gardens", "permaculture"]
+sources = ["explorer:51"]
+description = """
+Permaculture is a way of designing gardens that work like natural ecosystems: layers of fruit trees, shrubs, perennials and ground cover that feed each other and need little outside input once they are established.
+
+UMass Permaculture, started in 2010, turns underused campus lawns into edible, educational gardens. Students, staff and volunteers build and tend them, and some of the produce goes to campus dining.
+
+Look for the individual gardens that link to this page."""
+
+[[artifact.link]]
+url = "https://www.umass.edu/sustainability/operations-and-infrastructure/food-and-permaculture"
+note = "UMass Permaculture: founded 2010, built by students, staff and volunteers"
+
+[[artifact]]
+key = "topic-leed"
+name = "LEED certification"
+topic = true
+tags = ["green building", "leed"]
+sources = []
+description = """
+LEED (Leadership in Energy and Environmental Design) is the U.S. Green Building Council's rating system for green buildings. A project earns points for energy and water efficiency, materials, indoor air quality and the site, and its total sets the level: Certified, Silver, Gold or Platinum.
+
+Why it matters: a LEED rating is checked by a third party, so it is evidence that a building was designed and built to use less energy and water than a typical one.
+
+UMass Amherst has many LEED buildings. The Computer Sciences Laboratories (2025) is the campus's first Platinum building. Each linked building's note gives its level and the LEED version it was rated under."""
+
+[[artifact.link]]
+url = "https://www.umass.edu/sustainability/operations-and-infrastructure/green-building-projects"
+note = "UMass green building projects, including the first LEED Platinum building"
+
+[[artifact]]
+key = "topic-ev-charging"
+name = "Electric vehicle charging on campus"
+topic = true
+tags = ["transportation", "ev charging"]
+sources = ["explorer:496bf488-79fe-4c95-89b8-ae7f2ec2ca9d"]
+description = """
+Several campus parking lots and the Campus Center Parking Garage have Level 2 chargers for electric cars, operated by ChargePoint and open to students, faculty, staff and visitors.
+
+In 2014, UMass Amherst installed the first Level 3 fast charger in Massachusetts, which can charge a car to 80% in about 30 minutes. The university's own fleet is switching to electric vehicles too, with fleet chargers at the Physical Plant paid for by a $175,000 state grant.
+
+Look for the charging locations that link to this page."""
+
+[[artifact.link]]
+url = "https://www.umass.edu/sustainability/operations-and-infrastructure/transportation"
+note = "Level 2 ChargePoint chargers; fleet chargers from a $175,000 MA DOER grant"
+
+[[artifact]]
+key = "topic-valleybike"
+name = "ValleyBike"
+topic = true
+tags = ["transportation", "bike share"]
+sources = ["explorer:2277d6c5-ac22-454d-b7a9-e595bd0e7f8d"]
+check = "Confirm ValleyBike is operating and which UMass stations exist today; the 2018 data lists five."
+description = """
+ValleyBike is the Pioneer Valley's regional electric-assist bike share, launched in June 2018 by UMass Amherst, the Pioneer Valley Planning Commission and several towns and cities, with five stations on campus at the start. Riders unlock a bike at one station and return it at another, which makes short trips across campus and into town possible without a car.
+
+UMass Amherst is a Bicycle Friendly University (League of American Bicyclists), and ValleyBike is one part of that, alongside the Bike Co-op and the student bike share.
+
+Look for the station locations that link to this page."""
+
+[[artifact.link]]
+url = "https://www.umass.edu/sustainability/operations-and-infrastructure/transportation"
+note = "ValleyBike and UMass's Bicycle Friendly University status"
+
+[[artifact.link]]
+url = "https://www.valleybike.org/"
+note = "ValleyBike: stations and how to ride"
+
+# ===========================================================================
+# Energy: the Central Heating Plant and the new energy system
+# ===========================================================================
+
+[[artifact]]
+key = "central-heating-plant"
+name = "Central Heating Plant"
+lat = 42.3899555
+lng = -72.5370959
+tags = ["energy", "heating and cooling", "combined heat and power", "building"]
+sources = ["explorer:941eeb88-b4b1-4568-ad6d-c24b0932ae11", "osm:way/149698359"]
+description = """
+The campus power and steam plant on Mullins Way, completed in 2009.
+
+Why it matters: it makes electricity for about 70% of the campus and all of the steam used to heat and cool campus buildings. Producing electricity and heat in one place (combined heat and power) gets far more out of each unit of fuel than buying electricity and running separate boilers. Since it opened, it has helped cut campus greenhouse gas emissions by about 27%.
+
+Look for the systems listed under this building."""
+
+[[artifact.link]]
+url = "https://www.umass.edu/facilities/utilities"
+note = "What the plant supplies to campus"
+
+[[artifact]]
+key = "chp-solar-hot-water"
+name = "Solar hot water at the Central Heating Plant"
+parent = "central-heating-plant"
+tags = ["energy", "solar", "solar thermal"]
+topics = [{ key = "topic-campus-solar", note = "Solar heat rather than solar electricity" }]
+sources = []
+description = """
+A solar hot water system added to the Central Heating Plant in 2016.
+
+How it works: sun-warmed fluid preheats the condensate water the plant turns back into steam. Water that starts warmer needs less fuel to boil, so the plant burns less natural gas for the same steam.
+
+Location: no coordinates of its own; it inherits them from the plant."""
+
+[[artifact.link]]
+url = "https://www.umass.edu/sustainability/operations-and-infrastructure/energy"
+note = "Solar hot water at the CHP, added 2016"
+
+[[artifact]]
+key = "chp-reclaimed-water"
+name = "Reclaimed water at the Central Heating Plant"
+parent = "central-heating-plant"
+tags = ["water", "energy", "reclaimed water"]
+sources = ["explorer:bd950bdb-d226-4efc-a7cb-f04d2f5af166", "explorer:036d76df-d804-4bbc-a7c8-1ed7adfb3934"]
+check = "Confirm the system is still in use and whether reclaimed water now also irrigates campus grounds (a 2018 permit extension allowed it)."
+description = """
+Much of the water the Central Heating Plant turns into steam, and the water for its cooling towers, is not drinking water. It is reclaimed water from the Amherst Wastewater Treatment Plant, cleaned further by reverse osmosis before it goes into the boilers.
+
+Why it matters: a power plant uses a lot of water. Using treated wastewater for that industrial job leaves more of the town's drinking water for drinking. In summer, when less steam is needed, Landscape Management has used the surplus to water newly planted campus trees.
+
+Location: no coordinates of its own; it inherits them from the plant."""
+
+[[artifact.link]]
+url = "https://www.umass.edu/facilities/utilities"
+note = "Campus utilities, including the Central Heating Plant"
+
+[[artifact]]
+key = "north-energy-exchange-center"
+name = "North Energy Exchange Center"
+lat = 42.3944394
+lng = -72.5316667
+tags = ["energy", "heating and cooling", "geothermal", "energy storage", "building"]
+sources = ["osm:way/704071839", "explorer:a77a30c5-4022-4c64-aa47-8786f07aca44"]
+check = "The NEEC and the North Chiller Plant (2017) appear to share this site; confirm how to present them, and the well count and tank size."
+description = """
+The heart of the campus's new low-carbon heating and cooling system in the engineering area of north campus.
+
+How it works: a regional field of geothermal wells uses the ground for seasonal energy storage, exchanging heat with the earth across the seasons, and a thermal energy storage tank holds chilled water to cover the daily peaks in cooling demand.
+
+Why it matters: it is part of how the campus is moving away from burning fossil fuels for heating and cooling, on the way to its carbon-zero goal. The Computer Sciences Laboratories (2025) uses it to avoid fossil fuels.
+
+The site also holds the North Chiller Plant (2017), built with glass walls at ground level so passers-by can see a working chiller plant."""
+
+[[artifact.link]]
+url = "https://www.umass.edu/sustainability/operations-and-infrastructure/green-building-projects"
+note = "NEEC: ground-source well field for seasonal storage and a TES tank"
+
+[[artifact.link]]
+url = "https://www.umass.edu/planning-design-construction/book/north-chiller-plant-2017"
+note = "North Chiller Plant (2017), LEED NC v2009 Silver"
+
+# ===========================================================================
+# Buildings
+# ===========================================================================
+
+[[artifact]]
+key = "computer-sciences-laboratories"
+name = "Computer Sciences Laboratories"
+lat = 42.3954049
+lng = -72.5304173
+tags = ["green building", "leed", "mass timber", "building"]
+topics = [{ key = "topic-leed", note = "Platinum, LEED v4 BD&C: Schools; the first on campus" }]
+sources = ["osm:way/1456797029"]
+description = """
+A four-story, 94,300-square-foot addition to the east side of the Computer Science Building at 140 Governors Drive, completed in summer 2025 for the Manning College of Information and Computer Sciences.
+
+Why it matters: it is the first building on campus to earn LEED Platinum, the highest rating. It avoids burning fossil fuels and keeps energy use low even though computing labs draw a lot of power, using mass timber construction, an on-site solar array, and heat and cooling from the campus's new energy system.
+
+Look for: the terraced rain gardens along its paths, a 240-seat lecture hall, and a 4,000-square-foot makerspace."""
+
+[[artifact.link]]
+url = "https://www.umass.edu/planning-design-construction/book/buildings-infrastructure/buildings-and-sustainability/computer-sciences-laboratories-csl-building-2025"
+note = "Size, completion, LEED Platinum, features"
+
+[[artifact.link]]
+url = "https://www.umass.edu/sustainability/operations-and-infrastructure/green-building-projects"
+note = "Mass timber, on-site solar, the campus energy system"
+
+[[artifact]]
+key = "sustainable-engineering-laboratories"
+name = "Sustainable Engineering Laboratories"
+lat = 42.3928856
+lng = -72.5287025
+tags = ["green building", "embodied carbon", "building"]
+sources = ["osm:way/1554362478"]
+check = "Add the completion date and any LEED rating once the PD&C page for the building is published."
+description = """
+A 78,000-square-foot laboratory building for the Riccio College of Engineering.
+
+Why it matters: it won the grand prize for new construction in the Embodied Carbon Reduction Challenge. Embodied carbon is the greenhouse gas released in making and building with materials such as concrete and steel, before a building uses any energy at all; designing to cut it is one of the newest frontiers in green building."""
+
+[[artifact.link]]
+url = "https://www.umass.edu/sustainability/operations-and-infrastructure/green-building-projects"
+note = "Size and the Embodied Carbon Reduction Challenge prize"
+
+[[artifact]]
+key = "crotty-hall"
+name = "Crotty Hall"
+lat = 42.3846184
+lng = -72.5221547
+tags = ["green building", "net zero", "geothermal", "solar", "building"]
+topics = [{ key = "topic-campus-solar", note = "Rooftop array that helps make it net-zero" }]
+sources = ["explorer:ae7f2f8a-0182-47f8-9753-a389f47b15a3", "osm:way/905886928"]
+description = """
+The home of the Department of Economics at 412 North Pleasant Street, at the southern gateway to campus, completed in fall 2016.
+
+Why it matters: it was the first net-zero energy building on campus, designed to produce as much energy as it uses over a year. When it opened, it was one of only about 20 net-zero office buildings in the United States.
+
+How it works: a geothermal heat pump system heats and cools it, and a rooftop solar array makes its electricity. The 16,800-square-foot building was designed by Sigrid Miller Pollin of the UMass Architecture Department and paid for by a $10 million private gift."""
+
+[[artifact.link]]
+url = "https://www.umass.edu/planning-design-construction/book/crotty-hall-2016"
+note = "Net-zero design, size, completion, gift"
+
+[[artifact.link]]
+url = "https://www.umass.edu/sustainability/operations-and-infrastructure/green-building-projects"
+note = "Geothermal heat pumps and rooftop solar"
+
+[[artifact]]
+key = "olver-design-building"
+name = "John W. Olver Design Building"
+lat = 42.3882146
+lng = -72.5235863
+tags = ["green building", "leed", "mass timber", "building"]
+topics = [{ key = "topic-leed", note = "Gold, LEED NC v2009" }]
+sources = ["explorer:2658e037-85f6-4fdf-aeaa-1c101bbe9a6d", "osm:way/483220334"]
+description = """
+The 87,500-square-foot home of Architecture, Landscape Architecture and Regional Planning, and Building and Construction Technology, at 551 North Pleasant Street, completed in spring 2017.
+
+Why it matters: its structure is cross-laminated timber (CLT), large panels of glued wood used in place of much of the steel and concrete. Wood stores the carbon the trees absorbed, so the building has a much smaller carbon footprint than a conventional one. The building itself is meant to teach the students inside it.
+
+Look for the features listed under this building."""
+
+[[artifact.link]]
+url = "https://www.umass.edu/planning-design-construction/book/olver-john-w-design-building-2017"
+note = "Size, completion, CLT structure, LEED Gold"
+
+[[artifact]]
+key = "olver-green-roof"
+name = "Rooftop courtyard and green roof"
+parent = "olver-design-building"
+tags = ["green roof", "stormwater", "native plants"]
+sources = ["explorer:a14e0565-4ffb-4b0d-8650-92b5b3170996"]
+description = """
+A public courtyard on the Design Building's roof, finished in January 2017, planted with native species in soils of different depths and fitted with built-in seating.
+
+How it works: the plantings keep the roof cooler (reducing the heat-island effect), support many kinds of plants and insects, and clean the stormwater that runs off. A drip irrigation system gives the plants water gradually, only as they need it.
+
+Location: no coordinates of its own; it inherits them from the building."""
+
+[[artifact.link]]
+url = "https://www.umass.edu/planning-design-construction/book/olver-john-w-design-building-2017"
+note = "The rooftop public courtyard with native plants"
+
+[[artifact]]
+key = "olver-rain-garden"
+name = "Design Building rain garden"
+parent = "olver-design-building"
+tags = ["stormwater", "rain garden"]
+sources = []
+description = """
+A rain garden beside the Design Building that catches the water running off its roof and paving.
+
+How it works: the planted basin holds stormwater long enough for it to soak into the ground. On the way, soil and roots filter out pollutants. Rain gardens reduce erosion and flooding and cut the need for irrigation.
+
+Location: no coordinates of its own; it inherits them from the building."""
+
+[[artifact.link]]
+url = "https://www.umass.edu/sustainability/operations-and-infrastructure/green-building-projects"
+note = "How the Olver Design Building rain garden works"
+
+[[artifact]]
+key = "integrative-learning-center"
+name = "Integrative Learning Center"
+lat = 42.3910772
+lng = -72.5259268
+tags = ["green building", "leed", "building"]
+topics = [{ key = "topic-leed", note = "Gold, LEED v3" }]
+sources = ["explorer:b63c2fcb-838f-4591-bcb1-807c49ab452d", "osm:way/292876549"]
+description = """
+A four-story classroom building in the center of campus, completed in August 2014, with about 2,000 classroom seats and space for departments including Communication, Journalism, Linguistics and Film Studies.
+
+Why it matters: it was designed to use about a third less energy than a standard building and to manage most of its stormwater on its own site.
+
+Look for the features listed under this building."""
+
+[[artifact.link]]
+url = "https://www.umass.edu/planning-design-construction/book/integrative-learning-center-2014"
+note = "Completion, LEED Gold, energy and stormwater figures"
+
+[[artifact]]
+key = "ilc-green-roof"
+name = "Integrative Learning Center green roof"
+parent = "integrative-learning-center"
+tags = ["green roof", "stormwater"]
+sources = ["explorer:650ae512-99d0-453d-9fe4-74ee01da809a"]
+description = """
+About 15,000 square feet of the Integrative Learning Center's roof is planted with hardy, low-maintenance plants such as sedum instead of bare roofing.
+
+How it works: the green roof holds back about 1,825 cubic feet of stormwater, takes up carbon dioxide, cuts glare and summer heat, and shields the roof membrane from sun and weather so it lasts longer.
+
+Location: no coordinates of its own; it inherits them from the building."""
+
+[[artifact.link]]
+url = "https://www.umass.edu/planning-design-construction/book/integrative-learning-center-2014"
+note = "The green roof"
+
+[[artifact]]
+key = "ilc-stormwater-site"
+name = "Integrative Learning Center stormwater landscape"
+parent = "integrative-learning-center"
+tags = ["stormwater", "water", "landscape"]
+sources = ["explorer:09f20d60-0817-412b-adf7-880764aba19d"]
+description = """
+The landscape around the Integrative Learning Center works with the existing slope of the site. Rain gardens catch surface runoff, the plantings are native and need little watering, and stormwater from the site is reused to irrigate them instead of drinking water. During construction, several trees were saved and moved rather than cut down.
+
+Why it matters: the campus storm drains are already at capacity, so every building that handles its own stormwater helps. Together with the green roof, the site manages most of the rain that falls on it.
+
+Location: no coordinates of its own; it inherits them from the building."""
+
+[[artifact.link]]
+url = "https://www.umass.edu/planning-design-construction/book/integrative-learning-center-2014"
+note = "Stormwater reuse for irrigation"
+
+[[artifact.link]]
+url = "https://www.umass.edu/planning-design-construction/book/infrastructure-and-sustainability"
+note = "Why stormwater matters on campus: the system is at capacity"
+
+[[artifact]]
+key = "physical-sciences-building"
+name = "Physical Sciences Building"
+lat = 42.3936379
+lng = -72.5266766
+tags = ["green building", "leed", "building", "historic"]
+topics = [{ key = "topic-leed", note = "Gold, LEED v2009" }]
+sources = ["explorer:2c02e961-8061-43d9-8ad6-0a890fdecf15", "osm:way/678935094"]
+description = """
+A 95,000-square-foot research building at 690 North Pleasant Street, completed in spring 2018, with flexible labs and offices for physics, computational and synthetic chemistry research.
+
+Why it matters: its labs are built to be reconfigured many times as research changes, so the building can keep being useful instead of being torn down. As part of the project, the historic West Experiment Station was taken apart, moved, and rebuilt on a new foundation next door, gaining 50% more usable space, rather than being demolished."""
+
+[[artifact.link]]
+url = "https://www.umass.edu/planning-design-construction/book/physical-sciences-building-2018"
+note = "Size, completion, LEED Gold, the West Experiment Station move"
+
+[[artifact]]
+key = "life-science-laboratories"
+name = "Life Science Laboratories"
+lat = 42.3920909
+lng = -72.5237236
+tags = ["green building", "leed", "building"]
+topics = [{ key = "topic-leed", note = "Gold, LEED NC 2.2" }]
+sources = ["explorer:e962eb0c-2320-4b27-a1a5-de7ba803e449", "osm:way/217243843"]
+description = """
+A 310,000-square-foot research laboratory at 240 Thatcher Road, completed in fall 2013, shared by groups from across the sciences and engineering.
+
+Why it matters: labs are among the most energy- and water-hungry buildings there are, and this one earned LEED Gold anyway. During construction, 81% of the waste was kept out of landfill, and most of the wood came from certified sustainably managed forests.
+
+Look for the features listed under this building."""
+
+[[artifact.link]]
+url = "https://www.umass.edu/planning-design-construction/book/life-science-laboratories-2013"
+note = "Size, completion, LEED Gold, construction waste and wood figures"
+
+[[artifact]]
+key = "lsl-rainwater-cistern"
+name = "Life Science Laboratories rainwater cistern"
+parent = "life-science-laboratories"
+tags = ["water", "stormwater", "rainwater harvesting"]
+sources = ["explorer:ef73fbdc-70d6-441a-9c11-00cc30b7704c"]
+description = """
+An underground cistern under the Life Science Laboratories landscape that collects and stores up to 10,000 gallons of rainwater.
+
+How it works: the collected water is filtered and used where drinking-quality water isn't needed: quench water for cooling gases in the labs, reverse osmosis systems, and make-up water for the cooling towers. The landscape design won an honor award for landscape architecture from the Society for College and University Planning (SCUP).
+
+Location: no coordinates of its own; it inherits them from the building."""
+
+[[artifact.link]]
+url = "https://www.umass.edu/planning-design-construction/book/life-science-laboratories-2013"
+note = "The Life Science Laboratories project"
+
+[[artifact]]
+key = "old-chapel"
+name = "Old Chapel"
+lat = 42.3889849
+lng = -72.5279568
+tags = ["historic", "green building", "leed", "building"]
+topics = [{ key = "topic-leed", note = "Gold, LEED v2009" }]
+sources = ["explorer:2aae04ec-7797-4c2c-b0dc-b16950d73ab1", "osm:way/147156753", "wikidata:Q12064727"]
+description = """
+Built in 1885 in the Richardsonian Romanesque style, the Old Chapel is the campus's best-known historic building. It held a library, auditorium and classrooms, later the Minuteman Marching Band, and closed in 1996.
+
+Why it matters: after it was added to the National Register of Historic Places in 2015, a $21 million renovation reopened it in spring 2017 as a venue for performances, receptions and exhibitions, and earned LEED Gold. It shows that preserving an old building and making it efficient can be the same project; keeping a building also avoids all the carbon of building a new one."""
+
+[[artifact.link]]
+url = "https://www.umass.edu/planning-design-construction/book/old-chapel-renovation-2017"
+note = "History, National Register listing, renovation, LEED Gold"
+
+[[artifact]]
+key = "south-college"
+name = "South College"
+lat = 42.38956
+lng = -72.5293856
+tags = ["historic", "green building", "leed", "building"]
+topics = [{ key = "topic-leed", note = "Gold, LEED NC v2009" }]
+sources = ["explorer:713b732a-14fb-4651-a49d-156e618be41e", "osm:way/495323096"]
+description = """
+A red-brick building at the campus core, rebuilt in 1886 on the foundation of the original 1867 South College after a fire. Over the years it held dormitories, classrooms, labs, a weather observatory and a museum.
+
+Why it matters: a 2014 to 2017 project restored the historic building, replaced all of its mechanical, electrical and plumbing systems, and added a four-story, 60,000-square-foot wing to the west. It is now the main home of the College of Humanities and Fine Arts, and earned LEED Gold."""
+
+[[artifact.link]]
+url = "https://www.umass.edu/planning-design-construction/book/south-college-2017"
+note = "History, renovation and addition, LEED Gold"
+
+[[artifact]]
+key = "umass-police-station"
+name = "UMass Police Station"
+lat = 42.39792
+lng = -72.5149979
+tags = ["green building", "leed", "solar", "building"]
+topics = [{ key = "topic-leed", note = "Gold, LEED NC 2.2 (2011); the first new UMass building designed to LEED" }, { key = "topic-campus-solar", note = "One of the five rooftop arrays" }]
+sources = ["explorer:038e0177-c4b0-4428-9301-44d9ba9ffd28", "explorer:9ceb1a37-3a33-4e31-a03b-242a1d2cd00b", "osm:way/217056240"]
+description = """
+The 27,130-square-foot home of the UMass Police Department at 585 East Pleasant Street, completed in spring 2011, on the edge of campus.
+
+Why it matters: it was the first new building on the UMass campus designed to meet LEED standards, and it earned Gold. A kiosk in the lobby explains the building's green features and shows its live energy use. Its roof now carries one of the campus solar arrays."""
+
+[[artifact.link]]
+url = "https://www.umass.edu/planning-design-construction/book/umass-police-station-2011"
+note = "Size, completion, first LEED building, the lobby kiosk"
+
+[[artifact]]
+key = "recreation-center"
+name = "Recreation Center"
+lat = 42.3888584
+lng = -72.5316683
+tags = ["solar", "building"]
+topics = [{ key = "topic-campus-solar", note = "One of the five rooftop arrays" }]
+sources = ["explorer:fa83b7d6-a142-486b-aa13-9b7ffe15e351", "explorer:7d5c79fd-20ff-4fea-be3a-3edb9dec17a0", "osm:way/147156712"]
+check = "The 2018 data shows a solar dashboard in the lobby; confirm it is still there."
+description = """
+The 120,000-square-foot campus gym at 161 Commonwealth Avenue, opened in fall 2009, used by an estimated 2,500 students a day.
+
+Why it matters here: its large flat roof carries one of the campus's five rooftop solar arrays, so one of the busiest buildings on campus also makes some of its own electricity. A dashboard in the building has shown the array's output in real time."""
+
+[[artifact.link]]
+url = "https://www.umass.edu/planning-design-construction/book/recreation-center-2009"
+note = "Size, opening, daily use"
+
+[[artifact.link]]
+url = "https://www.umass.edu/sustainability/operations-and-infrastructure/energy"
+note = "Campus rooftop solar"
+
+[[artifact]]
+key = "champions-center"
+name = "Kennedy Champions Center"
+lat = 42.388354
+lng = -72.5327004
+tags = ["green building", "leed", "solar", "building"]
+topics = [{ key = "topic-leed", note = "Gold, LEED NC v2009" }, { key = "topic-campus-solar", note = "One of the five rooftop arrays" }]
+sources = ["explorer:4bbdb0e6-07d9-400f-b3db-ffe3f8b2544d", "explorer:51074c3a-4298-4ea9-bd6c-19b28df0bb6a", "osm:way/678037640"]
+description = """
+The 55,000-square-foot practice and training home of the UMass men's and women's basketball teams at 190 Commonwealth Avenue, completed in summer 2015 and connected to the Mullins Center by an enclosed walkway.
+
+Why it matters here: it earned LEED Gold, and its roof is one of the five campus rooftops carrying solar panels."""
+
+[[artifact.link]]
+url = "https://www.umass.edu/planning-design-construction/book/champions-center-2015"
+note = "Size, completion, LEED Gold"
+
+[[artifact]]
+key = "fine-arts-center"
+name = "Fine Arts Center"
+lat = 42.3885835
+lng = -72.5255008
+tags = ["solar", "building"]
+topics = [{ key = "topic-campus-solar", note = "One of the five rooftop arrays" }]
+sources = ["explorer:cb4de563-96a9-4f62-88e7-6f56f7b91d5f", "bench:420"]
+check = "Confirm the Fine Arts Center (now part of the Bromery Center for the Arts) still carries a rooftop array and how it is named today."
+description = """
+The arts complex at the south end of the Campus Pond, home to concert halls, galleries and studios.
+
+Why it matters here: its long roof was one of the five campus rooftops fitted with solar panels in the 2016 to 2017 solar program."""
+
+[[artifact.link]]
+url = "https://www.umass.edu/sustainability/operations-and-infrastructure/energy"
+note = "Campus rooftop solar"
+
+[[artifact]]
+key = "computer-science-building"
+name = "Computer Science Building"
+lat = 42.3951548
+lng = -72.531227
+tags = ["solar", "building"]
+topics = [{ key = "topic-campus-solar", note = "One of the five rooftop arrays" }]
+sources = ["explorer:41bef75f-de95-44b8-892e-6b7639f5737a", "osm:way/51650200"]
+description = """
+The original home of the Manning College of Information and Computer Sciences on Governors Drive. The Computer Sciences Laboratories (2025) is built onto its east side and connects to every floor.
+
+Why it matters here: its roof is one of the five campus rooftops carrying solar panels."""
+
+[[artifact.link]]
+url = "https://www.umass.edu/sustainability/operations-and-infrastructure/energy"
+note = "Campus rooftop solar"
+
+[[artifact.link]]
+url = "https://www.umass.edu/planning-design-construction/book/buildings-infrastructure/buildings-and-sustainability/computer-sciences-laboratories-csl-building-2025"
+note = "The CSL addition on its east side"
+
+[[artifact]]
+key = "hampshire-dining-commons"
+name = "Hampshire Dining Commons"
+lat = 42.3838556
+lng = -72.5305165
+tags = ["food", "green building", "leed", "building"]
+topics = [{ key = "topic-leed", note = "Gold, LEED NC v2009; the first dining hall renovation in the country to earn Gold" }]
+sources = ["explorer:af1a5e8e-c350-416c-ac03-e1cb53da7ccf", "osm:way/184350299"]
+description = """
+A dining commons in the Southwest Residential Area, renovated in 2013 into an open, circular plan with 12 food stations and seats for 650.
+
+Why it matters: it was the first dining hall renovation in the country to earn LEED Gold, and its menu is built around sustainability too: minimally processed food, more plant-based dishes picked at peak season, less red meat, and more sustainable seafood."""
+
+[[artifact.link]]
+url = "https://www.umass.edu/planning-design-construction/book/hampshire-dining-commons-renovation-2013"
+note = "Renovation, menu principles, first LEED Gold dining renovation"
+
+[[artifact]]
+key = "worcester-commons"
+name = "Worcester Commons"
+lat = 42.3932564
+lng = -72.5251071
+tags = ["food", "green building", "leed", "building"]
+topics = [{ key = "topic-leed", note = "Gold, LEED v2009" }]
+sources = ["osm:way/217056238", "explorer:90ee31c8-4358-4fc8-b264-0c8b98293d83"]
+description = """
+An 87,000-square-foot dining and student life building at 667 North Pleasant Street, opened in fall 2020, with the campus bakery, a café, the dining commons (about 800 seats) and a restaurant.
+
+How it saves energy: most south- and west-facing windows use electrochromic glass, which tints itself in strong sun to keep the building cooler, and energy recovery systems reuse heat that would otherwise be exhausted from the kitchens."""
+
+[[artifact.link]]
+url = "https://www.umass.edu/planning-design-construction/book/worcester-commons-2020"
+note = "Size, opening, LEED Gold, electrochromic glass, energy recovery"
+
+[[artifact]]
+key = "hampden-new2u"
+name = "New2U Thrift Store"
+lat = 42.3828969
+lng = -72.5296958
+tags = ["waste", "reuse", "student-run"]
+sources = ["explorer:b6bfde45-ebc3-485d-980c-0acf1cae7c36", "osm:way/184350144"]
+check = "Confirm the store's hours before approving; they change each semester."
+description = """
+A student-run thrift store in Hampden Commons (131 Southwest Circle) that sells clothing, furniture, lamps, electronics and more, much of it collected from students during spring move-out.
+
+Why it matters: New2U has kept more than 100,000 pounds of usable items out of the landfill since 2014. Each fall's one-day Move-In Tag Sale resells the move-out haul; the 11th, on September 5, 2026, took in more than $25,000, which pays for the store and its student staff.
+
+How to take part: drop small donations in the box in the Hampden lobby on weekdays, or volunteer a shift."""
+
+[[artifact.link]]
+url = "https://www.umass.edu/sustainability/get-involved/new2u"
+note = "Location, what it accepts, 100,000+ lb diverted, the 2026 tag sale"
+
+[[artifact]]
+key = "durfee-conservatory"
+name = "Durfee Conservatory"
+lat = 42.3906596
+lng = -72.5225415
+tags = ["landscape", "plants", "historic"]
+sources = ["explorer:2ef1d9e9-f12d-4665-8677-40ce311c20f3", "osm:way/217243405"]
+check = "Add a current source page and visiting hours; the 2018 record has no link."
+description = """
+A greenhouse complex founded in 1867, among the oldest buildings on campus, with gardens outside where students read in good weather.
+
+Why it matters: it is a living plant collection and a quiet green refuge on a busy campus. In the depth of winter, people stop in on the way to class to warm up in its rainforest room."""
+
+[[artifact.link]]
+url = "https://www.openstreetmap.org/way/217243405"
+note = "Location (OpenStreetMap)"
+
+[[artifact]]
+key = "cns-greenhouse"
+name = "CNS Research and Education Greenhouse"
+lat = 42.3922374
+lng = -72.5318418
+tags = ["green building", "leed", "plants", "building"]
+topics = [{ key = "topic-leed", note = "Gold, LEED v3" }]
+sources = ["explorer:79f6e605-c299-402f-9434-d7d51950d9b2"]
+description = """
+Teaching and research greenhouses for the Plant, Soil, and Insect Sciences department of the College of Natural Sciences, completed in April 2011.
+
+Why it matters: it earned LEED Gold, which is unusual for a greenhouse, a building type that is mostly glass and needs careful control of heat, light and water."""
+
+[[artifact.link]]
+url = "https://www.umass.edu/sustainability/operations-and-infrastructure/green-building-projects"
+note = "UMass green building projects"
+
+# ===========================================================================
+# Solar canopies and other solar
+# ===========================================================================
+
+[[artifact]]
+key = "robsham-solar-canopies"
+name = "Robsham Visitor Center solar canopies"
+lat = 42.3849406
+lng = -72.5252395
+tags = ["energy", "solar", "parking"]
+topics = [{ key = "topic-campus-solar", note = "The first solar parking canopy in the UMass system (2016)" }]
+sources = ["explorer:5f83ca87-ce7d-4c2a-b379-925f64e8ffbe", "osm:way/704071821"]
+description = """
+Solar panels on canopies over the parking lot at the Robsham Visitor Center, completed in 2016.
+
+Why it matters: it was the first solar parking canopy anywhere in the UMass system. The 200-kilowatt array is owned by the university and makes roughly 330,000 kilowatt-hours a year, while shading the cars parked underneath."""
+
+[[artifact.link]]
+url = "https://www.umass.edu/sustainability/operations-and-infrastructure/energy"
+note = "Campus solar canopies"
+
+[[artifact.link]]
+url = "https://www.openstreetmap.org/way/704071821"
+note = "Location (OpenStreetMap)"
+
+[[artifact]]
+key = "solar-canopy-west-lot"
+name = "Solar canopies by the Fleet Garage"
+lat = 42.3919781
+lng = -72.5342418
+tags = ["energy", "solar", "parking"]
+topics = [{ key = "topic-campus-solar", note = "One of the two large 2017 canopies" }]
+sources = ["explorer:b6b816a4-7a3f-4cf6-998f-92ebafbcc1c2", "osm:way/704071830"]
+check = "Confirm the lot number and capacity with Facilities; it is one of the two large canopies from the 2017 program."
+description = """
+A long row of solar canopies over a parking lot on the west side of campus, beside the university Fleet Garage and north of the Mullins Center.
+
+Why it matters: it is one of the two big parking canopies from the 2016 to 2017 solar program, which together with five rooftops added about 5 megawatts of solar. Canopies like this put panels where there is already paved, open space, and give drivers shade."""
+
+[[artifact.link]]
+url = "https://www.umass.edu/sustainability/operations-and-infrastructure/energy"
+note = "Campus solar canopies"
+
+[[artifact.link]]
+url = "https://www.openstreetmap.org/way/704071830"
+note = "Location (OpenStreetMap)"
+
+[[artifact]]
+key = "solar-canopy-north-lot"
+name = "North campus solar canopies"
+lat = 42.3990
+lng = -72.5247
+tags = ["energy", "solar", "parking"]
+topics = [{ key = "topic-campus-solar", note = "A large parking-lot canopy north of campus" }]
+sources = ["osm:way/703253944"]
+check = "Confirm the lot number, year and capacity; OSM shows two long rows of canopies here."
+description = """
+Two long rows of solar canopies over a large parking lot north of the main campus.
+
+Why it matters: parking lots are some of the largest open, sunny surfaces on campus. Covering them with panels makes electricity without using any new land."""
+
+[[artifact.link]]
+url = "https://www.umass.edu/sustainability/operations-and-infrastructure/energy"
+note = "Campus solar canopies"
+
+[[artifact.link]]
+url = "https://www.openstreetmap.org/way/703253944"
+note = "Location (OpenStreetMap)"
+
+[[artifact]]
+key = "solar-canopy-southwest-lot"
+name = "Southwest solar canopies"
+lat = 42.38095
+lng = -72.53275
+tags = ["energy", "solar", "parking"]
+topics = [{ key = "topic-campus-solar", note = "A newer parking-lot canopy" }]
+sources = ["osm:way/1370732295"]
+check = "Confirm the lot number and year; these canopies were mapped recently and may be the 1.5 MW Lot 28 project (2026)."
+description = """
+A row of solar canopies over a parking lot at the south end of the Southwest Residential Area, one of the newer additions to campus solar.
+
+Why it matters: each new canopy adds to the roughly 10 megawatts of solar the campus now has."""
+
+[[artifact.link]]
+url = "https://www.umass.edu/sustainability/operations-and-infrastructure/energy"
+note = "Campus solar canopies"
+
+[[artifact.link]]
+url = "https://www.openstreetmap.org/way/1370732295"
+note = "Location (OpenStreetMap)"
+
+[[artifact]]
+key = "farm-agrivoltaics"
+name = "Agrivoltaic solar array at the South Deerfield farm"
+lat = 42.4787711
+lng = -72.577601
+tags = ["energy", "solar", "agriculture", "agrivoltaics"]
+topics = [{ key = "topic-campus-solar", note = "Solar that shares the land with farming" }]
+sources = ["explorer:3419cfeb-60a3-484e-a62b-51fce5514601"]
+description = """
+A ground-mounted solar array at the UMass Crop and Animal Research and Education Farm in South Deerfield, north of campus, in place since 2010.
+
+How it works: the 100-plus panels sit high enough off the ground that sunlight still reaches the plants, and animals can graze underneath. Using the same land for farming and solar power at once is called agrivoltaics."""
+
+[[artifact.link]]
+url = "https://www.umass.edu/sustainability/operations-and-infrastructure/energy"
+note = "Agrivoltaics at the Crop and Animal Research and Education Farm, since 2010"
+
+[[artifact]]
+key = "solar-charging-haigis"
+name = "Solar charging station at the Haigis Mall bus stop"
+lat = 42.3871994
+lng = -72.5264768
+tags = ["energy", "solar", "transportation"]
+sources = ["explorer:a957a30b-c55a-454d-92fc-f535d15947f8"]
+check = "Confirm the station is still at the bus stop and working."
+description = """
+A solar-powered station at the Haigis Mall bus stop where you can charge a phone or laptop while you wait, day or night, from standard outlets and USB ports. It and a twin at the Skinner Hall bus stop were gifts from the Class of 2014."""
+
+[[artifact.link]]
+url = "https://www.openstreetmap.org/#map=19/42.3871994/-72.5264768"
+note = "Location"
+
+# ===========================================================================
+# Food and gardens
+# ===========================================================================
+
+[[artifact]]
+key = "franklin-dining-commons"
+name = "Franklin Dining Commons"
+lat = 42.3892682
+lng = -72.522526
+tags = ["food", "building"]
+sources = ["osm:way/217243328", "explorer:b8b5ee33-82eb-4e4f-ada6-d73bc8217aac"]
+description = """
+A dining commons in the Central Residential Area, next to the first of the campus permaculture gardens.
+
+Why it matters here: UMass Dining is ranked best in the nation, and sustainability is one of its core values: local food, more plant-based dishes, and food waste turned into renewable energy (see the garden listed under this building)."""
+
+[[artifact.link]]
+url = "https://www.umass.edu/sustainability/operations-and-infrastructure/food-and-permaculture"
+note = "Dining sustainability"
+
+[[artifact]]
+key = "franklin-permaculture-garden"
+name = "Franklin Permaculture Garden"
+parent = "franklin-dining-commons"
+tags = ["food", "gardens", "permaculture"]
+topics = [{ key = "topic-permaculture", note = "The first campus permaculture garden (2010)" }]
+sources = ["explorer:bd83f50d-a3a8-43fa-ab5d-f105c9e2a1d5"]
+description = """
+The first UMass permaculture garden, planted in 2010 on what had been a lawn beside the Franklin Dining Commons.
+
+Why it matters: by 2018 it had produced more than 4,500 pounds of organic fruit, vegetables and herbs for the dining commons next door. It is also an outdoor classroom for organic growing, rainwater harvesting and solar charging.
+
+Location: no coordinates of its own; it inherits them from the dining commons."""
+
+[[artifact.link]]
+url = "https://www.umass.edu/sustainability/operations-and-infrastructure/food-and-permaculture"
+note = "UMass Permaculture, which built and runs the garden"
+
+[[artifact]]
+key = "berkshire-dining-commons"
+name = "Berkshire Dining Commons"
+lat = 42.3819328
+lng = -72.5298643
+tags = ["food", "building"]
+sources = ["osm:way/184350201", "explorer:d4050ae8-5cb1-4ef4-9657-65bb88df6921"]
+description = """
+A dining commons in the Southwest Residential Area, with a permaculture garden beside it.
+
+Why it matters here: all of the food waste from preparing meals and from the dish return in campus dining commons goes to Barstow's Longview Farm in Hadley, seven miles away, where an anaerobic digester turns it into renewable energy."""
+
+[[artifact.link]]
+url = "https://www.umass.edu/sustainability/operations-and-infrastructure/food-and-permaculture"
+note = "Food waste to renewable energy at Barstow's Longview Farm"
+
+[[artifact]]
+key = "berkshire-permaculture-garden"
+name = "Berkshire Permaculture Garden"
+parent = "berkshire-dining-commons"
+tags = ["food", "gardens", "permaculture"]
+topics = [{ key = "topic-permaculture", note = "Southwest's permaculture garden" }]
+sources = ["explorer:a95fd35a-8e4e-4774-bf7f-cbe20ffdcc65"]
+check = "Confirm the garden is still maintained. UMass Dining's old page for it (localumass.com/berkshire.html) is gone; add a current one if there is one."
+description = """
+The second campus permaculture garden, paid for by a gift from the Class of 2012. In a year, a neglected patch beside the Berkshire Dining Commons became a garden with rich soil and many kinds of plants, where volunteers learn sheet mulching, bed preparation and low-maintenance growing.
+
+Location: no coordinates of its own; it inherits them from the dining commons."""
+
+[[artifact.link]]
+url = "https://www.umass.edu/sustainability/operations-and-infrastructure/food-and-permaculture"
+note = "UMass Permaculture, which built and runs the garden"
+
+[[artifact]]
+key = "hillside-permaculture-garden"
+name = "Hillside Permaculture Garden"
+lat = 42.3915345
+lng = -72.5209644
+tags = ["food", "gardens", "permaculture"]
+topics = [{ key = "topic-permaculture", note = "Planted 2012 at the Chancellor's residence" }]
+sources = ["explorer:2c30b1ce-6980-4319-a04c-5b1ff9d3fb4b"]
+check = "The 2018 record describes plants chosen by then-Chancellor Subbaswamy, who left in 2023; confirm what the garden is like today and add a source page."
+description = """
+A permaculture garden planted in fall 2012 at Hillside, the Chancellor's residence. It was planted with food plants from India, the home country of the chancellor at the time, and visitors to the house have been served meals made with what grows here."""
+
+[[artifact.link]]
+url = "https://www.umass.edu/sustainability/operations-and-infrastructure/food-and-permaculture"
+note = "UMass Permaculture"
+
+[[artifact]]
+key = "food-for-all-garden"
+name = "Food for All Garden"
+lat = 42.402873
+lng = -72.5236829
+tags = ["food", "gardens", "food security", "community"]
+sources = ["explorer:c12b4e76-ed00-41b5-906a-01b2809d3eee"]
+check = "Confirm the garden still operates on this site and add a working source; food4allamherst.com did not respond on 2026-10-20."
+description = """
+A garden at the UMass Agricultural Learning Center north of campus, started in 2013 by the Stockbridge School of Agriculture, that grows food for the Amherst Survival Center and the Not Bread Alone community meal program.
+
+Why it matters: students learn to grow food while getting fresh produce to neighbors who might not otherwise have it."""
+
+[[artifact.link]]
+url = "https://www.openstreetmap.org/#map=18/42.402873/-72.5236829"
+note = "Location"
+
+# ===========================================================================
+# Water and landscape
+# ===========================================================================
+
+[[artifact]]
+key = "campus-pond"
+name = "Campus Pond"
+lat = 42.3894463
+lng = -72.526458
+tags = ["water", "stormwater", "landscape", "wildlife"]
+sources = ["osm:relation/1763353", "explorer:ba723ae9-9ddc-425d-861d-f16d6e898bf6"]
+check = "Add a source for the 2015 restoration; the 2018 record has none."
+description = """
+The pond at the center of campus, between the Student Union, the Campus Center and the Fine Arts Center.
+
+Why it matters: it is part of the campus stormwater system, even though it was never engineered to collect storm runoff. In 2015 Landscape Management began restoring it: native plants along the shore to protect wildlife habitat, and natural logs along the banks to stop erosion, both to improve the water quality. With the storm drains already at capacity, much of the newer campus landscaping (rain gardens, green roofs, reuse of rainwater) is designed to keep runoff and the pollutants it carries out of the pond."""
+
+[[artifact.link]]
+url = "https://www.umass.edu/planning-design-construction/book/infrastructure-and-sustainability"
+note = "The Campus Pond's role in the stormwater system"
+
+[[artifact.link]]
+url = "https://www.openstreetmap.org/relation/1763353"
+note = "Location (OpenStreetMap)"
+
+[[artifact]]
+key = "southwest-concourse"
+name = "Southwest Concourse"
+lat = 42.3834203
+lng = -72.5295812
+tags = ["stormwater", "landscape", "native plants"]
+sources = ["explorer:f42cb093-a8c4-4028-aedc-f99a3ccfceca"]
+description = """
+The five-acre pedestrian heart of the Southwest Residential Area, among the residence towers and dining commons that house about 5,000 students, rebuilt in 2011.
+
+How it works: the redesign brought back native trees and plants, and shapes the ground so that rain flows into planted low areas and soaks in naturally, managing stormwater with very little maintenance."""
+
+[[artifact.link]]
+url = "https://www.umass.edu/planning-design-construction/book/southwest-concourse-renovation-2011"
+note = "The Southwest Concourse renovation (2011)"
+
+[[artifact]]
+key = "pollinator-garden"
+name = "Pollinator Garden"
+lat = 42.3950227
+lng = -72.5285765
+tags = ["landscape", "pollinators", "native plants", "wildlife"]
+topics = [{ key = "green-grounds", note = "Part of the campus's pesticide-free landscape care" }]
+sources = ["explorer:67a891a8-c28f-4b80-8efe-665af7d9e9b3"]
+check = "Confirm the garden is still here and add a current source page; the 2018 record has none."
+description = """
+A garden made in 2016 by Landscape Management and students from the Stockbridge School of Agriculture, with plants chosen to attract bees, butterflies and hummingbirds, and a water source for them.
+
+Why it matters: pollinators are in decline, and they need food, water and shelter close together. The garden is registered with the Million Pollinator Garden Challenge, a national campaign to create that kind of habitat."""
+
+[[artifact.link]]
+url = "https://www.umass.edu/sustainability/operations-and-infrastructure/energy"
+note = "UMass Green Grounds: native plants, no synthetic pesticides on 90% of managed areas"
+
+[[artifact]]
+key = "green-grounds"
+name = "Green Grounds: campus landscape care"
+topic = true
+tags = ["landscape", "native plants", "pesticide free"]
+sources = []
+description = """
+UMass Amherst holds a Gold-level Green Grounds Certification from Re:wild Your Campus. At least 90% of the campus's managed grounds are cared for without synthetic pesticides or fertilizers, native plants are favored, landscape water use is kept down, and synthetic chemicals are being reduced on sports fields.
+
+Why it matters: it makes the whole campus landscape safer for people, pollinators and the water that runs off it."""
+
+[[artifact.link]]
+url = "https://www.umass.edu/sustainability/operations-and-infrastructure/energy"
+note = "Gold-level Green Grounds Certification"
+
+# ===========================================================================
+# Transportation
+# ===========================================================================
+
+[[artifact]]
+key = "ev-campus-center-garage"
+name = "EV charging at the Campus Center Parking Garage"
+lat = 42.391239
+lng = -72.5290819
+tags = ["transportation", "ev charging", "parking"]
+topics = [{ key = "topic-ev-charging", note = "Level 2 ChargePoint chargers in the garage" }]
+sources = ["explorer:6e9f8552-e632-44c4-ad80-825be16deb85", "osm:way/30698364"]
+check = "Confirm the number of chargers."
+description = """
+Level 2 electric vehicle chargers in the Campus Center Parking Garage, operated by ChargePoint and open to students, faculty, staff and visitors."""
+
+[[artifact.link]]
+url = "https://www.umass.edu/sustainability/operations-and-infrastructure/transportation"
+note = "EV chargers in the Campus Center Parking Garage"
+
+[[artifact]]
+key = "ev-robsham-lot"
+name = "EV charging at the Robsham Visitor Center lot"
+lat = 42.3850929
+lng = -72.5250292
+tags = ["transportation", "ev charging", "parking"]
+topics = [{ key = "topic-ev-charging", note = "Visitor lot chargers, under the solar canopies" }]
+sources = ["explorer:496bf488-79fe-4c95-89b8-ae7f2ec2ca9d", "explorer:b000a1b8-5051-4884-8639-975f041665a8"]
+check = "Confirm the chargers are still in this lot and how many there are."
+description = """
+Electric vehicle chargers in the visitor parking lot at the Robsham Visitor Center, the same lot covered by the campus's first solar canopies."""
+
+[[artifact.link]]
+url = "https://www.umass.edu/sustainability/operations-and-infrastructure/transportation"
+note = "Campus EV charging"
+
+[[artifact]]
+key = "ev-fleet-physical-plant"
+name = "Fleet EV charging at the Physical Plant"
+lat = 42.3929939
+lng = -72.5315866
+tags = ["transportation", "ev charging", "fleet"]
+topics = [{ key = "topic-ev-charging", note = "For university fleet vehicles" }]
+sources = ["osm:way/1431530598"]
+check = "Confirm these are the fleet chargers from the DOER grant (OSM shows six ChargePoint ports here)."
+description = """
+Charging stations for the university's own electric fleet vehicles at the Physical Plant, installed with a $175,000 Massachusetts Department of Energy Resources grant as the campus fleet switches to electric."""
+
+[[artifact.link]]
+url = "https://www.umass.edu/sustainability/operations-and-infrastructure/transportation"
+note = "Fleet chargers from a $175,000 MA DOER Leading by Example grant"
+
+[[artifact]]
+key = "valleybike-haigis"
+name = "ValleyBike station at Haigis Mall"
+lat = 42.3871017
+lng = -72.5267416
+tags = ["transportation", "bike share"]
+topics = [{ key = "topic-valleybike", note = "Haigis Mall station" }]
+sources = ["explorer:7ee08f8b-5f13-4a01-933a-bd21ce1ab020"]
+check = "Confirm the station is active (2018 data)."
+description = """
+A ValleyBike e-bike share station at Haigis Mall, beside the busiest bus stop on campus."""
+
+[[artifact.link]]
+url = "https://www.valleybike.org/"
+note = "ValleyBike stations"
+
+[[artifact]]
+key = "valleybike-ilc"
+name = "ValleyBike station at the Integrative Learning Center"
+lat = 42.3914507
+lng = -72.5254522
+tags = ["transportation", "bike share"]
+topics = [{ key = "topic-valleybike", note = "ILC station" }]
+sources = ["explorer:abb610c7-99fb-4aef-b14f-24fa60a0ff45"]
+check = "Confirm the station is active (2018 data)."
+description = """
+A ValleyBike e-bike share station by the Integrative Learning Center, in the middle of campus."""
+
+[[artifact.link]]
+url = "https://www.valleybike.org/"
+note = "ValleyBike stations"
+
+[[artifact]]
+key = "valleybike-southwest"
+name = "ValleyBike station in Southwest"
+lat = 42.3848957
+lng = -72.5309058
+tags = ["transportation", "bike share"]
+topics = [{ key = "topic-valleybike", note = "Southwest station" }]
+sources = ["explorer:2277d6c5-ac22-454d-b7a9-e595bd0e7f8d"]
+check = "Confirm the station is active (2018 data)."
+description = """
+A ValleyBike e-bike share station in the Southwest Residential Area."""
+
+[[artifact.link]]
+url = "https://www.valleybike.org/"
+note = "ValleyBike stations"
+
+[[artifact]]
+key = "pvta-buses"
+name = "PVTA bus service"
+lat = 42.3871994
+lng = -72.5264768
+tags = ["transportation", "public transit"]
+sources = ["explorer:0891f26b-f72c-47d8-9d5c-b935fa20ab2d"]
+description = """
+Free, frequent bus service for students, faculty and staff, run in partnership with the Pioneer Valley Transit Authority (PVTA) and connecting campus to the neighboring towns. Haigis Mall is the main campus stop.
+
+Why it matters: every trip on the bus is one less car on campus roads and in campus parking lots."""
+
+[[artifact.link]]
+url = "https://www.umass.edu/sustainability/operations-and-infrastructure/transportation"
+note = "Free PVTA bus service"
+
+# ===========================================================================
+# Waste
+# ===========================================================================
+
+[[artifact]]
+key = "surplus-property-barn"
+name = "Surplus Property Barn"
+lat = 42.3984243
+lng = -72.5114676
+tags = ["waste", "reuse"]
+sources = ["explorer:28cbb946-9c99-4df7-a6d9-701a29469a8f"]
+check = "Confirm the barn's current role alongside the online Surplus Furniture program."
+description = """
+A showroom where university departments pass on furniture and equipment they no longer need to other departments, rather than throwing it away.
+
+Why it matters: reusing a desk or a lab cabinet keeps it out of the landfill and saves the money and materials of buying new. Campus Planning now runs a Surplus Furniture website for the same purpose."""
+
+[[artifact.link]]
+url = "https://www.umass.edu/sustainability/operations-and-infrastructure/waste-reduction-recycling"
+note = "Surplus furniture reuse on campus"
+
+[[artifact]]
+key = "lab-plastic-recycling"
+name = "Lab plastic recycling pilot"
+parent = "life-science-laboratories"
+tags = ["waste", "recycling", "labs"]
+sources = []
+check = "This is a 10-month pilot; confirm it is still running before approving."
+description = """
+A pilot with Polycarbin, a Massachusetts company, that recycles used pipette tip boxes from the Life Science Laboratories and the Integrated Sciences Building back into new lab plastics. Collection bins are on most floors of this building.
+
+Why it matters: research labs throw away a lot of single-use plastic. If the pilot works, it may grow to more buildings and to other lab waste such as gloves.
+
+Location: no coordinates of its own; it inherits them from the building."""
+
+[[artifact.link]]
+url = "https://www.umass.edu/sustainability/operations-and-infrastructure/waste-reduction-recycling"
+note = "The Polycarbin pipette tip box recycling pilot"
