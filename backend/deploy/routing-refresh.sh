@@ -10,6 +10,11 @@
 #   current/    what the running service uses
 #   next/       the build in progress (deleted before each build)
 #   previous/   the copy before the last swap, kept for --rollback
+#   rolled-back/, failed/   set aside by --rollback or a failed swap
+#
+# One copy is about 530 MB for Massachusetts (the first build on a fresh
+# volume keeps another 670 MB of build leftovers until its first refresh), so
+# allow about 2 GB: current, previous, and next while building.
 #
 # Steps, each stopping the refresh on failure (the live copy is untouched
 # until step 3):
@@ -40,11 +45,13 @@ main() {
 
   mkdir -p "$BACKUP_DIR"
   exec 9>"$BACKUP_DIR/.routing-refresh.lock"
-  flock -n 9 || die "another routing refresh is running"
+  if command -v flock >/dev/null; then
+    flock -n 9 || die "another routing refresh is running"
+  fi
 
   if ((rollback)); then
     in_volume '[ -d previous ] || { echo "no previous copy to go back to" >&2; exit 1; }
-               rm -rf failed && mv current failed && mv previous current'
+               rm -rf rolled-back && mv current rolled-back && mv previous current'
     restart_and_wait || die "the previous copy did not come up either; see: docker compose logs valhalla"
     log "rolled back to the previous routing data"
     return
@@ -63,7 +70,9 @@ main() {
     die "the build produced no tile archive; the live routing data was not touched"
   # The generated config names next/ in its paths. Drop it so the service
   # writes a fresh one for current/ on start; nothing else needs rebuilding.
-  in_volume 'rm -f next/valhalla.json'
+  # The service reads the tile archive, so the loose tiles and the extract
+  # are dead weight (about 670 MB for Massachusetts).
+  in_volume 'rm -rf next/valhalla.json next/valhalla_tiles next/*.osm.pbf'
 
   log "swapping in the new data"
   in_volume 'rm -rf previous && mv current previous && mv next current'
