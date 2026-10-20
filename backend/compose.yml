@@ -75,6 +75,10 @@ services:
     build:
       context: .
       target: api
+      # deploy/redeploy.sh sets PINTRAIL_TAG to the commit, so a build on the
+      # host still reports which commit it is.
+      args:
+        PINTRAIL_GIT_SHA: ${PINTRAIL_TAG:-dev}
     environment:
       <<: *app-env
       BIND_ADDR: 0.0.0.0:8080
@@ -103,6 +107,8 @@ services:
     build:
       context: .
       target: worker
+      args:
+        PINTRAIL_GIT_SHA: ${PINTRAIL_TAG:-dev}
     environment:
       <<: *app-env
       WORKER_POLL_INTERVAL_SECS: "5"

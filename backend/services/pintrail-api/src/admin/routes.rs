@@ -48,6 +48,11 @@ fn environment() -> Environment<'static> {
     )
     .expect("author list template");
     env.add_template(
+        "system.html",
+        include_str!("templates/partials/system.html"),
+    )
+    .expect("system template");
+    env.add_template(
         "author_edit.html",
         include_str!("templates/partials/author_edit.html"),
     )
@@ -69,6 +74,7 @@ pub fn router() -> Router<AppState> {
         .route("/admin/authors", get(author_list).post(create_author))
         .route("/admin/authors/{id}/toggle", post(toggle_author))
         .merge(super::author_edit::router())
+        .merge(super::system::router())
 }
 
 pub(super) fn render(name: &str, ctx: minijinja::Value) -> AppResult<Html<String>> {

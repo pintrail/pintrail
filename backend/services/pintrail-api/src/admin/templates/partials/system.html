@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+{% block head %}{% if refresh_seconds %}<meta http-equiv="refresh" content="{{ refresh_seconds }}">{% endif %}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>System</h1>
+    <p>Which version is running, and what the search indexer is doing.{% if busy %} This page refreshes every {{ refresh_seconds }} seconds while there is work in the queue.{% endif %}</p>
+  </div>
+</div>
+
+<section class="card sys-section" aria-labelledby="version-h">
+  <div class="card-body">
+    <h2 id="version-h">Version</h2>
+    <dl class="facts">
+      <div><dt>Commit</dt><dd>
+        {% if build.commit_url %}<a href="{{ build.commit_url }}"><code>{{ build.commit_short }}</code></a>{% else %}<code>{{ build.commit_short }}</code> <span class="muted">(not built by CI)</span>{% endif %}
+      </dd></div>
+      <div><dt>Built</dt><dd>{{ build.built_at or "unknown" }}</dd></div>
+      <div><dt>Running since</dt><dd>{{ build.started_at }} <span class="muted">({{ build.started_ago }})</span></dd></div>
+      <div><dt>Database</dt><dd>
+        {% if migration %}{{ migration_count }} migrations; latest <code>{{ migration.version }}</code> {{ migration.description }} <span class="muted">(applied {{ migration.installed }})</span>{% else %}no migrations recorded{% endif %}
+      </dd></div>
+    </dl>
+  </div>
+</section>
+
+<section class="card sys-section" aria-labelledby="search-h">
+  <div class="card-body">
+    <div class="sys-head">
+      <h2 id="search-h">Search index</h2>
+      <div class="sys-actions">
+        {% if counts.failed %}
+        <form method="post" action="/admin/system/search/retry-failed" class="inline">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+          <button class="btn-sm">Retry all failed</button>
+        </form>
+        {% endif %}
+        <form method="post" action="/admin/system/search/rebuild" class="inline"
+              onsubmit="return confirm('Queue every artifact for indexing? Artifacts whose text has not changed are skipped quickly.')">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+          <button class="btn-sm">Rebuild index</button>
+        </form>
+      </div>
+    </div>
+
+    <div class="progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ counts.percent }}"
+         aria-label="Artifacts indexed">
+      <span style="width: {{ counts.percent }}%"></span>
+    </div>
+    <p class="muted progress-label">
+      <strong>{{ counts.indexed }}</strong> of {{ counts.eligible }} artifacts indexed ({{ counts.percent }}%).
+      {% if counts.last_processed %}Last job finished {{ counts.last_processed }}.{% else %}No finished jobs on record.{% endif %}
+    </p>
+
+    <div class="stats">
+      <div class="stat"><span class="n">{{ counts.queued }}</span><span class="l">Queued{% if counts.retrying %} ({{ counts.retrying }} retrying){% endif %}</span></div>
+      <div class="stat"><span class="n">{{ counts.processing }}</span><span class="l">Running</span></div>
+      <div class="stat {{ 'stat-bad' if counts.failed }}"><span class="n">{{ counts.failed }}</span><span class="l">Failed</span></div>
+      <div class="stat"><span class="n">{{ counts.processed_recent }}</span><span class="l">Done, last 7 days</span></div>
+    </div>
+
+    {% if counts.oldest_queued %}<p class="muted">The oldest job in the queue was created {{ counts.oldest_queued }}.</p>{% endif %}
+    {% if counts.missing %}
+    <div class="alert alert-warn" role="status"><p><strong>{{ counts.missing }}</strong> artifact{{ "s have" if counts.missing != 1 else " has" }} no search document and nothing queued to make one. <em>Rebuild index</em> queues them.</p></div>
+    {% endif %}
+    {% if busy and not counts.last_processed and counts.oldest_queued %}
+    <div class="alert alert-warn" role="status"><p>Jobs are waiting but none has finished yet. If this lasts more than a minute or two, check that the worker is running: <code>docker compose logs --tail 50 worker</code>.</p></div>
+    {% endif %}
+  </div>
+</section>
+
+<section class="card table-wrap sys-section" aria-labelledby="failed-h">
+  <div class="card-body"><h2 id="failed-h">Failed jobs</h2></div>
+  {% if failed %}
+  <table>
+    <thead><tr><th>Artifact</th><th>Error</th><th>Attempts</th><th>When</th><th><span class="sr-only">Actions</span></th></tr></thead>
+    <tbody>
+    {% for j in failed %}
+      <tr>
+        <td><a href="/studio/artifacts/{{ j.artifact_id }}">{{ j.artifact_name }}</a></td>
+        <td class="body-cell"><div class="sub mono">{{ j.error }}</div></td>
+        <td><span class="pill plain">{{ j.attempts }}</span></td>
+        <td class="nowrap sub" title="{{ j.when_full }}">{{ j.when }}</td>
+        <td class="actions">
+          <form method="post" action="/admin/system/search/jobs/{{ j.id }}/retry" class="inline">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            <button class="btn-sm">Retry</button>
+          </form>
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty"><strong>No failed jobs</strong>Every job either finished or is still in the queue.</div>
+  {% endif %}
+</section>
+
+<section class="card table-wrap sys-section" aria-labelledby="recent-h">
+  <div class="card-body"><h2 id="recent-h">Recent work</h2></div>
+  {% if recent %}
+  <table>
+    <thead><tr><th>Artifact</th><th>Status</th><th>Attempts</th><th>When</th><th><span class="sr-only">Actions</span></th></tr></thead>
+    <tbody>
+    {% for j in recent %}
+      <tr>
+        <td><a href="/studio/artifacts/{{ j.artifact_id }}">{{ j.artifact_name }}</a></td>
+        <td>{% if j.status == 'processing' %}<span class="pill pill-accent">Running</span>{% else %}<span class="pill pill-ok">Done</span>{% endif %}</td>
+        <td><span class="pill plain">{{ j.attempts }}</span></td>
+        <td class="nowrap sub" title="{{ j.when_full }}">{{ j.when }}</td>
+        <td class="actions">
+          <form method="post" action="/admin/system/search/artifacts/{{ j.artifact_id }}/reindex" class="inline">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            <button class="btn-sm">Re-index</button>
+          </form>
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty"><strong>No recent jobs</strong>Finished jobs show here for seven days.</div>
+  {% endif %}
+</section>
+{% endblock %}

@@ -3,6 +3,7 @@ mod artifacts;
 mod attachments;
 mod audit;
 mod authors;
+mod build_info;
 mod cli;
 mod client_ip;
 mod comments;
@@ -30,6 +31,9 @@ use crate::state::AppState;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
+    // "Running since" on the System tab and in /health.
+    build_info::mark_started();
+
     // .env is a developer convenience; in Docker the vars come from compose.
     let _ = dotenvy::dotenv();
 
@@ -132,6 +136,7 @@ fn router(state: AppState) -> Router {
         .merge(comments::router())
         // The panel is merged last and wrapped so an expired session lands on
         // the sign-in page rather than a bare JSON 401.
+        .merge(admin::system::api_router())
         .merge(admin::router().layer(axum::middleware::from_fn(admin::redirect_unauthenticated)))
         .merge(studio::assets::router())
         .merge(studio::router().layer(axum::middleware::from_fn(studio::redirect_unauthenticated)))
@@ -141,8 +146,19 @@ fn router(state: AppState) -> Router {
 
 /// Liveness: the process is up. Deliberately does not touch the database, so
 /// an orchestrator does not restart a healthy API during a database blip.
+///
+/// Also reports which build is running, so a deploy can be checked from a
+/// browser: `commit` is the git commit CI built the image from ("dev" outside
+/// an image).
 async fn health() -> Json<Value> {
-    Json(json!({ "status": "ok", "service": "pintrail-api" }))
+    let build = build_info::current();
+    Json(json!({
+        "status": "ok",
+        "service": "pintrail-api",
+        "commit": build.commit,
+        "built_at": build.built_at,
+        "started_at": build.started_at,
+    }))
 }
 
 /// Readiness: the process can actually serve requests, database included.

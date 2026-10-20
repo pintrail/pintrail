@@ -105,6 +105,30 @@ than seven days old, using `FOR UPDATE SKIP LOCKED` so worker replicas do not
 wait on the same cleanup rows. Recent completed jobs and all queued, processing,
 and failed jobs are retained. Cleanup does not delete search documents or artifacts.
 
+**Admin → System** (`/admin/system`, admins only) shows the indexer at a glance:
+- **Progress:** how many artifacts have a document, out of all live artifacts.
+- **Queue:** queued, retrying, running, failed, and done in the last 7 days.
+- **Worker activity:** when the last job finished.
+- **Failed jobs:** each with its error and a **Retry** button.
+- **Recent work:** each with a **Re-index** button.
+- **Rebuild index:** queues every artifact.
+- **Gaps:** a warning for artifacts that have no document and nothing queued.
+
+The page refreshes itself while work is queued. The same actions are available as JSON for scripts. All are admin-only and use the author session cookie:
+
+| Method | Path | Does |
+|---|---|---|
+| `GET` | `/api/admin/system` | Build info, latest migration, search counts |
+| `GET` | `/api/admin/search/status` | Counts, failed jobs, recent jobs |
+| `POST` | `/api/admin/search/jobs/{id}/retry` | Requeue one failed job with a fresh attempt count |
+| `POST` | `/api/admin/search/retry-failed` | Requeue every failed job |
+| `POST` | `/api/admin/search/artifacts/{id}/reindex` | Queue one artifact, unless it is already waiting |
+| `POST` | `/api/admin/search/rebuild` | Queue every live artifact not already waiting |
+
+Rebuilding is cheap when nothing changed. The worker compares content hashes and skips unchanged text. That also means a rebuild does not force new documents for unchanged text; that will matter once embeddings arrive (#24).
+
+`GET /health` reports the running build, so a deploy can be checked without signing in: `commit` (the git commit CI built the image from, or `dev`), `built_at`, and `started_at`.
+
 Inspect indexing using the SQL terminal:
 
 ```sql
