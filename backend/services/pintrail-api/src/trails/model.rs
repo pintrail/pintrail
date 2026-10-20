@@ -73,6 +73,7 @@ pub struct TrailStopRow {
     pub artifact_id: Uuid,
     pub position: i32,
     pub note: Option<String>,
+    pub directions: Option<String>,
     pub artifact_name: Option<String>,
     pub artifact_kind: Option<ArtifactKind>,
     pub lat: Option<f64>,
@@ -93,6 +94,9 @@ pub struct TrailStopView {
     pub artifact_id: Uuid,
     pub position: i32,
     pub note: Option<String>,
+    /// "Getting here": how to walk to this stop from the previous one (for
+    /// the first stop, how to reach the start), in the author's words.
+    pub directions: Option<String>,
     pub available: bool,
     pub artifact_name: Option<String>,
     pub artifact_kind: Option<ArtifactKind>,
@@ -109,6 +113,7 @@ impl From<TrailStopRow> for TrailStopView {
             artifact_id: row.artifact_id,
             position: row.position,
             note: row.note,
+            directions: row.directions,
             available,
             // Nothing about a deleted artifact is worth showing.
             artifact_name: available.then_some(row.artifact_name).flatten(),
@@ -147,6 +152,9 @@ pub struct UpdateTrail {
 pub struct StopInput {
     pub artifact_id: Uuid,
     pub note: Option<String>,
+    /// How to get to this stop from the previous one.
+    #[serde(default)]
+    pub directions: Option<String>,
 }
 
 /// The whole ordered list, replacing whatever was there.
