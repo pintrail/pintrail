@@ -231,6 +231,45 @@ A commit that was deployed before is never redeployed automatically. That keeps 
 
 **Before merging a risky migration** (anything that is not purely additive, §7), pause automatic deploys, merge, and deploy by hand so someone is watching.
 
+### Routing (walking routes)
+
+Trails get walking routes from **Valhalla**, a routing engine that runs as the `valhalla` service on OpenStreetMap data (#90). It's optional and behind the `routing` compose profile. Without it, trails still work, and maps fall back to straight lines between stops.
+
+**Turn it on.** Add the profile to `backend/.env` and deploy as usual:
+
+```sh
+COMPOSE_PROFILES=routing
+```
+
+On its first start the service downloads the Geofabrik Massachusetts extract (about 310 MB) and builds its routing data into the `valhalla` volume, then starts serving. It stays unhealthy until the build finishes. Measured on a laptop: about 2 minutes and about 0.5 GB of memory, sampled every 20 seconds, so peaks may be higher. Allow 2 GB of RAM and 10–30 minutes on the server. If the build is killed (exit code 137), lower `VALHALLA_THREADS` in `.env` (default 2). Later starts reuse the built data and take seconds.
+
+The worker and API reach it at `http://valhalla:8002`. It has no public port. Check it from the server:
+
+```sh
+docker compose exec valhalla curl -s localhost:8002/status
+```
+
+**Disk.** One built copy is about 500 MB. The first build also keeps about 670 MB of build leftovers until its first refresh. Allow 2 GB for the volume.
+
+**Monthly refresh.** OpenStreetMap changes, so the data is rebuilt from a fresh extract once a month:
+
+- **How:** `deploy/routing-refresh.sh` builds the new copy beside the live one (`next/`), then swaps it in (`current/`). The old copy is kept as `previous/`.
+- **If the new copy won't serve:** the script swaps the old copy back.
+- **Undo a refresh:** `deploy/routing-refresh.sh --rollback`.
+- **Install the timer once** (first Sunday of each month, 4:30 am):
+
+  ```sh
+  sudo cp deploy/systemd/pintrail-routing-refresh.{service,timer} /etc/systemd/system/
+  sudo systemctl daemon-reload
+  sudo systemctl enable --now pintrail-routing-refresh.timer
+  ```
+
+  Edit `User=` and the paths in the service file first, as for the auto-deploy unit.
+
+**Other extracts.** `VALHALLA_PBF_URL` in `.env` points at a different extract. A smaller region uses less memory and disk if the server is tight.
+
+**If the server can't run it.** If even a small extract is too much, a hosted routing API (OpenRouteService, Stadia) can stand in. The worker would call it instead (#90, #75).
+
 ## 6. Rolling back
 
 ### Code only (the usual case)

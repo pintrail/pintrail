@@ -1,0 +1,17 @@
+# Rebuilds the Valhalla routing data from a fresh OpenStreetMap extract.
+# Started by pintrail-routing-refresh.timer. Install: docs/DEPLOYMENT.md,
+# "Routing". Edit User= and the paths for your host, as for
+# pintrail-autodeploy.service.
+[Unit]
+Description=Refresh PinTrail's walking-route data from OpenStreetMap
+Wants=network-online.target
+After=network-online.target docker.service
+
+[Service]
+Type=oneshot
+User=richards
+WorkingDirectory=/home/richards/pintrail/backend
+ExecStart=/home/richards/pintrail/backend/deploy/routing-refresh.sh
+# Downloading and building Massachusetts takes tens of minutes.
+TimeoutStartSec=3h
+Nice=10

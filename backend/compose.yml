@@ -122,6 +122,42 @@ services:
         condition: service_completed_successfully
     restart: unless-stopped
 
+  # Walking routes for trails (#34, #90). Valhalla, self-hosted, on the
+  # Geofabrik Massachusetts OpenStreetMap extract. Opt-in: start it with
+  # --profile routing, or COMPOSE_PROFILES=routing in .env (the server has
+  # this). On first start it downloads the extract and builds its routing
+  # data into the valhalla volume, which takes a while (docs/DEPLOYMENT.md,
+  # "Routing"); after that it starts in seconds from the built data.
+  # deploy/routing-refresh.sh rebuilds it from a fresh extract on a schedule
+  # without taking the live copy down. Internal only: the worker reaches it
+  # at http://valhalla:8002.
+  valhalla:
+    image: ghcr.io/valhalla/valhalla-scripted:3.9.1
+    profiles: [routing]
+    environment:
+      tile_urls: ${VALHALLA_PBF_URL:-https://download.geofabrik.de/north-america/us/massachusetts-latest.osm.pbf}
+      # The live data lives in /custom_files/current; the refresh builds the
+      # next copy in /custom_files/next and swaps it in.
+      path_extension: current
+      # Fewer threads keep memory down during a build; a build that gets
+      # killed (exit 137) needs fewer still.
+      server_threads: ${VALHALLA_THREADS:-2}
+      # Never rebuild on a restart; only the refresh script rebuilds.
+      use_tiles_ignore_pbf: "True"
+      build_elevation: "False"
+      build_transit: "False"
+    volumes:
+      - valhalla:/custom_files
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8002/status >/dev/null || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      # The first start builds the data before it can answer.
+      start_period: 90m
+    restart: unless-stopped
+
 volumes:
   pgdata:
   miniodata:
+  valhalla:
