@@ -419,6 +419,59 @@ struct PickRow {
     status: String,
 }
 
+#[derive(sqlx::FromRow)]
+struct RouteRow {
+    status: String,
+    geometry: Option<Json>,
+    distance_m: Option<f64>,
+    duration_s: Option<f64>,
+    legs: Json,
+    error_message: Option<String>,
+    updating: bool,
+}
+
+/// The walking route the worker stored for this trail (#91), if any.
+async fn load_route(state: &AppState, trail_id: Uuid) -> AppResult<Option<RouteRow>> {
+    Ok(sqlx::query_as::<_, RouteRow>(
+        "SELECT status, geometry, distance_m, duration_s, legs, error_message, \
+                EXISTS (SELECT 1 FROM trail_route_jobs j WHERE j.trail_id = r.trail_id \
+                        AND j.status IN ('queued', 'processing')) AS updating \
+         FROM trail_routes r WHERE r.trail_id = $1",
+    )
+    .bind(trail_id)
+    .fetch_optional(&state.db)
+    .await?)
+}
+
+async fn route_job_waiting(state: &AppState, trail_id: Uuid) -> AppResult<bool> {
+    Ok(sqlx::query_scalar(
+        "SELECT EXISTS (SELECT 1 FROM trail_route_jobs WHERE trail_id = $1 \
+         AND status IN ('queued', 'processing') AND attempts < 3)",
+    )
+    .bind(trail_id)
+    .fetch_one(&state.db)
+    .await?)
+}
+
+/// "350 m", "2.5 km".
+fn distance_text(m: f64) -> String {
+    if m < 995.0 {
+        format!("{} m", ((m / 10.0).round() * 10.0) as i64)
+    } else {
+        format!("{:.1} km", m / 1000.0)
+    }
+}
+
+/// "4 min", "1 h 05 min".
+fn duration_text(secs: f64) -> String {
+    let mins = (secs / 60.0).round().max(1.0) as i64;
+    if mins < 60 {
+        format!("{mins} min")
+    } else {
+        format!("{} h {:02} min", mins / 60, mins % 60)
+    }
+}
+
 /// The stops card: the ordered list, the map, and (for editors) the picker.
 async fn render_stops(
     state: &AppState,
@@ -466,6 +519,43 @@ async fn render_stops(
         .filter(|s| !s["deleted"].as_bool().unwrap_or(false) && s["lat"].is_number())
         .map(|s| json!({ "n": s["n"], "name": s["name"], "lat": s["lat"], "lng": s["lng"], "artifact_id": s["artifact_id"] }))
         .collect();
+    let route = load_route(state, trail_id).await?;
+    // Each stop after the first shows the walk from the one before it.
+    let mut stops = stops;
+    if let Some(r) = route.as_ref().filter(|r| r.status == "ok") {
+        for leg in r.legs.as_array().into_iter().flatten() {
+            let to = leg["to_stop"].as_str().unwrap_or_default();
+            if let Some(stop) = stops.iter_mut().find(|s| s["id"] == to) {
+                let m = leg["distance_m"].as_f64().unwrap_or(0.0);
+                let secs = leg["duration_s"].as_f64().unwrap_or(0.0);
+                let prev = stop["n"].as_u64().unwrap_or(1).saturating_sub(1);
+                if m < 1.0 {
+                    stop["walk"] = json!(format!("Same place as stop {prev}"));
+                    stop["same_spot"] = json!(true);
+                } else {
+                    stop["walk"] = json!(format!(
+                        "{} · {} walk from stop {prev}",
+                        distance_text(m),
+                        duration_text(secs)
+                    ));
+                }
+            }
+        }
+    }
+    let route_ctx = route.as_ref().map(|r| {
+        context! {
+            status => r.status.clone(),
+            distance => r.distance_m.map(distance_text),
+            duration => r.duration_s.map(duration_text),
+            updating => r.updating,
+            error => r.error_message.clone(),
+        }
+    });
+    let route_line = route
+        .as_ref()
+        .filter(|r| r.status == "ok")
+        .and_then(|r| r.geometry.as_ref())
+        .map(|g| g["coordinates"].clone());
     let picks = if can_edit {
         load_pick_options(state).await?
     } else {
@@ -481,7 +571,11 @@ async fn render_stops(
         context! {
             trail_id => trail_id.to_string(),
             stops => Value::from_serialize(&stops),
-            map_data => super::routes::script_json(&json!({ "points": map_points })),
+            map_data => super::routes::script_json(&json!({ "points": map_points, "line": route_line })),
+            route => route_ctx,
+            // A recompute is queued: check back shortly (the card reloads).
+            route_pending => route.as_ref().map(|r| r.updating).unwrap_or(false)
+                || (route.is_none() && route_job_waiting(state, trail_id).await?),
             picks => Value::from_serialize(&picks),
             can_edit => can_edit,
             unpublished => warn,
@@ -755,4 +849,19 @@ async fn reorder_stops(
     tx.commit().await?;
     touch(&state, id).await?;
     render_stops(&state, &author.0, &jar, id, None, None).await
+}
+
+#[cfg(test)]
+mod route_text_tests {
+    use super::{distance_text, duration_text};
+
+    #[test]
+    fn distances_and_times_read_naturally() {
+        assert_eq!(distance_text(927.4), "930 m");
+        assert_eq!(distance_text(1056.0), "1.1 km");
+        assert_eq!(distance_text(2503.0), "2.5 km");
+        assert_eq!(duration_text(20.0), "1 min");
+        assert_eq!(duration_text(1807.0), "30 min");
+        assert_eq!(duration_text(3900.0), "1 h 05 min");
+    }
 }

@@ -579,13 +579,25 @@
           .bindTooltip(label)
           .on("click", function () { openArtifact(p.artifact_id); });
       });
-      if (data.route !== false && pts.length > 1) {
+      // A computed walking route (#91, [lng, lat] pairs) is drawn along the
+      // paths, with a white casing so it reads on any part of the map.
+      // Without one, stops are joined by a dashed straight line.
+      let routeLine = null;
+      if (Array.isArray(data.line) && data.line.length > 1) {
+        const latlngs = data.line.map(function (c) { return [c[1], c[0]]; });
+        L.polyline(latlngs, { color: "#ffffff", weight: 8, opacity: 0.9, interactive: false }).addTo(map);
+        routeLine = L.polyline(latlngs, { color: "#2563eb", weight: 5, opacity: 0.9, interactive: false }).addTo(map);
+      } else if (data.route !== false && pts.length > 1) {
         L.polyline(layers.map(function (m) { return m.getLatLng(); }), {
           color: "#2563eb", weight: 3, opacity: 0.7, dashArray: "6 6",
         }).addTo(map);
       }
       layers.forEach(function (m) { m.addTo(map); });
-      if (layers.length) map.fitBounds(L.featureGroup(layers).getBounds().pad(0.25), { maxZoom: 18 });
+      if (layers.length) {
+        const bounds = L.featureGroup(layers).getBounds();
+        if (routeLine) bounds.extend(routeLine.getBounds());
+        map.fitBounds(bounds.pad(0.15), { maxZoom: 18 });
+      }
       setTimeout(function () { map.invalidateSize(); }, 50);
     });
   }

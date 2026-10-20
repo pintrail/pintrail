@@ -10,6 +10,19 @@
 {% if stops %}
 <div class="map trail-map" data-trail-map></div>
 <script type="application/json" data-trail-data>{{ map_data }}</script>
+<p class="route-summary">
+  {% if route and route.status == "ok" %}<strong>{{ route.distance }}</strong> · about {{ route.duration }} on foot, along the paths shown.{% if route.updating %} <span class="hint">Updating for your latest change…</span>{% endif %}
+  {% elif route and route.status == "failed" %}<span class="hint">No walking route between these stops: {{ route.error }}. The map shows straight lines.</span>
+  {% elif route and route.status == "too_few_stops" %}<span class="hint">Add a second stop with a location to get a walking route.</span>
+  {% elif route_pending %}<span class="hint">Working out the walking route…</span>
+  {% endif %}
+</p>
+{% if route_pending %}
+{# Reload this card in a few seconds to pick up the new route, unless someone
+   is typing in it. Each reload checks again; it stops once the route is in. #}
+<span hidden hx-get="/studio/trails/{{ trail_id }}/stops" hx-target="#stops" hx-swap="innerHTML"
+      hx-trigger="load delay:4s[!document.querySelector('#stops :is(input, textarea, select):focus')]"></span>
+{% endif %}
 
 <ol class="links stops" data-sortable="/studio/trails/{{ trail_id }}/stops/order" data-sortable-target="#stops" data-csrf="{{ csrf_token }}">
   {% for s in stops %}
@@ -29,8 +42,9 @@
           {% if not s.deleted and not s.published %}<span class="status-chip status-{{ s.status }}">{{ status_labels[s.status] if s.status != "approved" else "inside an unapproved artifact" }}</span>{% endif %}
           {% if s.parent_name %}<span class="hint">in {{ s.parent_name }}</span>{% endif %}
         </div>
+        {% if s.walk %}<p class="stop-walk">{{ s.walk }}</p>{% endif %}
         {% if s.directions %}<p class="stop-directions"><span class="lbl">{{ "Getting to the start" if s.n == 1 else "Getting here" }}</span> {{ s.directions }}</p>
-        {% elif can_edit and s.n > 1 %}<p class="hint" style="margin:.2rem 0 0">No directions from stop {{ s.n - 1 }}. Add them so people can find it.</p>{% endif %}
+        {% elif can_edit and s.n > 1 and not s.same_spot %}<p class="hint" style="margin:.2rem 0 0">No directions from stop {{ s.n - 1 }}. Add them so people can find it.</p>{% endif %}
         {% if s.note %}<p class="link-note stop-note">{{ s.note }}</p>
         {% elif can_edit %}<p class="hint" style="margin:.2rem 0 0">No note. Add one to say what to look for here.</p>{% endif %}
         {% if s.lat is none and not s.deleted %}<p class="hint" style="margin:.2rem 0 0">No location yet, so it isn't on the map.</p>{% endif %}
