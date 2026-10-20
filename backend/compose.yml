@@ -112,6 +112,9 @@ services:
     environment:
       <<: *app-env
       WORKER_POLL_INTERVAL_SECS: "5"
+      # Walking routes for trails (#91). Set it, with COMPOSE_PROFILES=routing,
+      # to http://valhalla:8002; unset, routes are not computed.
+      VALHALLA_URL: ${VALHALLA_URL:-}
     depends_on:
       # Waits for the API because that is what runs migrations. The worker
       # would survive starting first -- a failed poll cycle does not kill it --

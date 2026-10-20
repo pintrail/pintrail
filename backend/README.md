@@ -127,6 +127,22 @@ The page refreshes itself while work is queued. The same actions are available a
 
 Rebuilding is cheap when nothing changed. The worker compares content hashes and skips unchanged text. That also means a rebuild does not force new documents for unchanged text; that will matter once embeddings arrive (#24).
 
+### Walking routes for trails
+
+When a trail's stops change, or a stop's location does, a database trigger queues a job in `trail_route_jobs`. The worker (`pintrail-worker/src/trail_route.rs`) then asks Valhalla for a pedestrian route through the stops in order, and stores the result in `trail_routes`:
+- the route line as GeoJSON;
+- distance and walking time;
+- per-leg maneuvers.
+
+`GET /trails/{id}` returns it as `route`. The job behaves like the other queues:
+
+- **Skips work:** stops that haven't changed (same fingerprint) are not routed again.
+- **Answers vs outages:** "no path" is stored as a failed route, not retried; a router that is down is retried with backoff.
+- **Large trails:** go in windows of 50 locations, Valhalla's limit.
+- **Same spot:** consecutive stops at one spot (two features of a building) get a zero-length leg.
+- **Privacy:** someone who can't see every stop gets no route, because it would show where the hidden stop is.
+- **Turning it on:** routing runs only when the worker has `VALHALLA_URL`; see docs/DEPLOYMENT.md, *Routing*.
+
 `GET /health` reports the running build, so a deploy can be checked without signing in: `commit` (the git commit CI built the image from, or `dev`), `built_at`, and `started_at`.
 
 Inspect indexing using the SQL terminal:
