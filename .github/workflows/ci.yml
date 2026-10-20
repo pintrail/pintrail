@@ -76,6 +76,17 @@ jobs:
             exit 1
           fi
 
+      # The UMass seed: artifacts.toml must be valid, and the committed SQL
+      # must be what generate_sql.py makes from it.
+      - name: UMass seed is valid and regenerated
+        run: |
+          python3 seeds/umass/generate_sql.py --check
+          for mode in dev prod; do
+            python3 seeds/umass/generate_sql.py --mode $mode | diff -u seeds/umass/seed-$mode.sql - \
+              || { echo "::error::seeds/umass/seed-$mode.sql is out of date; regenerate it (seeds/umass/README.md)"; exit 1; }
+          done
+          python3 seeds/umass/generate_sql.py --remove | diff -u seeds/umass/remove.sql -
+
       # rust-toolchain.toml picks the channel and adds rustfmt and clippy.
       - name: Install the Rust toolchain
         run: rustup toolchain install
