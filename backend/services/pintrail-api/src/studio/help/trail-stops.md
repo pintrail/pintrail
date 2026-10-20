@@ -1,4 +1,13 @@
-A trail's **Stops** card lists its stops in order, shows them on a map with numbered pins joined by a line, and has the controls to change them.
+A trail's **Stops** card lists its stops in order, shows them on a map with numbered pins, and has the controls to change them.
+
+## The walking route
+
+The map draws the walking route through the stops, in order, along real paths and sidewalks, with the total distance and walking time underneath. Each stop also says how far it is from the one before, such as *520 m · 6 min walk from stop 3*.
+
+- **When it's worked out:** automatically, a few seconds after you add, remove or reorder stops, or after a stop's location changes. While that happens the card says *Working out the walking route…* and updates itself.
+- **Same building:** stops in the same building are the same spot, so the walk between them shows as *Same spot as the last stop*.
+- **No route:** if no route can be found, for example because a stop is far from any mapped path, the card says why and the map joins the stops with a dashed straight line instead.
+- **What it's based on:** the route comes from OpenStreetMap, so it only knows the paths that are mapped there. Your **Getting here** directions are what walkers read; the route line is there to show the way on the map.
 
 ## Adding a stop
 

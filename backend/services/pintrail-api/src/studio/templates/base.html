@@ -430,6 +430,9 @@
     .stop-head { display: flex; flex-wrap: wrap; align-items: center; gap: .35rem .5rem; }
     .stop-name { font-weight: 600; cursor: pointer; }
     .stop-note { white-space: pre-line; }
+    .route-summary { margin: .5rem 0 1rem; font-size: .9rem; }
+    .stop-walk { margin: .25rem 0 0; font-size: .78rem; color: var(--muted); }
+    .stop-walk::before { content: "↳ "; }
     .stop-directions { white-space: pre-line; margin: .3rem 0 0; padding: .35rem .6rem; border-left: 3px solid var(--accent); background: color-mix(in srgb, var(--accent) 6%, transparent); font-size: .9rem; border-radius: 0; }
     .stop-directions .lbl { display: block; font-size: .7rem; text-transform: uppercase; letter-spacing: .04em; color: var(--accent); }
     .muted-strike { color: var(--muted); text-decoration: line-through; }
