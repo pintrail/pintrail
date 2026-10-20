@@ -317,7 +317,8 @@ Run all of these from `~/pintrail/backend`. Compose picks up `COMPOSE_FILE` from
 | Create an author | `docker compose run --rm api create-author <email> <viewer\|editor\|admin>` (or use the admin panel) |
 | Reset a password (also signs the author out everywhere) | In the admin panel: **Authors → Edit → Reset password**, which also makes them choose their own on next sign-in. From the command line: `docker compose run --rm api reset-password <email>` (doesn't force a change; use it for your own account or when the panel is unavailable) |
 | Change an author's email, name, or role; suspend or delete them | Admin panel: **Authors → Edit** |
-| Which commit is deployed | `git log --oneline -1` or `tail -1 backups/deploy.log` |
+| Which commit is deployed | From anywhere: `curl https://pintrail.cs.umass.edu/health` (its `commit` field) or **Admin → System**. On the server: `tail -1 backups/deploy.log` |
+| What the search indexer is doing | **Admin → System**: progress, queue, failures with Retry, Re-index and Rebuild. JSON: `GET /api/admin/search/status` |
 | Restart one service | `docker compose restart api` |
 | Open a SQL shell | `docker compose exec postgres psql -U pintrail -d pintrail` |
 
