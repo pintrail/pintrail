@@ -63,6 +63,8 @@ pub struct TrailDetail {
     /// Whether the caller may edit this trail.
     pub is_owner: bool,
     pub stops: Vec<TrailStopView>,
+    /// The walking route through the stops (#91), when one has been computed.
+    pub route: Option<TrailRouteView>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
@@ -122,6 +124,26 @@ impl From<TrailStopRow> for TrailStopView {
             lng: available.then_some(row.lng).flatten(),
         }
     }
+}
+
+/// The stored walking route, as the worker computed it with Valhalla.
+#[derive(Debug, Serialize, sqlx::FromRow)]
+pub struct TrailRouteView {
+    /// ok, too_few_stops, or failed (see `error`).
+    pub status: String,
+    /// GeoJSON LineString of [lng, lat] pairs; present when status is ok.
+    pub geometry: Option<serde_json::Value>,
+    pub distance_m: Option<f64>,
+    pub duration_s: Option<f64>,
+    /// Per pair of consecutive stops: from_stop, to_stop, distance_m,
+    /// duration_s, and maneuvers [{instruction, distance_m}].
+    pub legs: serde_json::Value,
+    #[sqlx(rename = "error_message")]
+    pub error: Option<String>,
+    pub computed_at: DateTime<Utc>,
+    /// The stops changed and a new route is being computed; this one may be
+    /// out of date.
+    pub updating: bool,
 }
 
 #[derive(Debug, Deserialize)]

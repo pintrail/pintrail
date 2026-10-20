@@ -235,11 +235,14 @@ A commit that was deployed before is never redeployed automatically. That keeps 
 
 Trails get walking routes from **Valhalla**, a routing engine that runs as the `valhalla` service on OpenStreetMap data (#90). It's optional and behind the `routing` compose profile. Without it, trails still work, and maps fall back to straight lines between stops.
 
-**Turn it on.** Add the profile to `backend/.env` and deploy as usual:
+**Turn it on.** Add the profile and tell the worker where the router is, in `backend/.env`, then deploy as usual:
 
 ```sh
 COMPOSE_PROFILES=routing
+VALHALLA_URL=http://valhalla:8002
 ```
+
+The worker computes each trail's route when its stops change (#91). Until the router answers, route jobs wait and retry, and maps show straight lines.
 
 On its first start the service downloads the Geofabrik Massachusetts extract (about 310 MB) and builds its routing data into the `valhalla` volume, then starts serving. It stays unhealthy until the build finishes. Measured on a laptop: about 2 minutes and about 0.5 GB of memory, sampled every 20 seconds, so peaks may be higher. Allow 2 GB of RAM and 10–30 minutes on the server. If the build is killed (exit code 137), lower `VALHALLA_THREADS` in `.env` (default 2). Later starts reuse the built data and take seconds.
 

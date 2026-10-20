@@ -8,8 +8,8 @@ use sqlx::PgConnection;
 use uuid::Uuid;
 
 use super::model::{
-    CreateTrail, ReplaceStops, StopInput, Trail, TrailDetail, TrailStopRow, TrailStopView,
-    TrailSummary, TrailVisibility, UpdateTrail,
+    CreateTrail, ReplaceStops, StopInput, Trail, TrailDetail, TrailRouteView, TrailStopRow,
+    TrailStopView, TrailSummary, TrailVisibility, UpdateTrail,
 };
 use crate::crypto::generate_token;
 use crate::error::{AppError, AppResult};
@@ -432,6 +432,18 @@ async fn load_stops(
     Ok(rows.into_iter().map(TrailStopView::from).collect())
 }
 
+async fn load_route(state: &AppState, trail_id: Uuid) -> AppResult<Option<TrailRouteView>> {
+    Ok(sqlx::query_as::<_, TrailRouteView>(
+        "SELECT status, geometry, distance_m, duration_s, legs, error_message, computed_at, \
+                EXISTS (SELECT 1 FROM trail_route_jobs j WHERE j.trail_id = r.trail_id \
+                        AND j.status IN ('queued', 'processing')) AS updating \
+         FROM trail_routes r WHERE r.trail_id = $1",
+    )
+    .bind(trail_id)
+    .fetch_optional(&state.db)
+    .await?)
+}
+
 async fn build_detail(
     state: &AppState,
     trail: Trail,
@@ -439,6 +451,13 @@ async fn build_detail(
     reader: bool,
 ) -> AppResult<TrailDetail> {
     let stops = load_stops(state, trail.id, reader).await?;
+    // A route passes through every stop, so for someone who can't see one of
+    // them (unpublished or deleted) it would give that stop's location away.
+    let route = if !is_owner && stops.iter().any(|s| !s.available) {
+        None
+    } else {
+        load_route(state, trail.id).await?
+    };
 
     Ok(TrailDetail {
         id: trail.id,
@@ -450,6 +469,7 @@ async fn build_detail(
         share_token: is_owner.then_some(trail.share_token).flatten(),
         is_owner,
         stops,
+        route,
         created_at: trail.created_at,
         updated_at: trail.updated_at,
     })
