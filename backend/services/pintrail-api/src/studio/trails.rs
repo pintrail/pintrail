@@ -399,6 +399,7 @@ struct StopRow {
     id: Uuid,
     artifact_id: Uuid,
     note: Option<String>,
+    directions: Option<String>,
     name: String,
     kind: String,
     status: String,
@@ -432,7 +433,7 @@ async fn render_stops(
     let sql = format!(
         r#"
         {RESOLVED_COORDS_CTE}
-        SELECT s.id, s.artifact_id, s.note, a.name, a.kind::text AS kind, a.status::text AS status,
+        SELECT s.id, s.artifact_id, s.note, s.directions, a.name, a.kind::text AS kind, a.status::text AS status,
                (a.deleted_at IS NOT NULL) AS deleted, artifact_is_published(a.id) AS published,
                r.effective_lat AS lat, r.effective_lng AS lng,
                (SELECT p.name FROM artifacts p WHERE p.id = a.parent_id) AS parent_name
@@ -453,7 +454,8 @@ async fn render_stops(
         .map(|(i, r)| {
             json!({
                 "id": r.id.to_string(), "n": i + 1, "artifact_id": r.artifact_id.to_string(),
-                "note": r.note.clone().unwrap_or_default(), "name": r.name, "kind": r.kind,
+                "note": r.note.clone().unwrap_or_default(),
+                "directions": r.directions.clone().unwrap_or_default(), "name": r.name, "kind": r.kind,
                 "status": r.status, "deleted": r.deleted, "published": r.published,
                 "lat": r.lat, "lng": r.lng, "parent_name": r.parent_name,
             })
@@ -558,6 +560,8 @@ pub struct AddStopForm {
     artifact_id: String,
     #[serde(default)]
     note: String,
+    #[serde(default)]
+    directions: String,
 }
 
 fn clean_note(s: &str) -> Option<String> {
@@ -616,12 +620,13 @@ async fn add_stop(
             .into_response());
     }
     sqlx::query(
-        "INSERT INTO trail_stops (trail_id, artifact_id, position, note) \
-         VALUES ($1, $2, (SELECT COALESCE(max(position) + 1, 0) FROM trail_stops WHERE trail_id = $1), $3)",
+        "INSERT INTO trail_stops (trail_id, artifact_id, position, note, directions) \
+         VALUES ($1, $2, (SELECT COALESCE(max(position) + 1, 0) FROM trail_stops WHERE trail_id = $1), $3, $4)",
     )
     .bind(id)
     .bind(artifact_id)
     .bind(clean_note(&f.note))
+    .bind(clean_note(&f.directions))
     .execute(&state.db)
     .await?;
     touch(&state, id).await?;
@@ -646,6 +651,8 @@ pub struct StopNoteForm {
     csrf_token: String,
     #[serde(default)]
     note: String,
+    #[serde(default)]
+    directions: String,
 }
 
 async fn update_stop(
@@ -657,9 +664,10 @@ async fn update_stop(
 ) -> AppResult<Html<String>> {
     require_csrf(&jar, &f.csrf_token)?;
     let trail_id = stop_trail(&state, &author.0, id).await?;
-    sqlx::query("UPDATE trail_stops SET note = $2 WHERE id = $1")
+    sqlx::query("UPDATE trail_stops SET note = $2, directions = $3 WHERE id = $1")
         .bind(id)
         .bind(clean_note(&f.note))
+        .bind(clean_note(&f.directions))
         .execute(&state.db)
         .await?;
     touch(&state, trail_id).await?;
