@@ -13,7 +13,7 @@ Central Heating Plant                (building)
 └── Battery energy storage system    (installation)
 ```
 
-In the Studio's list on the left, nested artifacts appear indented under their parent. On an artifact's page, **Nested inside** lists what's inside it.
+In the finder on the left, click a parent to step inside it and see what's nested there; the number after its name says how many. On an artifact's page, **Nested inside** lists what's inside it.
 
 ## Why nest?
 
