@@ -44,7 +44,7 @@ WITH RECURSIVE resolved AS (
            COALESCE(a.lng, r.effective_lng)
     FROM artifacts a JOIN resolved r ON a.parent_id = r.id
 )
-SELECT s.id, s.artifact_id, s.position, s.note,
+SELECT s.id, s.artifact_id, s.position, s.note, s.directions,
        a.name AS artifact_name,
        a.kind AS artifact_kind,
        r.effective_lat AS lat,
@@ -509,16 +509,82 @@ async fn insert_stops(
         }
 
         sqlx::query(
-            "INSERT INTO trail_stops (trail_id, artifact_id, position, note) \
-             VALUES ($1, $2, $3, $4)",
+            "INSERT INTO trail_stops (trail_id, artifact_id, position, note, directions) \
+             VALUES ($1, $2, $3, $4, $5)",
         )
         .bind(trail_id)
         .bind(stop.artifact_id)
         .bind(index as i32)
         .bind(stop.note.as_deref().map(str::trim))
+        .bind(
+            stop.directions
+                .as_deref()
+                .map(str::trim)
+                .filter(|s| !s.is_empty()),
+        )
         .execute(&mut *conn)
         .await?;
     }
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use sqlx::PgPool;
+
+    #[sqlx::test(migrations = "../../migrations")]
+    async fn stop_directions_round_trip_and_blank_means_none(db: PgPool) -> anyhow::Result<()> {
+        let author: Uuid = sqlx::query_scalar(
+            "INSERT INTO authors (email, password_hash, role) VALUES ('a@example.test', 'x', 'editor') RETURNING id",
+        )
+        .fetch_one(&db)
+        .await?;
+        let trail: Uuid = sqlx::query_scalar(
+            "INSERT INTO trails (title, owner_type, owner_id) VALUES ('Walk', 'author', $1) RETURNING id",
+        )
+        .bind(author)
+        .fetch_one(&db)
+        .await?;
+        let mut ids = Vec::new();
+        for name in ["Plant", "Pond"] {
+            let id: Uuid = sqlx::query_scalar(
+                "INSERT INTO artifacts (kind, name, description, lat, lng) \
+                 VALUES ('other', $1, 'x', 42.39, -72.53) RETURNING id",
+            )
+            .bind(name)
+            .fetch_one(&db)
+            .await?;
+            ids.push(id);
+        }
+        let stops = vec![
+            StopInput {
+                artifact_id: ids[0],
+                note: None,
+                directions: Some("  Start at Lot 44.  ".into()),
+            },
+            StopInput {
+                artifact_id: ids[1],
+                note: Some("Look for the logs".into()),
+                directions: Some("   ".into()),
+            },
+        ];
+        let mut conn = db.acquire().await?;
+        insert_stops(&mut conn, trail, &stops, false).await?;
+
+        let rows = sqlx::query_as::<_, TrailStopRow>(STOPS_QUERY)
+            .bind(trail)
+            .bind(false)
+            .fetch_all(&db)
+            .await?;
+        let views: Vec<TrailStopView> = rows.into_iter().map(TrailStopView::from).collect();
+        assert_eq!(views[0].directions.as_deref(), Some("Start at Lot 44."));
+        assert_eq!(
+            views[1].directions, None,
+            "blank directions are stored as none"
+        );
+        assert_eq!(views[1].note.as_deref(), Some("Look for the logs"));
+        Ok(())
+    }
 }
