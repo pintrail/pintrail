@@ -41,7 +41,11 @@ pub(super) fn environment() -> Environment<'static> {
         ),
         ("studio_login.html", include_str!("templates/login.html")),
         ("studio_page.html", include_str!("templates/page.html")),
-        ("studio_tree.html", include_str!("templates/tree.html")),
+        ("studio_finder.html", include_str!("templates/finder.html")),
+        (
+            "studio_finder_frame.html",
+            include_str!("templates/finder_frame.html"),
+        ),
         (
             "studio_welcome.html",
             include_str!("templates/welcome.html"),
@@ -139,7 +143,6 @@ pub fn router() -> Router<AppState> {
         .route("/studio/logout", post(logout))
         .route("/studio/password", get(password_form).post(password_submit))
         .route("/studio/welcome", get(welcome))
-        .route("/studio/tree", get(tree))
         .route("/studio/artifacts/new", get(new_form))
         .route("/studio/artifacts", post(create))
         .route("/studio/artifacts/{id}", get(detail).post(update))
@@ -157,6 +160,7 @@ pub fn router() -> Router<AppState> {
         .merge(super::trails::router())
         .merge(super::topics::router())
         .merge(super::help::router())
+        .merge(super::finder::router())
 }
 
 // --- rendering helpers -----------------------------------------------------
@@ -467,32 +471,6 @@ async fn welcome(author: AuthenticatedAuthor, jar: CookieJar) -> AppResult<Html<
         "studio_welcome.html",
         base_ctx(&author.0, &session_token(&jar)),
     )
-}
-
-async fn tree(
-    author: AuthenticatedAuthor,
-    State(state): State<AppState>,
-    jar: CookieJar,
-    Query(q): Query<TreeQuery>,
-) -> AppResult<Html<String>> {
-    let roots = load_tree(&state, q.mine.is_some().then_some(author.0.id)).await?;
-    render(
-        &environment(),
-        "studio_tree.html",
-        context! {
-            roots => roots,
-            mine => q.mine.is_some(),
-            selected_id => q.selected.map(|u| u.to_string()),
-            ..base_ctx(&author.0, &session_token(&jar))
-        },
-    )
-}
-
-#[derive(Debug, Deserialize)]
-pub struct TreeQuery {
-    selected: Option<Uuid>,
-    /// Present (any value) to show only the signed-in author's artifacts.
-    mine: Option<String>,
 }
 
 async fn detail(
@@ -1676,83 +1654,13 @@ async fn reorder_links(
 
 // --- data loading ----------------------------------------------------------
 
+/// A child row for the detail page's "Nested inside" list.
 #[derive(sqlx::FromRow)]
 struct TreeRow {
     id: Uuid,
     kind: String,
     name: String,
-    parent_id: Option<Uuid>,
     status: String,
-    #[sqlx(default)]
-    is_topic: bool,
-}
-
-/// Loads every artifact and nests it into a root->children forest for the
-/// sidebar. One query, assembled in memory, rather than a query per level.
-async fn load_tree(state: &AppState, mine: Option<Uuid>) -> AppResult<Value> {
-    let rows = sqlx::query_as::<_, TreeRow>(
-        "SELECT id, CASE WHEN is_topic THEN 'topic' ELSE kind::text END AS kind, name, parent_id, \
-                status::text AS status, is_topic \
-         FROM artifacts WHERE deleted_at IS NULL ORDER BY name, id",
-    )
-    .fetch_all(&state.db)
-    .await?;
-
-    // "Only mine" is a flat list: the author's artifacts, wherever they sit.
-    if let Some(me) = mine {
-        let owned: std::collections::HashSet<Uuid> = sqlx::query_scalar(
-            "SELECT id FROM artifacts WHERE deleted_at IS NULL AND created_by = $1",
-        )
-        .bind(me)
-        .fetch_all(&state.db)
-        .await?
-        .into_iter()
-        .collect();
-        let flat: Vec<serde_json::Value> = rows
-            .iter()
-            .filter(|r| owned.contains(&r.id))
-            .map(|r| {
-                serde_json::json!({
-                    "id": r.id.to_string(), "kind": r.kind, "name": r.name,
-                    "status": r.status, "children": [],
-                })
-            })
-            .collect();
-        return Ok(Value::from_serialize(&flat));
-    }
-
-    // Build child lists keyed by parent.
-    use std::collections::HashMap;
-    let mut children: HashMap<Option<Uuid>, Vec<&TreeRow>> = HashMap::new();
-    // Topics live on the Topics page, not in the place hierarchy.
-    for row in rows.iter().filter(|r| !r.is_topic) {
-        children.entry(row.parent_id).or_default().push(row);
-    }
-
-    fn build(
-        id: Option<Uuid>,
-        children: &std::collections::HashMap<Option<Uuid>, Vec<&TreeRow>>,
-    ) -> Vec<serde_json::Value> {
-        children
-            .get(&id)
-            .map(|kids| {
-                kids.iter()
-                    .map(|r| {
-                        serde_json::json!({
-                            "id": r.id.to_string(),
-                            "kind": r.kind,
-                            "name": r.name,
-                            "status": r.status,
-                            "children": build(Some(r.id), children),
-                        })
-                    })
-                    .collect()
-            })
-            .unwrap_or_default()
-    }
-
-    let forest = build(None, &children);
-    Ok(Value::from_serialize(&forest))
 }
 
 #[derive(sqlx::FromRow)]

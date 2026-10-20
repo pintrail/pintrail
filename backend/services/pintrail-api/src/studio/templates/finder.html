@@ -1,0 +1,73 @@
+{# One view of the artifact finder: a level of the hierarchy, or a flat list
+   (search or filter) with paths. Replaces itself: it carries its own URL and
+   reloads there on refresh-tree, so a create, edit or delete keeps the author
+   where they were. The frame (search box, chips) is in finder_frame.html.
+   htmx inherits hx-swap, so everything inside that opens something in
+   #detail says hx-swap="innerHTML" itself, or it would inherit outerHTML. #}
+{% macro row(a, extra="") %}
+  <a class="node {{ extra }} {{ 'active' if a.id|string == selected_id }}"
+     href="/studio/artifacts/{{ a.id }}" data-id="{{ a.id }}" data-name="{{ a.name }}"
+     {% if a.children %}data-children="{{ a.children }}"{% endif %}
+     {% if not pick %}hx-get="/studio/artifacts/{{ a.id }}" hx-target="#detail" hx-swap="innerHTML" hx-push-url="true"{% endif %}>
+    <span class="status-dot status-{{ a.status }}" data-tip="{{ status_labels[a.status] }}"></span>
+    <span class="node-text">
+      <span class="node-name">{{ a.name or "(untitled)" }}</span>
+      {% if flat and paths[a.id|string] %}<span class="node-path">{{ paths[a.id|string] }}</span>{% endif %}
+      {% if flat and a.is_topic and filter != "topics" %}<span class="node-path">Topic</span>{% endif %}
+    </span>
+    {% if extra == "current" %}<span class="node-count">overview</span>
+    {% elif a.children %}<span class="node-count" aria-label="{{ a.children }} inside">{{ a.children }} ›</span>{% endif %}
+  </a>
+{% endmacro %}
+<div class="finder-body" hx-get="{{ self_url }}" hx-trigger="refresh-tree from:body" hx-swap="outerHTML"
+     data-filter="{{ filter }}" data-q="{{ q or '' }}"
+     {% if listing.current %}data-in="{{ listing.current.id }}"{% endif %}
+     {% if selected_id %}data-selected="{{ selected_id }}"{% endif %}>
+{% if flat %}
+  <p class="finder-hint">
+    {% if listing.rows %}{{ listing.rows|length }}{% if listing.truncated %}+{% endif %}
+      {% if q %}match{{ "es" if listing.rows|length != 1 }} for “{{ q }}”{% else %}artifact{{ "s" if listing.rows|length != 1 }}{% endif %}
+      {%- if filter != "all" %} · {{ {"mine": "yours", "drafts": "drafts", "review": "in review", "topics": "topics"}[filter] }}{% endif %}
+    {% endif %}
+  </p>
+  {% if listing.rows %}
+  <div class="finder-list" role="list">{% for a in listing.rows %}{{ row(a) }}{% endfor %}</div>
+  {% if listing.truncated %}<p class="finder-hint">Showing the first {{ list_limit }}. Type more to narrow it down.</p>{% endif %}
+  {% else %}
+  <p class="finder-empty">{% if q %}Nothing matches “{{ q }}”.{% elif filter == "mine" %}You haven't added any artifacts yet.{% elif filter == "review" %}Nothing is waiting for review.{% elif filter == "drafts" %}No drafts.{% else %}No topics yet.{% endif %}</p>
+  {% endif %}
+{% else %}
+  {% if listing.current %}
+  <nav class="finder-crumbs" aria-label="Where you are">
+    <a class="crumb-back" hx-get="/studio/finder?{% if listing.trail %}in={{ listing.trail[-1].id }}&{% endif %}mode={{ 'pick' if pick else 'navigate' }}"
+       hx-target="closest .finder-body" hx-swap="outerHTML" data-finder-up
+       aria-label="Back to {{ listing.trail[-1].name if listing.trail else 'all places' }}">‹</a>
+    <a hx-get="/studio/finder?mode={{ 'pick' if pick else 'navigate' }}" hx-target="closest .finder-body" hx-swap="outerHTML">All places</a>
+    {% for c in listing.trail %}<span aria-hidden="true">›</span>
+    <a hx-get="/studio/finder?in={{ c.id }}&mode={{ 'pick' if pick else 'navigate' }}" hx-target="closest .finder-body" hx-swap="outerHTML">{{ c.name }}</a>{% endfor %}
+  </nav>
+  <div class="finder-list" role="list">
+    {{ row(listing.current, "current") }}
+    {% for a in listing.rows %}{{ row(a, "inner") }}{% endfor %}
+  </div>
+  {% if not listing.rows %}<p class="finder-hint">Nothing inside yet.</p>{% endif %}
+  {% if can_create and not pick %}
+  <button class="finder-add" hx-get="/studio/artifacts/new?parent={{ listing.current.id }}" hx-target="#detail" hx-swap="innerHTML">+ Add inside {{ listing.current.name }}</button>
+  {% endif %}
+  {% else %}
+  <p class="finder-hint">Places · {{ listing.rows|length }}</p>
+  {% if listing.rows %}
+  <div class="finder-list" role="list">{% for a in listing.rows %}{{ row(a) }}{% endfor %}</div>
+  {% else %}
+  <p class="finder-empty">No artifacts yet.{% if can_create and not pick %} Use <strong>+ New</strong> to add one.{% endif %}</p>
+  {% endif %}
+  {% if listing.topic_count %}
+  <a class="node folder" data-finder-filter="topics" href="#" role="button">
+    <span class="folder-icon" aria-hidden="true">▤</span>
+    <span class="node-text"><span class="node-name">Topics</span></span>
+    <span class="node-count">{{ listing.topic_count }} ›</span>
+  </a>
+  {% endif %}
+  {% endif %}
+{% endif %}
+</div>

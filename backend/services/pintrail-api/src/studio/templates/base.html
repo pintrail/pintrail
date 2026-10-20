@@ -64,11 +64,47 @@
     }
     .tree a.node:hover { background: var(--chip); }
     .tree a.node.active { background: color-mix(in srgb, var(--accent) 14%, transparent); color: var(--accent); }
-    .tree .kids { list-style: none; margin: 0; padding-left: 1rem; border-left: 1px solid var(--line); margin-left: .7rem; }
     .kind-chip {
       font-size: .68rem; text-transform: uppercase; letter-spacing: .03em; color: var(--muted);
       border: 1px solid var(--line); border-radius: .3rem; padding: 0 .3rem; flex-shrink: 0;
     }
+
+    /* Artifact finder (finder.rs): one level at a time, search across all. */
+    .finder-controls { display: grid; gap: .5rem; margin-bottom: .6rem; }
+    .finder-controls input[type=search] { width: 100%; }
+    .finder-chips { display: flex; flex-wrap: wrap; gap: .3rem; }
+    .chip-radio input { position: absolute; opacity: 0; pointer-events: none; }
+    .chip-radio span {
+      display: inline-block; font-size: .75rem; padding: .15rem .55rem; border-radius: 999px;
+      border: 1px solid var(--line); color: var(--muted); cursor: pointer; user-select: none;
+    }
+    .chip-radio input:checked + span { background: color-mix(in srgb, var(--accent) 14%, transparent); border-color: transparent; color: var(--accent); }
+    .chip-radio input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: 1px; }
+    .finder-hint { color: var(--muted); font-size: .75rem; margin: .4rem .5rem; }
+    .finder-empty { color: var(--muted); font-size: .85rem; margin: 1rem .5rem; }
+    .finder-crumbs { display: flex; flex-wrap: wrap; align-items: center; gap: .3rem; font-size: .78rem; color: var(--muted); margin: .2rem .25rem .4rem; }
+    .finder-crumbs a { color: var(--muted); cursor: pointer; }
+    .finder-crumbs a:hover { color: var(--accent); }
+    .finder-crumbs .crumb-back { font-size: 1rem; line-height: 1; padding: 0 .3rem; border-radius: .3rem; }
+    .finder-crumbs .crumb-back:hover { background: var(--chip); }
+    .finder-list { display: grid; gap: 1px; }
+    .finder a.node {
+      display: flex; align-items: center; gap: .55rem; padding: .38rem .5rem; border-radius: .45rem;
+      color: var(--ink); cursor: pointer; text-decoration: none; min-width: 0;
+    }
+    .finder a.node:hover, .finder a.node:focus-visible { background: var(--chip); outline: none; }
+    .finder a.node.active { background: color-mix(in srgb, var(--accent) 14%, transparent); color: var(--accent); }
+    .finder a.node.current { font-weight: 600; }
+    .finder a.node.inner { margin-left: .9rem; }
+    .finder .node-text { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+    .finder .node-name { overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; line-height: 1.3; }
+    .finder .node-path { font-size: .72rem; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .finder .node-count { align-self: flex-start; margin-top: .15rem; font-size: .72rem; color: var(--muted); flex-shrink: 0; font-variant-numeric: tabular-nums; }
+    .finder a.node.active .node-count, .finder a.node.active .node-path { color: inherit; opacity: .8; }
+    .finder a.node.folder { margin-top: .5rem; border-top: 1px solid var(--line); border-radius: 0 0 .45rem .45rem; padding-top: .55rem; }
+    .finder .folder-icon { color: var(--muted); width: .5rem; text-align: center; }
+    .finder-add { margin: .5rem 0 0 .9rem; font-size: .8rem; background: none; border: none; color: var(--accent); cursor: pointer; padding: .2rem .5rem; }
+    .finder-add:hover { text-decoration: underline; }
 
     main.detail { padding: 1.5rem 1.75rem; overflow-y: auto; max-width: 900px; }
     .empty { color: var(--muted); text-align: center; padding: 4rem 1rem; }
@@ -90,7 +126,7 @@
 
     label.field { display: block; margin: .9rem 0; }
     label.field .lbl { display: block; font-size: .85rem; color: var(--muted); margin-bottom: .3rem; }
-    input[type=text], input[type=number], input[type=email], input[type=password], textarea, select {
+    input[type=text], input[type=search], input[type=number], input[type=email], input[type=password], textarea, select {
       font: inherit; width: 100%; padding: .55rem .65rem; border-radius: .5rem;
       border: 1px solid var(--line); background: var(--bg); color: var(--ink);
     }
@@ -214,7 +250,7 @@
       .nav-close { display: grid; margin: -.25rem .25rem 0 -.35rem; }
       .nav-backdrop { position: fixed; inset: 0; z-index: 1100; background: rgba(0,0,0,.35); }
       body.nav-open .nav-backdrop { display: block; }
-      .tree a.node { padding: .55rem .5rem; }
+      .tree a.node, .finder a.node { padding: .55rem .5rem; }
       main.detail { padding: .9rem .75rem 2rem; max-width: none; }
       .card { padding: 1rem; border-radius: .65rem; margin-bottom: .9rem; }
       .card h1 { font-size: 1.25rem; }
@@ -446,7 +482,7 @@
         <button type="button" class="icon-btn nav-close" data-nav-close aria-label="Close artifact list">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
         </button>
-        {% from "studio_macros.html" import help %}<h2>Artifacts{{ help("finding-your-way", "Every artifact; ones inside another are indented under it. The dot is its review status.") }}</h2>
+        {% from "studio_macros.html" import help %}<h2>Artifacts{{ help("finding-your-way", "Top-level places first. Click one to open it and see what's inside. Search covers every level. The dot is its review status.") }}</h2>
         <span class="push"></span>
         {% if can_create %}
         <button class="btn-sm btn-primary" hx-get="/studio/artifacts/new" hx-target="#detail" data-tip="Add an artifact: start with its name and where it is">+ New</button>
@@ -464,12 +500,7 @@
         <button class="btn-sm" hx-get="/studio/deleted" hx-target="#detail" hx-push-url="true">Recently deleted</button>
       </div>
       {% endif %}
-      <div id="tree"
-           hx-get="/studio/tree"
-           hx-include="#tree"
-           hx-trigger="load, refresh-tree from:body"
-           hx-swap="innerHTML">
-      </div>
+      {% from "studio_finder_frame.html" import finder %}{{ finder() }}
     </aside>
     <main class="detail" id="detail">
       {% block detail %}{% endblock %}

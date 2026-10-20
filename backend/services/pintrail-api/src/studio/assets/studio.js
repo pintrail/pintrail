@@ -1,4 +1,4 @@
-// Studio front-end glue. Two jobs htmx cannot do on its own:
+// Studio front-end glue. Jobs htmx cannot do on its own, among them:
 //   1. Initialise Leaflet maps inside fragments htmx swaps in.
 //   2. Drive the three-step direct-to-storage upload (intent -> PUT -> complete).
 // Everything else is plain htmx attributes in the templates.
@@ -651,7 +651,11 @@
     if (e.target.closest("[data-nav-toggle]")) { setNav(!document.body.classList.contains("nav-open")); return; }
     if (e.target.closest("[data-nav-close]")) { setNav(false); return; }
     // Picking an artifact, Map, or + New in the drawer shows it, so close.
-    if (e.target.closest(".sidebar a.node, .sidebar .head button")) setNav(false);
+    // Opening something that holds others steps inside it in the finder,
+    // so the drawer stays open for the next pick.
+    const node = e.target.closest(".sidebar a.node");
+    if ((node && !node.dataset.children && !node.dataset.finderFilter) ||
+        e.target.closest(".sidebar .head button")) setNav(false);
   });
   document.addEventListener("keydown", function (e) {
     if (e.key === "Escape" && document.body.classList.contains("nav-open")) setNav(false);
@@ -848,6 +852,126 @@
       input.focus();
     });
   }
+
+
+  // --- artifact finder (studio/finder.rs) -----------------------------------
+  // The server renders each view; this file only does what htmx can't:
+  // opening an artifact *and* stepping inside it with one click, pick mode,
+  // the Topics folder, keeping the controls in step with the view, and the
+  // keyboard.
+
+  function finderBodyUrl(finder, params) {
+    const p = new URLSearchParams(params);
+    p.set("mode", finder.dataset.mode || "navigate");
+    return "/studio/finder?" + p.toString();
+  }
+
+  function markActive(finder, id) {
+    finder.dataset.selected = id || "";
+    finder.querySelectorAll("a.node").forEach(function (n) {
+      n.classList.toggle("active", !!id && n.dataset.id === id);
+    });
+  }
+
+  document.addEventListener("click", function (e) {
+    const finder = e.target.closest(".finder");
+    if (!finder) return;
+
+    const folder = e.target.closest("[data-finder-filter]");
+    if (folder) {
+      e.preventDefault();
+      const radio = finder.querySelector('input[name=filter][value="' + folder.dataset.finderFilter + '"]');
+      if (radio) { radio.checked = true; htmx.trigger(finder.querySelector(".finder-controls"), "change"); }
+      return;
+    }
+
+    const node = e.target.closest("a.node");
+    if (!node || !node.dataset.id) return;
+    markActive(finder, node.dataset.id);
+
+    if (finder.dataset.mode === "pick") {
+      e.preventDefault();
+      finder.dispatchEvent(new CustomEvent("artifact-picked", {
+        bubbles: true, detail: { id: node.dataset.id, name: node.dataset.name },
+      }));
+      if (!node.dataset.children || node.classList.contains("current")) return;
+    }
+    // Something with others inside: step in. Not for the row already at the
+    // top of a level. In navigate mode the row's own hx-get opens it in
+    // #detail first; replacing the list before that request returns would
+    // make htmx drop the response (its element would be gone), so the step
+    // waits for it (see htmx:afterRequest below).
+    if (node.dataset.children && !node.classList.contains("current")) {
+      if (finder.dataset.mode === "pick") stepInto(finder, node.dataset.id);
+      else node.dataset.stepIn = "1";
+    }
+  });
+
+  function stepInto(finder, id) {
+    htmx.ajax("GET", finderBodyUrl(finder, { in: id, selected: id }),
+      { target: finder.querySelector(".finder-body"), swap: "outerHTML" });
+  }
+
+  document.body.addEventListener("htmx:afterRequest", function (e) {
+    const node = e.detail.elt;
+    if (!node || !node.dataset || !node.dataset.stepIn) return;
+    delete node.dataset.stepIn;
+    const finder = node.closest(".finder");
+    if (finder) stepInto(finder, node.dataset.id);
+  });
+
+  // After each swap: show the view's filter and search in the controls, and
+  // keep the highlight on whatever was last opened. Every finder on the page
+  // is checked, because an outerHTML swap leaves the event on the old node.
+  function syncFinder(finder) {
+    const body = finder.querySelector(".finder-body");
+    if (!body || !body.dataset.filter) return;
+    const radio = finder.querySelector('input[name=filter][value="' + body.dataset.filter + '"]');
+    if (radio) radio.checked = true;
+    const search = finder.querySelector("input[type=search]");
+    if (search && document.activeElement !== search) search.value = body.dataset.q || "";
+    markActive(finder, finder.dataset.selected || body.dataset.selected);
+  }
+  document.body.addEventListener("htmx:afterSettle", function () {
+    document.querySelectorAll(".finder").forEach(syncFinder);
+  });
+
+  // A deep link (/studio/artifacts/<id>) opens the finder where that artifact is.
+  document.body.addEventListener("htmx:configRequest", function (e) {
+    if (e.detail.path.indexOf("/studio/finder") !== 0) return;
+    if (e.detail.parameters.in || e.detail.parameters.q || e.detail.parameters.selected) return;
+    const finder = e.detail.elt.closest && e.detail.elt.closest(".finder");
+    if (!finder || finder.dataset.started) return;
+    finder.dataset.started = "1";
+    const m = location.pathname.match(/^\/studio\/artifacts\/([0-9a-f-]{36})/);
+    if (m) e.detail.parameters.selected = m[1];
+  });
+
+  // Keyboard: / jumps to search; in the list, arrows move, Right/Enter opens,
+  // Left goes back up a level; Escape in the search box clears it.
+  document.addEventListener("keydown", function (e) {
+    const el = document.activeElement;
+    const typing = el && (el.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName));
+    if (e.key === "/" && !typing && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      const s = document.querySelector(".sidebar .finder input[type=search]");
+      if (s) { e.preventDefault(); s.focus(); s.select(); }
+      return;
+    }
+    const finder = el && el.closest && el.closest(".finder");
+    if (!finder) return;
+    if (el.matches("input[type=search]")) {
+      if (e.key === "Escape" && el.value) { el.value = ""; htmx.trigger(finder.querySelector(".finder-controls"), "change"); e.stopPropagation(); }
+      if (e.key === "ArrowDown") { const first = finder.querySelector(".finder-body a.node"); if (first) { e.preventDefault(); first.focus(); } }
+      return;
+    }
+    if (!el.matches("a.node")) return;
+    const nodes = Array.from(finder.querySelectorAll(".finder-body a.node"));
+    const i = nodes.indexOf(el);
+    if (e.key === "ArrowDown" && i < nodes.length - 1) { e.preventDefault(); nodes[i + 1].focus(); }
+    else if (e.key === "ArrowUp") { e.preventDefault(); (i > 0 ? nodes[i - 1] : finder.querySelector("input[type=search]")).focus(); }
+    else if (e.key === "ArrowRight" || e.key === "Enter") { e.preventDefault(); el.click(); }
+    else if (e.key === "ArrowLeft") { const up = finder.querySelector("[data-finder-up]"); if (up) { e.preventDefault(); up.click(); } }
+  });
 
   function enhance(root) {
     root = root || document;
