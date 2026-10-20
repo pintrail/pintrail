@@ -2,9 +2,15 @@
 #
 # Everything here runs from backend/, where compose.yml and .env live.
 
-# `DOCKER="sudo docker"` for a host where the deploy user is not in the
-# docker group. Left unquoted where used so that form splits into two words.
+# The deploy user must be in the docker group. Running docker through sudo
+# is refused: sudo resets the environment, so compose would never see
+# PINTRAIL_TAG and would run the previous "deployed" images (or build its
+# own) while the deploy log records the new commit.
 DOCKER=${DOCKER:-docker}
+if [[ $DOCKER == sudo* ]]; then
+  printf '\033[31merror:\033[0m %s\n' "DOCKER=\"$DOCKER\" is not supported: sudo drops PINTRAIL_TAG. Add $(id -un) to the docker group instead." >&2
+  exit 1
+fi
 BACKUP_DIR=${BACKUP_DIR:-backups}
 BACKUP_KEEP=${BACKUP_KEEP:-10}
 DEPLOY_LOG="$BACKUP_DIR/deploy.log"

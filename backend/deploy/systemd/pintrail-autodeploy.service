@@ -2,9 +2,8 @@
 # Install and enable: docs/DEPLOYMENT.md, "Automatic deploys".
 #
 # Edit User= and WorkingDirectory= for your host before installing. The user
-# must own the checkout and be able to run docker: be in the docker group,
-# or uncomment the Environment= line below (and allow it passwordless sudo
-# for docker).
+# must own the checkout and be in the docker group (not run docker through
+# sudo, which drops the image tag the deploy passes to compose).
 [Unit]
 Description=Deploy PinTrail when main has moved and CI passed
 Wants=network-online.target
@@ -17,4 +16,3 @@ WorkingDirectory=/home/richards/pintrail/backend
 ExecStart=/home/richards/pintrail/backend/deploy/auto-deploy.sh
 # A first build compiles the whole Rust workspace; give it room.
 TimeoutStartSec=45min
-Environment="DOCKER=sudo docker"
