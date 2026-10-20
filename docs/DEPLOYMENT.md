@@ -41,7 +41,7 @@ Which files are used is set by `COMPOSE_FILE` in `backend/.env` (see §3).
 ## 2. Server prerequisites
 
 - Linux with Docker Engine and the Docker Compose plugin (`docker compose version` works).
-- The deploy user can run `docker`. Either add them to the `docker` group, or prefix every script with `DOCKER="sudo docker"`.
+- The deploy user is in the `docker` group (`sudo usermod -aG docker <user>`, then log in again). Running docker through `sudo` does not work: sudo drops the environment variables the scripts pass to compose, so a deploy would run the wrong images.
 - `git`, plus read access to `github.com/pintrail/pintrail` from the server. The scripts run `git fetch`.
 - The TLS certificate and key at the paths `compose.versity.yml` mounts:
   - `/etc/ssl/certs/mapindstudy-fullchain.pem`
@@ -148,7 +148,7 @@ The site stays up on the old version all through steps 1–4. So a broken build,
 
 | Environment variable | Default | Meaning |
 |---|---|---|
-| `DOCKER` | `docker` | Set `DOCKER="sudo docker"` if the deploy user isn't in the docker group. |
+| `DOCKER` | `docker` | The docker command. Must not go through `sudo`; see the prerequisites. |
 | `BACKUP_KEEP` | `10` | How many database dumps to keep. |
 | `BACKUP_DIR` | `backups` | Where dumps and the deploy log go, relative to `backend/`. |
 | `HEALTH_TIMEOUT` | `180` | Seconds to wait for the API to become healthy. |
@@ -329,7 +329,7 @@ Authors created from the command line keep the password you type. Authors create
 
 **`the working tree has uncommitted changes`**: someone edited files on the server. See what changed with `git status` and `git diff`. Then either commit the change properly elsewhere, or discard it with `git checkout -- <file>`.
 
-**`permission denied while trying to connect to the docker API`**: the user isn't in the `docker` group. Use `DOCKER="sudo docker" deploy/redeploy.sh`, or add the user to the group and log in again.
+**`permission denied while trying to connect to the docker API`**: the user isn't in the `docker` group. Add them (`sudo usermod -aG docker <user>`) and log in again; for the timer, run `sudo systemctl restart pintrail-autodeploy.timer`.
 
 **`api did not become healthy`**: the script prints the last 50 lines of the API log. Common causes:
 - A missing or wrong `.env` value. The API exits at startup, naming the setting.
