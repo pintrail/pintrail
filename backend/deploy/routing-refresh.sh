@@ -82,6 +82,7 @@ main() {
     restart_and_wait || warn "the old copy did not come up either; see: docker compose logs valhalla"
     die "routing refresh failed; the new build is kept in failed/ for inspection"
   fi
+  touch "$BACKUP_DIR/routing-refreshed-at"
   log "routing data refreshed ($(in_volume 'du -sh current | cut -f1'))"
 }
 

@@ -22,6 +22,10 @@
 # from, and redeploying it every five minutes would undo the rollback. The
 # next new commit on main deploys as usual.
 #
+# On an idle run (nothing to deploy) it also refreshes the walking-route data
+# when that is more than ROUTING_REFRESH_DAYS (default 30) days old; see
+# maybe_refresh_routing below.
+#
 # To pause automatic deploys (maintenance, a risky migration to run by hand):
 #   touch backups/auto-deploy.paused        and rm it to resume
 #
@@ -79,7 +83,10 @@ main() {
   deployed=$(last_deployed)
 
   if [[ $target == "$deployed" ]]; then
-    exit 0 # up to date; stay quiet so the journal is not a wall of no-ops
+    # Up to date; stay quiet so the journal is not a wall of no-ops. An idle
+    # run is when the monthly routing refresh happens, if it's due.
+    ((dry_run)) || maybe_refresh_routing
+    exit 0
   fi
   if grep -qs "^$target" "$STATE_FILE"; then
     exit 0 # already gave up on this commit; reported when it happened
@@ -142,6 +149,42 @@ $(tail -n 40 "$output")
   fi
   rm -f "$output"
   log "deployed ${target:0:10}"
+}
+
+# --- routing refresh ----------------------------------------------------------
+# The walking-route data (Valhalla, #90) is rebuilt from fresh OpenStreetMap
+# data every ROUTING_REFRESH_DAYS days. deploy/routing-refresh.sh does the
+# work; this only decides when, on an idle run, so it needs no timer of its
+# own (installing one takes root). If pintrail-routing-refresh.timer is
+# installed too, they share the stamp and the refresh still happens once.
+ROUTING_STAMP=
+ROUTING_REFRESH_DAYS=${ROUTING_REFRESH_DAYS:-30}
+
+maybe_refresh_routing() {
+  ROUTING_STAMP="$BACKUP_DIR/routing-refreshed-at"
+  # Only where routing runs, and only once its first build is serving.
+  compose config --services 2>/dev/null | grep -qx valhalla || return 0
+  local id status
+  id=$(compose ps -q valhalla 2>/dev/null)
+  [[ -n $id ]] || return 0
+  status=$($DOCKER inspect -f '{{.State.Health.Status}}' "$id" 2>/dev/null || true)
+  [[ $status == healthy ]] || return 0
+  # The first build just happened; the clock starts now.
+  if [[ ! -e $ROUTING_STAMP ]]; then
+    touch "$ROUTING_STAMP"
+    return 0
+  fi
+  [[ -n $(find "$ROUTING_STAMP" -mtime +"$ROUTING_REFRESH_DAYS" 2>/dev/null) ]] || return 0
+
+  log "routing data is over $ROUTING_REFRESH_DAYS days old; refreshing it"
+  if deploy/routing-refresh.sh; then
+    log "routing data refreshed"
+  else
+    # Try again in a day rather than every five minutes.
+    touch -d "-${ROUTING_REFRESH_DAYS} days" "$ROUTING_STAMP" 2>/dev/null || touch "$ROUTING_STAMP"
+    report "$(setting AUTODEPLOY_REPO pintrail/pintrail)" "Monthly routing data refresh failed" \
+      "deploy/routing-refresh.sh failed during an automatic run. The live routing data was kept (the script swaps back if the new copy won't serve). It will try again in about a day. See: journalctl -u pintrail-autodeploy.service"
+  fi
 }
 
 # Globals so helpers can read them without passing them everywhere.
