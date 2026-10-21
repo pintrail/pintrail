@@ -69,6 +69,57 @@
   </div>
 </section>
 
+<section class="card sys-section" aria-labelledby="routes-h">
+  <div class="card-body">
+    <div class="sys-head">
+      <h2 id="routes-h">Walking routes</h2>
+      <div class="sys-actions">
+        {% if routes.failed_jobs %}
+        <form method="post" action="/admin/system/routes/retry-failed" class="inline">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+          <button class="btn-sm">Retry failed</button>
+        </form>
+        {% endif %}
+        <form method="post" action="/admin/system/routes/recompute" class="inline"
+              onsubmit="return confirm('Queue every trail for a new walking route? Trails whose stops have not changed are skipped quickly.')">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+          <button class="btn-sm">Recompute routes</button>
+        </form>
+      </div>
+    </div>
+    <p>Routing service:
+      {% if router.state == "ready" %}<span class="pill pill-ok">Ready</span>
+      {% elif router.state == "down" %}<span class="pill pill-danger">Not answering</span> <span class="muted">{{ router.error }}</span>
+      {% else %}<span class="pill pill-muted">Off</span> <span class="muted">(no VALHALLA_URL for this API)</span>{% endif %}
+    </p>
+    <div class="stats">
+      <div class="stat"><span class="n">{{ routes.routed }}</span><span class="l">Routed, of {{ routes.trails }} trails</span></div>
+      <div class="stat"><span class="n">{{ routes.queued + routes.processing }}</span><span class="l">Waiting or running</span></div>
+      <div class="stat {{ 'stat-bad' if routes.failed_jobs }}"><span class="n">{{ routes.failed_jobs }}</span><span class="l">Jobs failed</span></div>
+      <div class="stat"><span class="n">{{ routes.no_path }}</span><span class="l">No path found</span></div>
+    </div>
+    <p class="muted">
+      {% if routes.last_computed %}Last route computed {{ routes.last_computed }}.{% else %}No routes computed yet.{% endif %}
+      {% if routes.too_few_stops %} {{ routes.too_few_stops }} trail{{ "s have" if routes.too_few_stops != 1 else " has" }} fewer than two located stops.{% endif %}
+      {% if routes.missing %} {{ routes.missing }} trail{{ "s have" if routes.missing != 1 else " has" }} no route yet.{% endif %}
+    </p>
+    {% if route_problems %}
+    <table>
+      <thead><tr><th>Trail</th><th>Problem</th><th>When</th></tr></thead>
+      <tbody>
+      {% for p in route_problems %}
+        <tr>
+          <td><a href="/studio/trails/{{ p.trail_id }}">{{ p.title }}</a></td>
+          <td class="body-cell"><div class="primary">{{ "No path between its stops" if p.kind == "no path" else "Route job failed" }}</div><div class="sub mono">{{ p.error }}</div></td>
+          <td class="nowrap sub">{{ p.when }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    {% endif %}
+  </div>
+</section>
+
 <section class="card table-wrap sys-section" aria-labelledby="failed-h">
   <div class="card-body"><h2 id="failed-h">Failed jobs</h2></div>
   {% if failed %}

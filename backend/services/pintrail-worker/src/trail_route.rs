@@ -98,11 +98,17 @@ pub trait Router: Send + Sync {
         &self,
         points: &[[f64; 2]],
     ) -> impl Future<Output = Result<Vec<Segment>, RouteError>> + Send;
+
+    /// Whether the router can take requests now. Route jobs wait, without
+    /// using up attempts, while it can't: Valhalla answers nothing useful
+    /// until its first data build finishes, which takes minutes.
+    fn ready(&self) -> impl Future<Output = bool> + Send;
 }
 
 pub struct Valhalla {
     client: reqwest::Client,
     url: String,
+    status_url: String,
 }
 
 impl Valhalla {
@@ -112,6 +118,7 @@ impl Valhalla {
                 .timeout(Duration::from_secs(60))
                 .build()?,
             url: format!("{}/route", base_url.trim_end_matches('/')),
+            status_url: format!("{}/status", base_url.trim_end_matches('/')),
         })
     }
 }
@@ -129,6 +136,13 @@ impl Router for Valhalla {
         let status = resp.status();
         let body = resp.bytes().await.context("reading the routing response")?;
         parse_valhalla(status.as_u16(), &body)
+    }
+
+    async fn ready(&self) -> bool {
+        matches!(
+            self.client.get(&self.status_url).timeout(Duration::from_secs(5)).send().await,
+            Ok(r) if r.status().is_success()
+        )
     }
 }
 
@@ -315,6 +329,19 @@ pub async fn poll_once<R: Router>(
 ) -> anyhow::Result<()> {
     requeue_stuck(db, stuck_timeout_secs, max_attempts).await?;
     prune_processed(db, 100).await?;
+    // Leave the jobs queued, attempts untouched, until the router answers.
+    let waiting: bool = sqlx::query_scalar(
+        "SELECT EXISTS (SELECT 1 FROM trail_route_jobs WHERE status = 'queued' AND available_at <= now())",
+    )
+    .fetch_one(db)
+    .await?;
+    if !waiting {
+        return Ok(());
+    }
+    if !router.ready().await {
+        tracing::debug!("routing service not ready; route jobs wait");
+        return Ok(());
+    }
     for job in claim(db, batch_size).await? {
         match process(db, router, &job).await {
             Ok(outcome) => {

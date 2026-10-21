@@ -87,6 +87,9 @@ services:
       # operations, but signs upload/download URLs against localhost:9000.
       S3_PUBLIC_ENDPOINT: ${S3_PUBLIC_ENDPOINT:-http://localhost:9000}
       PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-http://localhost:8080}
+      # Only for the admin System tab's "is the router answering" check;
+      # the worker does the routing (#91). Empty unless routing is on.
+      VALHALLA_URL: ${VALHALLA_URL:-}
       # Local development is plain http, so a Secure cookie would never be
       # sent back. Both of these flip in compose.prod.yml.
       COOKIE_SECURE: "false"

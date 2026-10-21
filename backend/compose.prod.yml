@@ -69,6 +69,7 @@ services:
       # bucket, because the only address the API would see is Caddy's.
       TRUST_PROXY_HEADERS: "true"
       MAILER: ${MAILER:-log}
+      VALHALLA_URL: ${VALHALLA_URL:-http://valhalla:8002}
     # Only Caddy talks to it.
     ports: !override []
 
