@@ -198,7 +198,7 @@ A commit that was deployed before is never redeployed automatically. That keeps 
 
 **Install it once on the server** (needs `sudo` for the unit files; the deploy itself runs as the deploy user):
 
-1. Edit `User=` and the three paths in `deploy/systemd/pintrail-autodeploy.service` to match the host. Check with a dry run first, as the deploy user:
+1. `deploy/systemd/pintrail-autodeploy.service` is set for the production host (user `richards`, `/home/richards/pintrail/backend`); change `User=` and the three paths only on a different host. Check with a dry run first, as the deploy user:
    ```sh
    cd ~/pintrail/backend
    deploy/auto-deploy.sh --dry-run
