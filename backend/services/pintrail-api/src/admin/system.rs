@@ -44,6 +44,14 @@ pub fn router() -> Router<AppState> {
             post(reindex_form),
         )
         .route("/admin/system/search/rebuild", post(rebuild_form))
+        .route(
+            "/admin/system/routes/retry-failed",
+            post(retry_failed_routes_form),
+        )
+        .route(
+            "/admin/system/routes/recompute",
+            post(recompute_routes_form),
+        )
 }
 
 /// JSON twins of the page's actions. Merged outside the panel's redirect
@@ -224,6 +232,117 @@ async fn rebuild(db: &PgPool) -> AppResult<u64> {
     .rows_affected())
 }
 
+// --- walking routes (#91) ------------------------------------------------------
+
+#[derive(Debug, Serialize, sqlx::FromRow)]
+pub struct RouteCounts {
+    pub trails: i64,
+    pub routed: i64,
+    pub no_path: i64,
+    pub too_few_stops: i64,
+    /// Trails with no stored route at all.
+    pub missing: i64,
+    pub queued: i64,
+    pub processing: i64,
+    /// Jobs that ran out of attempts (the router errored or was unreachable).
+    pub failed_jobs: i64,
+    pub last_computed_at: Option<DateTime<Utc>>,
+}
+
+#[derive(Debug, Serialize, sqlx::FromRow)]
+pub struct RouteProblem {
+    pub trail_id: Uuid,
+    pub title: String,
+    /// "no path" (the router answered) or "job failed" (it errored).
+    pub kind: String,
+    pub error: Option<String>,
+    pub at: DateTime<Utc>,
+}
+
+pub async fn route_counts(db: &PgPool) -> AppResult<RouteCounts> {
+    Ok(sqlx::query_as::<_, RouteCounts>(
+        r#"
+        SELECT
+            (SELECT count(*) FROM trails) AS trails,
+            (SELECT count(*) FROM trail_routes WHERE status = 'ok') AS routed,
+            (SELECT count(*) FROM trail_routes WHERE status = 'failed') AS no_path,
+            (SELECT count(*) FROM trail_routes WHERE status = 'too_few_stops') AS too_few_stops,
+            (SELECT count(*) FROM trails t WHERE NOT EXISTS
+                (SELECT 1 FROM trail_routes r WHERE r.trail_id = t.id)) AS missing,
+            (SELECT count(*) FROM trail_route_jobs WHERE status = 'queued') AS queued,
+            (SELECT count(*) FROM trail_route_jobs WHERE status = 'processing') AS processing,
+            (SELECT count(*) FROM trail_route_jobs WHERE status = 'failed') AS failed_jobs,
+            (SELECT max(computed_at) FROM trail_routes) AS last_computed_at
+        "#,
+    )
+    .fetch_one(db)
+    .await?)
+}
+
+async fn route_problems(db: &PgPool) -> AppResult<Vec<RouteProblem>> {
+    Ok(sqlx::query_as::<_, RouteProblem>(
+        r#"
+        SELECT r.trail_id, t.title, 'no path' AS kind, r.error_message AS error, r.computed_at AS at
+        FROM trail_routes r JOIN trails t ON t.id = r.trail_id WHERE r.status = 'failed'
+        UNION ALL
+        SELECT j.trail_id, t.title, 'job failed', j.error_message, j.updated_at
+        FROM trail_route_jobs j JOIN trails t ON t.id = j.trail_id WHERE j.status = 'failed'
+        ORDER BY at DESC LIMIT 50
+        "#,
+    )
+    .fetch_all(db)
+    .await?)
+}
+
+async fn retry_failed_routes(db: &PgPool) -> AppResult<u64> {
+    Ok(sqlx::query(
+        "UPDATE trail_route_jobs \
+         SET status = 'queued', attempts = 0, error_message = NULL, available_at = now() \
+         WHERE status = 'failed'",
+    )
+    .execute(db)
+    .await?
+    .rows_affected())
+}
+
+/// Queues every trail. Unchanged stops are skipped by the worker, so this
+/// mostly retries the ones with no route or a "no path" answer.
+async fn recompute_routes(db: &PgPool) -> AppResult<u64> {
+    // A failed route is only recomputed if its fingerprint is cleared, since
+    // unchanged stops are skipped; clearing it is the point of asking.
+    sqlx::query("DELETE FROM trail_routes WHERE status = 'failed'")
+        .execute(db)
+        .await?;
+    Ok(sqlx::query(
+        "INSERT INTO trail_route_jobs (trail_id) SELECT t.id FROM trails t \
+         WHERE NOT EXISTS (SELECT 1 FROM trail_route_jobs j WHERE j.trail_id = t.id AND j.status = 'queued')",
+    )
+    .execute(db)
+    .await?
+    .rows_affected())
+}
+
+/// Whether the routing service answers, as the API sees it. None when this
+/// API has no VALHALLA_URL (routing is off here).
+async fn router_status() -> Option<Result<(), String>> {
+    let url = std::env::var("VALHALLA_URL")
+        .ok()
+        .filter(|u| !u.trim().is_empty())?;
+    let status_url = format!("{}/status", url.trim_end_matches('/'));
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(3))
+        .build()
+        .ok()?;
+    Some(match client.get(&status_url).send().await {
+        Ok(r) if r.status().is_success() => Ok(()),
+        Ok(r) => Err(format!("answered HTTP {}", r.status().as_u16())),
+        Err(e) if e.is_timeout() => Err("did not answer within 3 seconds".into()),
+        Err(_) => Err(format!(
+            "not reachable at {url} (still starting, or not running)"
+        )),
+    })
+}
+
 // --- formatting ----------------------------------------------------------------
 
 /// "12 s ago", "4 min ago", "3 h ago", "2 days ago".
@@ -283,7 +402,10 @@ async fn system_page(
     } else {
         100
     };
-    let busy = counts.queued + counts.processing > 0;
+    let routes = route_counts(&state.db).await?;
+    let route_problems = route_problems(&state.db).await?;
+    let router = router_status().await;
+    let busy = counts.queued + counts.processing > 0 || routes.queued + routes.processing > 0;
 
     let flash = match (q.done.as_deref(), q.n) {
         (Some("retried"), _) => Some("Job queued again.".to_string()),
@@ -295,6 +417,14 @@ async fn system_page(
         (Some("already-queued"), _) => {
             Some("That artifact is already waiting in the queue.".to_string())
         }
+        (Some("routes-retried"), Some(n)) => Some(format!(
+            "{n} failed route job{} queued again.",
+            if n == 1 { "" } else { "s" }
+        )),
+        (Some("routes-recomputed"), Some(n)) => Some(format!(
+            "{n} trail{} queued for a new route.",
+            if n == 1 { "" } else { "s" }
+        )),
         (Some("rebuilt"), Some(n)) => Some(format!(
             "{n} artifact{} queued for indexing.",
             if n == 1 { "" } else { "s" }
@@ -344,6 +474,29 @@ async fn system_page(
             busy => busy,
             failed => failed.iter().map(|j| job_context(j, now)).collect::<Vec<_>>(),
             recent => recent.iter().map(|j| job_context(j, now)).collect::<Vec<_>>(),
+            router => match &router {
+                None => context! { state => "off" },
+                Some(Ok(())) => context! { state => "ready" },
+                Some(Err(e)) => context! { state => "down", error => e.clone() },
+            },
+            routes => context! {
+                trails => routes.trails,
+                routed => routes.routed,
+                no_path => routes.no_path,
+                too_few_stops => routes.too_few_stops,
+                missing => routes.missing,
+                queued => routes.queued,
+                processing => routes.processing,
+                failed_jobs => routes.failed_jobs,
+                last_computed => routes.last_computed_at.map(|t| ago(t, now)),
+            },
+            route_problems => route_problems.iter().map(|p| context! {
+                trail_id => p.trail_id.to_string(),
+                title => p.title.clone(),
+                kind => p.kind.clone(),
+                error => p.error.clone(),
+                when => ago(p.at, now),
+            }).collect::<Vec<_>>(),
         },
     )
 }
@@ -404,6 +557,34 @@ async fn rebuild_form(
     Ok(Redirect::to(&format!("/admin/system?done=rebuilt&n={n}")))
 }
 
+async fn retry_failed_routes_form(
+    admin: RequireAdmin,
+    State(state): State<AppState>,
+    jar: CookieJar,
+    Form(form): Form<CsrfForm>,
+) -> AppResult<Redirect> {
+    require_csrf(&jar, &form.csrf_token)?;
+    let n = retry_failed_routes(&state.db).await?;
+    tracing::info!(actor = %admin.0.id, jobs = n, "failed route jobs retried");
+    Ok(Redirect::to(&format!(
+        "/admin/system?done=routes-retried&n={n}"
+    )))
+}
+
+async fn recompute_routes_form(
+    admin: RequireAdmin,
+    State(state): State<AppState>,
+    jar: CookieJar,
+    Form(form): Form<CsrfForm>,
+) -> AppResult<Redirect> {
+    require_csrf(&jar, &form.csrf_token)?;
+    let n = recompute_routes(&state.db).await?;
+    tracing::info!(actor = %admin.0.id, jobs = n, "trail routes recompute queued");
+    Ok(Redirect::to(&format!(
+        "/admin/system?done=routes-recomputed&n={n}"
+    )))
+}
+
 // --- JSON ---------------------------------------------------------------------
 
 async fn system_json(
@@ -415,6 +596,12 @@ async fn system_json(
         "build": build_info::current(),
         "migrations": { "latest": migration, "applied": migration_count },
         "search": search_counts(&state.db).await?,
+        "routes": route_counts(&state.db).await?,
+        "router": match router_status().await {
+            None => json!({ "state": "off" }),
+            Some(Ok(())) => json!({ "state": "ready" }),
+            Some(Err(e)) => json!({ "state": "down", "error": e }),
+        },
     })))
 }
 
@@ -597,6 +784,54 @@ mod tests {
             reindex(&db, Uuid::new_v4()).await,
             Err(AppError::NotFound(_))
         ));
+        Ok(())
+    }
+
+    #[sqlx::test(migrations = "../../migrations")]
+    async fn route_counts_and_recovery_actions(db: PgPool) -> anyhow::Result<()> {
+        let author: Uuid = sqlx::query_scalar(
+            "INSERT INTO authors (email, password_hash, role) VALUES ('r@example.test', 'x', 'editor') RETURNING id",
+        )
+        .fetch_one(&db)
+        .await?;
+        let mut trails = Vec::new();
+        for title in ["A", "B"] {
+            let t: Uuid = sqlx::query_scalar(
+                "INSERT INTO trails (title, owner_type, owner_id) VALUES ($1, 'author', $2) RETURNING id",
+            )
+            .bind(title)
+            .bind(author)
+            .fetch_one(&db)
+            .await?;
+            trails.push(t);
+        }
+        // A: its job ran out of attempts while the router was down.
+        // B: the router answered "no path".
+        sqlx::query("INSERT INTO trail_route_jobs (trail_id, status, attempts, error_message) VALUES ($1, 'failed', 3, 'connection refused')")
+            .bind(trails[0])
+            .execute(&db)
+            .await?;
+        sqlx::query("INSERT INTO trail_routes (trail_id, status, stops_hash, error_message) VALUES ($1, 'failed', repeat('a', 64), 'No path')")
+            .bind(trails[1])
+            .execute(&db)
+            .await?;
+
+        let c = route_counts(&db).await?;
+        assert_eq!(
+            (c.trails, c.routed, c.no_path, c.failed_jobs, c.missing),
+            (2, 0, 1, 1, 1)
+        );
+        let problems = route_problems(&db).await?;
+        assert_eq!(problems.len(), 2);
+
+        assert_eq!(retry_failed_routes(&db).await?, 1);
+        assert_eq!(route_counts(&db).await?.failed_jobs, 0);
+
+        // Recompute clears the "no path" answer so it is tried again, and
+        // queues B (A already has a job waiting).
+        assert_eq!(recompute_routes(&db).await?, 1);
+        let c = route_counts(&db).await?;
+        assert_eq!((c.no_path, c.queued), (0, 2));
         Ok(())
     }
 }

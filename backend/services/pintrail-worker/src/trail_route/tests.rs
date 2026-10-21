@@ -85,6 +85,7 @@ fn request_lists_points_as_lat_lon_for_walking() {
 struct FakeRouter {
     calls: Mutex<Vec<usize>>,
     answer: Option<fn() -> RouteError>,
+    not_ready: bool,
 }
 
 impl Router for FakeRouter {
@@ -105,6 +106,10 @@ impl Router for FakeRouter {
                 }],
             })
             .collect())
+    }
+
+    async fn ready(&self) -> bool {
+        !self.not_ready
     }
 }
 
@@ -333,5 +338,34 @@ async fn a_router_that_is_down_is_retried_with_backoff(db: PgPool) -> anyhow::Re
         none.is_none(),
         "no route is stored while the router is down"
     );
+    Ok(())
+}
+
+#[sqlx::test(migrations = "../../migrations")]
+async fn jobs_wait_without_using_attempts_until_the_router_is_ready(
+    db: PgPool,
+) -> anyhow::Result<()> {
+    let (trail, _) = trail_with_stops(&db, &[(42.39, -72.537), (42.385, -72.522)]).await?;
+    let building = FakeRouter {
+        not_ready: true,
+        ..Default::default()
+    };
+    for _ in 0..5 {
+        poll_once(&db, &building, 10, 3, 300).await?;
+    }
+    let (status, attempts): (String, i32) =
+        sqlx::query_as("SELECT status, attempts FROM trail_route_jobs WHERE trail_id = $1")
+            .bind(trail)
+            .fetch_one(&db)
+            .await?;
+    assert_eq!(
+        (status.as_str(), attempts),
+        ("queued", 0),
+        "no attempts used while the router builds"
+    );
+    assert!(building.calls.lock().unwrap().is_empty());
+
+    poll_once(&db, &FakeRouter::default(), 10, 3, 300).await?;
+    assert_eq!(route_row(&db, trail).await?.0, "ok");
     Ok(())
 }
