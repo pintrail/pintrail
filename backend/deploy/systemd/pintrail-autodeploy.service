@@ -1,8 +1,9 @@
 # Runs deploy/auto-deploy.sh once. Started by pintrail-autodeploy.timer.
 # Install and enable: docs/DEPLOYMENT.md, "Automatic deploys".
 #
-# Edit User= and WorkingDirectory= for your host before installing. The user
-# must own the checkout and be in the docker group (not run docker through
+# User= and the paths are set for the production host (pintrail.cs.umass.edu,
+# user richards); change them only on a different host. The user must own
+# the checkout and be in the docker group (not run docker through
 # sudo, which drops the image tag the deploy passes to compose).
 [Unit]
 Description=Deploy PinTrail when main has moved and CI passed

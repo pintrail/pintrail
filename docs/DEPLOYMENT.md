@@ -267,7 +267,7 @@ docker compose exec valhalla curl -s localhost:8002/status
   sudo systemctl enable --now pintrail-routing-refresh.timer
   ```
 
-  Edit `User=` and the paths in the service file first, as for the auto-deploy unit.
+  The service file is already set for the production host (user `richards`, `/home/richards/pintrail/backend`), like the auto-deploy unit. Change those only when installing on a different host.
 
 **Other extracts.** `VALHALLA_PBF_URL` in `.env` points at a different extract. A smaller region uses less memory and disk if the server is tight.
 
