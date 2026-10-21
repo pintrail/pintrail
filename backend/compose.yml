@@ -112,8 +112,9 @@ services:
     environment:
       <<: *app-env
       WORKER_POLL_INTERVAL_SECS: "5"
-      # Walking routes for trails (#91). Set it, with COMPOSE_PROFILES=routing,
-      # to http://valhalla:8002; unset, routes are not computed.
+      # Walking routes for trails (#91). Empty here, so development doesn't
+      # route unless asked (--profile routing plus VALHALLA_URL in .env);
+      # compose.prod.yml defaults it to http://valhalla:8002.
       VALHALLA_URL: ${VALHALLA_URL:-}
     depends_on:
       # Waits for the API because that is what runs migrations. The worker
@@ -126,13 +127,13 @@ services:
     restart: unless-stopped
 
   # Walking routes for trails (#34, #90). Valhalla, self-hosted, on the
-  # Geofabrik Massachusetts OpenStreetMap extract. Opt-in: start it with
-  # --profile routing, or COMPOSE_PROFILES=routing in .env (the server has
-  # this). On first start it downloads the extract and builds its routing
+  # Geofabrik Massachusetts OpenStreetMap extract. Opt-in for development:
+  # start it with --profile routing. Production turns it on in
+  # compose.prod.yml. On first start it downloads the extract and builds its routing
   # data into the valhalla volume, which takes a while (docs/DEPLOYMENT.md,
   # "Routing"); after that it starts in seconds from the built data.
-  # deploy/routing-refresh.sh rebuilds it from a fresh extract on a schedule
-  # without taking the live copy down. Internal only: the worker reaches it
+  # deploy/routing-refresh.sh rebuilds it from a fresh extract every 30 days
+  # (run by deploy/auto-deploy.sh) without taking the live copy down. Internal only: the worker reaches it
   # at http://valhalla:8002.
   valhalla:
     image: ghcr.io/valhalla/valhalla-scripted:3.9.1

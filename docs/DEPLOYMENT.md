@@ -235,16 +235,9 @@ A commit that was deployed before is never redeployed automatically. That keeps 
 
 Trails get walking routes from **Valhalla**, a routing engine that runs as the `valhalla` service on OpenStreetMap data (#90). It's optional and behind the `routing` compose profile. Without it, trails still work, and maps fall back to straight lines between stops.
 
-**Turn it on.** Add the profile and tell the worker where the router is, in `backend/.env`, then deploy as usual:
+**On in production by default.** `compose.prod.yml` includes the `valhalla` service and points the worker at it (`VALHALLA_URL` defaults to `http://valhalla:8002`), so the next deploy starts it with nothing to set on the server. Development opts in with `--profile routing`. To turn routing off in production, set `VALHALLA_URL=` (empty) in `backend/.env` so the worker stops routing, and stop the service: `docker compose stop valhalla`.
 
-```sh
-COMPOSE_PROFILES=routing
-VALHALLA_URL=http://valhalla:8002
-```
-
-The worker computes each trail's route when its stops change (#91). Until the router answers, route jobs wait and retry, and maps show straight lines.
-
-On its first start the service downloads the Geofabrik Massachusetts extract (about 310 MB) and builds its routing data into the `valhalla` volume, then starts serving. It stays unhealthy until the build finishes. Measured on a laptop: about 2 minutes and about 0.5 GB of memory, sampled every 20 seconds, so peaks may be higher. Allow 2 GB of RAM and 10–30 minutes on the server. If the build is killed (exit code 137), lower `VALHALLA_THREADS` in `.env` (default 2). Later starts reuse the built data and take seconds.
+On its first start the service downloads the Geofabrik Massachusetts extract (about 310 MB) and builds its routing data into the `valhalla` volume, then starts serving. It stays unhealthy until the build finishes, and route jobs wait and retry meanwhile, so maps show straight lines until it's ready. Measured on a laptop: about 2 minutes and about 0.5 GB of memory, sampled every 20 seconds, so peaks may be higher. Allow 2 GB of RAM and 10–30 minutes on the server. If the build is killed (exit code 137), lower `VALHALLA_THREADS` in `.env` (default 2). Later starts reuse the built data and take seconds.
 
 The worker and API reach it at `http://valhalla:8002`. It has no public port. Check it from the server:
 
@@ -254,20 +247,20 @@ docker compose exec valhalla curl -s localhost:8002/status
 
 **Disk.** One built copy is about 500 MB. The first build also keeps about 670 MB of build leftovers until its first refresh. Allow 2 GB for the volume.
 
-**Monthly refresh.** OpenStreetMap changes, so the data is rebuilt from a fresh extract once a month:
+**Monthly refresh.** OpenStreetMap changes, so the data is rebuilt from a fresh extract every 30 days:
 
 - **How:** `deploy/routing-refresh.sh` builds the new copy beside the live one (`next/`), then swaps it in (`current/`). The old copy is kept as `previous/`.
 - **If the new copy won't serve:** the script swaps the old copy back.
 - **Undo a refresh:** `deploy/routing-refresh.sh --rollback`.
-- **Install the timer once** (first Sunday of each month, 4:30 am):
+- **When it runs:** nothing to install. The auto-deploy timer runs it: on a run with nothing to deploy, if Valhalla is healthy and the data is more than `ROUTING_REFRESH_DAYS` (default 30) old, going by `backups/routing-refreshed-at`, it refreshes. The clock starts the first time it sees the first build serving.
+- **If a refresh fails:** it's reported like a failed deploy, and tried again a day later. Deploys wait while a refresh runs.
+- **Optional dedicated timer:** `deploy/systemd/pintrail-routing-refresh.{service,timer}` runs it monthly with a longer time limit. It shares the stamp, so the refresh still happens once. Installing it takes sudo:
 
   ```sh
   sudo cp deploy/systemd/pintrail-routing-refresh.{service,timer} /etc/systemd/system/
   sudo systemctl daemon-reload
   sudo systemctl enable --now pintrail-routing-refresh.timer
   ```
-
-  The service file is already set for the production host (user `richards`, `/home/richards/pintrail/backend`), like the auto-deploy unit. Change those only when installing on a different host.
 
 **Other extracts.** `VALHALLA_PBF_URL` in `.env` points at a different extract. A smaller region uses less memory and disk if the server is tight.
 

@@ -77,7 +77,8 @@ services:
     environment:
       <<: *prod-app-env
       WORKER_POLL_INTERVAL_SECS: ${WORKER_POLL_INTERVAL_SECS:-5}
-      VALHALLA_URL: ${VALHALLA_URL:-}
+      # Production routes trails by default (#90, #91).
+      VALHALLA_URL: ${VALHALLA_URL:-http://valhalla:8002}
 
   caddy:
     image: caddy:2-alpine
@@ -94,6 +95,11 @@ services:
       - caddy-data:/data      # ACME account and certificates; losing this
       - caddy-config:/config  # re-issues certs and can hit rate limits
     restart: unless-stopped
+
+  # Walking routes are on in production; development opts in with
+  # --profile routing. !reset clears the profile from compose.yml.
+  valhalla:
+    profiles: !reset []
 
 volumes:
   caddy-data:
