@@ -198,7 +198,7 @@ A commit that was deployed before is never redeployed automatically. That keeps 
 
 **Install it once on the server** (needs `sudo` for the unit files; the deploy itself runs as the deploy user):
 
-1. Edit `User=` and the three paths in `deploy/systemd/pintrail-autodeploy.service` to match the host. Check with a dry run first, as the deploy user:
+1. `deploy/systemd/pintrail-autodeploy.service` is set for the production host (user `richards`, `/home/richards/pintrail/backend`); change `User=` and the three paths only on a different host. Check with a dry run first, as the deploy user:
    ```sh
    cd ~/pintrail/backend
    deploy/auto-deploy.sh --dry-run
@@ -267,7 +267,7 @@ docker compose exec valhalla curl -s localhost:8002/status
   sudo systemctl enable --now pintrail-routing-refresh.timer
   ```
 
-  Edit `User=` and the paths in the service file first, as for the auto-deploy unit.
+  The service file is already set for the production host (user `richards`, `/home/richards/pintrail/backend`), like the auto-deploy unit. Change those only when installing on a different host.
 
 **Other extracts.** `VALHALLA_PBF_URL` in `.env` points at a different extract. A smaller region uses less memory and disk if the server is tight.
 

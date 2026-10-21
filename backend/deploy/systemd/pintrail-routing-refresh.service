@@ -1,7 +1,8 @@
 # Rebuilds the Valhalla routing data from a fresh OpenStreetMap extract.
 # Started by pintrail-routing-refresh.timer. Install: docs/DEPLOYMENT.md,
-# "Routing". Edit User= and the paths for your host, as for
-# pintrail-autodeploy.service.
+# "Routing". User= and the paths are set for the production host
+# (pintrail.cs.umass.edu, user richards), like pintrail-autodeploy.service;
+# change them only on a different host.
 [Unit]
 Description=Refresh PinTrail's walking-route data from OpenStreetMap
 Wants=network-online.target
