@@ -72,9 +72,19 @@ that fails when Postgres is unreachable.
 
 ## Artifact search indexing
 
+The [local embedding component](libs/pintrail-embeddings/README.md) has a Rust
+provider interface, a CPU demo, and an isolated pgvector storage/search lab
+against the UMass seed. Automatic embedding is available with the worker's
+opt-in `semantic-search` feature; public search endpoints are still pending.
+The lab uses its own database on port 5434;
+see the component guide for commands and the database-image rollout boundary.
+
 The worker also processes `search_index_jobs` and writes derived text to
-`search_documents`. This stage prepares text; embedding generation and search
-endpoints are subsequent work.
+`search_documents`. Ordinary workers prepare text as before. A worker built with
+`--features semantic-search` can run `search-loop` for PostgreSQL-only continuous
+text preparation and embedding, or `index-search-once` for one batch. The normal
+media worker enables embedding only with `SEARCH_EMBEDDINGS_ENABLED=true` and
+the explicitly installed embedding schema. See the component guide before enabling.
 
 Migration `20261010000001_search_indexing.sql` queues existing non-deleted
 artifacts. Database triggers queue subsequent inserts and searchable edits from

@@ -1,0 +1,415 @@
+{
+  "date": "2026-10-23",
+  "source_base_commit": "63b04466ef951bc2707f8956197b0ecdcc0ee403",
+  "environment": "Ryzen 9 6900HS, Ubuntu/WSL, debug build, CPU, two ONNX threads",
+  "limitations": "Authored fixtures, not independent user data. Timings are one-run observations. Unsupported questions still return nearest candidates. No training or fine-tuning.",
+  "fixture_sha256": {
+    "umass_queries.json": "080f8917d7cb8d46f25a3299924e8af6f85559f8178e2c4e6b3063a1fb61123b",
+    "semantic_cases.json": "4397e12598f18e93b64d4b4c740449e5c55312ba75f5f2f9ee484c0715370095",
+    "harder_cases.json": "1e33de18ad76931f4a29e0bb3fba4fad29d914563276aed26c52dc620d2b14ba"
+  },
+  "reports": [
+    {
+      "model": {
+        "dimension": 384,
+        "max_tokens": 512,
+        "name": "BAAI/bge-small-en-v1.5",
+        "pipeline_version": "fastembed-7.1.5/fp32/retrieval-v1",
+        "repository": "Xenova/bge-small-en-v1.5",
+        "revision": "ea104dacec62c0de699686887e3f920caeb4f3e3"
+      },
+      "full_document_metrics": {
+        "all_supported": {
+          "count": 64,
+          "hit_1": 58,
+          "hit_3": 62,
+          "mrr": 0.94140625
+        },
+        "concept": {
+          "count": 5,
+          "hit_1": 5,
+          "hit_3": 5,
+          "mrr": 1.0
+        },
+        "development": {
+          "count": 8,
+          "hit_1": 8,
+          "hit_3": 8,
+          "mrr": 1.0
+        },
+        "disambiguation": {
+          "count": 9,
+          "hit_1": 8,
+          "hit_3": 9,
+          "mrr": 0.9444444444444444
+        },
+        "hard-disambiguation": {
+          "count": 4,
+          "hit_1": 3,
+          "hit_3": 4,
+          "mrr": 0.875
+        },
+        "hard-paraphrase": {
+          "count": 16,
+          "hit_1": 13,
+          "hit_3": 15,
+          "mrr": 0.8802083333333334
+        },
+        "hard-typo": {
+          "count": 4,
+          "hit_1": 4,
+          "hit_3": 4,
+          "mrr": 1.0
+        },
+        "noisy-query": {
+          "count": 8,
+          "hit_1": 8,
+          "hit_3": 8,
+          "mrr": 1.0
+        },
+        "paraphrase": {
+          "count": 6,
+          "hit_1": 5,
+          "hit_3": 5,
+          "mrr": 0.861111111111111
+        },
+        "specific-fact": {
+          "count": 1,
+          "hit_1": 1,
+          "hit_3": 1,
+          "mrr": 1.0
+        },
+        "specific-name": {
+          "count": 2,
+          "hit_1": 2,
+          "hit_3": 2,
+          "mrr": 1.0
+        },
+        "typo": {
+          "count": 1,
+          "hit_1": 1,
+          "hit_3": 1,
+          "mrr": 1.0
+        }
+      },
+      "word_overlap_baseline": {
+        "count": 64,
+        "hit_1": 47,
+        "hit_3": 55,
+        "mrr": 0.8086270121426373
+      },
+      "paragraph_metrics": {
+        "count": 64,
+        "hit_1": 55,
+        "hit_3": 63,
+        "mrr": 0.9231770833333334
+      },
+      "postgres_metrics": {
+        "supported_queries": 64,
+        "expected_first": 58,
+        "expected_in_top_3": 62
+      },
+      "measurements": {
+        "document_embedding_ms": 4148,
+        "query_embedding_p50_ms": 21.044701,
+        "query_embedding_p95_ms": 35.882737,
+        "peak_rss_kib": 274092
+      },
+      "per_case": [
+        {"id":"development-1","expected":["hampden-new2u"],"first_expected_rank":1,"unsupported":false,"matches":[{"key":"hampden-new2u","name":"New2U Thrift Store","score":0.6385972146800092},{"key":"surplus-property-barn","name":"Surplus Property Barn","score":0.598493224247356},{"key":"berkshire-permaculture-garden","name":"Berkshire Permaculture Garden","score":0.5009527764287751}]},
+        {"id":"development-2","expected":["olver-design-building"],"first_expected_rank":1,"unsupported":false,"matches":[{"key":"olver-design-building","name":"John W. Olver Design Building","score":0.5780173512217159},{"key":"surplus-property-barn","name":"Surplus Property Barn","score":0.5655139724324805},{"key":"old-chapel","name":"Old Chapel","score":0.549735964829957}]},
+        {"id":"development-3","expected":["chp-solar-hot-water"],"first_expected_rank":1,"unsupported":false,"matches":[{"key":"chp-solar-hot-water","name":"Solar hot water at the Central Heating Plant","score":0.790526106264942},{"key":"chp-reclaimed-water","name":"Reclaimed water at the Central Heating Plant","score":0.6772736619048778},{"key":"central-heating-plant","name":"Central Heating Plant","score":0.6695331490197646}]},
+        {"id":"development-4","expected":["farm-agrivoltaics"],"first_expected_rank":1,"unsupported":false,"matches":[{"key":"farm-agrivoltaics","name":"Agrivoltaic solar array at the South Deerfield farm","score":0.6812727122327268},{"key":"robsham-solar-canopies","name":"Robsham Visitor Center solar canopies","score":0.6365474880898608},{"key":"solar-charging-haigis","name":"Solar charging station at the Haigis Mall bus stop","score":0.6323861690502859}]},
+        {"id":"development-5","expected":["lsl-rainwater-cistern"],"first_expected_rank":1,"unsupported":false,"matches":[{"key":"lsl-rainwater-cistern","name":"Life Science Laboratories rainwater cistern","score":0.8350516798031363},{"key":"life-science-laboratories","name":"Life Science Laboratories","score":0.7051167698910312},{"key":"lab-plastic-recycling","name":"Lab plastic recycling pilot","score":0.6445163002538166}]},
+        {"id":"development-6","expected":["lab-plastic-recycling"],"first_expected_rank":1,"unsupported":false,"matches":[{"key":"lab-plastic-recycling","name":"Lab plastic recycling pilot","score":0.7576667293478682},{"key":"lsl-rainwater-cistern","name":"Life Science Laboratories rainwater cistern","score":0.5728165579801563},{"key":"surplus-property-barn","name":"Surplus Property Barn","score":0.5662965706134258}]},
+        {"id":"development-7","expected":["olver-rain-garden","ilc-stormwater-site","ilc-green-roof","southwest-concourse"],"first_expected_rank":1,"unsupported":false,"matches":[{"key":"ilc-stormwater-site","name":"Integrative Learning Center stormwater landscape","score":0.7313197306269017},{"key":"olver-rain-garden","name":"Design Building rain garden","score":0.6774285509552157},{"key":"campus-pond","name":"Campus Pond","score":0.6667991260782186}]},
+        {"id":"development-8","expected":["durfee-conservatory"],"first_expected_rank":1,"unsupported":false,"matches":[{"key":"durfee-conservatory","name":"Durfee Conservatory","score":0.6218581795939349},{"key":"central-heating-plant","name":"Central Heating Plant","score":0.5703056561454382},{"key":"crotty-hall","name":"Crotty Hall","score":0.5486128294159061}]},
+        {"id":"phone-power","expected":["solar-charging-haigis"],"first_expected_rank":1,"unsupported":false,"matches":[{"key":"solar-charging-haigis","name":"Solar charging station at the Haigis Mall bus stop","score":0.764216232050567},{"key":"ev-robsham-lot","name":"EV charging at the Robsham Visitor Center lot","score":0.6385468427719563},{"key":"robsham-solar-canopies","name":"Robsham Visitor Center solar canopies","score":0.6089935876588359}]},
+        {"id":"free-bus","expected":["pvta-buses"],"first_expected_rank":1,"unsupported":false,"matches":[{"key":"pvta-buses","name":"PVTA bus service","score":0.6233502444512963},{"key":"ev-robsham-lot","name":"EV charging at the Robsham Visitor Center lot","score":0.5145178213128414},{"key":"topic-ev-charging","name":"Electric vehicle charging on campus","score":0.5024739042993775}]},
+        {"id":"garage-charger","expected":["ev-campus-center-garage"],"first_expected_rank":1,"unsupported":false,"matches":[{"key":"ev-campus-center-garage","name":"EV charging at the Campus Center Parking Garage","score":0.8671794751532111},{"key":"topic-ev-charging","name":"Electric vehicle charging on campus","score":0.7963957503182395},{"key":"ev-robsham-lot","name":"EV charging at the Robsham Visitor Center lot","score":0.7580219657542812}]},
+        {"id":"borrow-bike","expected":["topic-valleybike"],"first_expected_rank":6,"unsupported":false,"matches":[{"key":"valleybike-southwest","name":"ValleyBike station in Southwest","score":0.6594603215019079},{"key":"valleybike-ilc","name":"ValleyBike station at the Integrative Learning Center","score":0.6543966095057493},{"key":"ev-fleet-physical-plant","name":"Fleet EV charging at the Physical Plant","score":0.6305694617369811}]},
+        {"id":"department-reuse","expected":["surplus-property-barn"],"first_expected_rank":1,"unsupported":false,"matches":[{"key":"surplus-property-barn","name":"Surplus Property Barn","score":0.7422569222580797},{"key":"hampden-new2u","name":"New2U Thrift Store","score":0.622472449335555},{"key":"ev-fleet-physical-plant","name":"Fleet EV charging at the Physical Plant","score":0.562884970758582}]},
+        {"id":"pollinators","expected":["pollinator-garden"],"first_expected_rank":1,"unsupported":false,"matches":[{"key":"pollinator-garden","name":"Pollinator Garden","score":0.7182220993737433},{"key":"berkshire-permaculture-garden","name":"Berkshire Permaculture Garden","score":0.6004218491559562},{"key":"olver-rain-garden","name":"Design Building rain garden","score":0.5740402135210881}]},
+        {"id":"community-food","expected":["food-for-all-garden"],"first_expected_rank":1,"unsupported":false,"matches":[{"key":"food-for-all-garden","name":"Food for All Garden","score":0.7386399134834455},{"key":"franklin-permaculture-garden","name":"Franklin Permaculture Garden","score":0.6578024698304101},{"key":"green-grounds","name":"Green Grounds: campus landscape care","score":0.649356876994603}]},
+        {"id":"franklin-lawn","expected":["franklin-permaculture-garden"],"first_expected_rank":1,"unsupported":false,"matches":[{"key":"franklin-permaculture-garden","name":"Franklin Permaculture Garden","score":0.738635396724904},{"key":"franklin-dining-commons","name":"Franklin Dining Commons","score":0.710118434277964},{"key":"berkshire-permaculture-garden","name":"Berkshire Permaculture Garden","score":0.6921449507398274}]},
+        {"id":"hillside-crops","expected":["hillside-permaculture-garden"],"first_expected_rank":1,"unsupported":false,"matches":[{"key":"hillside-permaculture-garden","name":"Hillside Permaculture Garden","score":0.6761802091498563},{"key":"food-for-all-garden","name":"Food for All Garden","score":0.5942583679672607},{"key":"berkshire-permaculture-garden","name":"Berkshire Permaculture Garden","score":0.5731993973704932}]},
+        {"id":"warm-condensate","expected":["chp-solar-hot-water"],"first_expected_rank":1,"unsupported":false,"matches":[{"key":"chp-solar-hot-water","name":"Solar hot water at the Central Heating Plant","score":0.7811928492862035},{"key":"chp-reclaimed-water","name":"Reclaimed water at the Central Heating Plant","score":0.704486534710754},{"key":"central-heating-plant","name":"Central Heating Plant","score":0.6743133861252157}]},
+        {"id":"treated-wastewater","expected":["chp-reclaimed-water"],"first_expected_rank":1,"unsupported":false,"matches":[{"key":"chp-reclaimed-water","name":"Reclaimed water at the Central Heating Plant","score":0.7098896726917944},{"key":"chp-solar-hot-water","name":"Solar hot water at the Central Heating Plant","score":0.584809953157117},{"key":"central-heating-plant","name":"Central Heating Plant","score":0.5732564098916818}]},
+        {"id":"electricity-and-steam","expected":["central-heating-plant"],"first_expected_rank":1,"unsupported":false,"matches":[{"key":"central-heating-plant","name":"Central Heating Plant","score":0.7970517430555414},{"key":"north-energy-exchange-center","name":"North Energy Exchange Center","score":0.6803223667670886},{"key":"crotty-hall","name":"Crotty Hall","score":0.6622167112111892}]},
+        {"id":"economics-net-zero","expected":["crotty-hall"],"first_expected_rank":1,"unsupported":false,"matches":[{"key":"crotty-hall","name":"Crotty Hall","score":0.6448918539332034},{"key":"recreation-center","name":"Recreation Center","score":0.6057954234360086},{"key":"sustainable-engineering-laboratories","name":"Sustainable Engineering Laboratories","score":0.6047165534024571}]},
+        {"id":"visitor-solar","expected":["robsham-solar-canopies"],"first_expected_rank":1,"unsupported":false,"matches":[{"key":"robsham-solar-canopies","name":"Robsham Visitor Center solar canopies","score":0.7962637497418902},{"key":"topic-campus-solar","name":"Solar power at UMass Amherst","score":0.7208481970942076},{"key":"champions-center","name":"Kennedy Champions Center","score":0.6720398561197777}]},
+        {"id":"first-platinum","expected":["computer-sciences-laboratories"],"first_expected_rank":1,"unsupported":false,"matches":[{"key":"computer-sciences-laboratories","name":"Computer Sciences Laboratories","score":0.7243299008677677},{"key":"topic-leed","name":"LEED certification","score":0.6822548225668962},{"key":"computer-science-building","name":"Computer Science Building","score":0.6402551940756456}]},
+        {"id":"basketball-solar","expected":["champions-center"],"first_expected_rank":2,"unsupported":false,"matches":[{"key":"topic-leed","name":"LEED certification","score":0.7069364516587854},{"key":"champions-center","name":"Kennedy Champions Center","score":0.6427476292042595},{"key":"recreation-center","name":"Recreation Center","score":0.5946587665742148}]},
+        {"id":"gym-solar","expected":["recreation-center"],"first_expected_rank":1,"unsupported":false,"matches":[{"key":"recreation-center","name":"Recreation Center","score":0.7449484132416302},{"key":"topic-campus-solar","name":"Solar power at UMass Amherst","score":0.6666831108258857},{"key":"central-heating-plant","name":"Central Heating Plant","score":0.6602892526970013}]},
+        {"id":"adaptable-labs","expected":["physical-sciences-building"],"first_expected_rank":1,"unsupported":false,"matches":[{"key":"physical-sciences-building","name":"Physical Sciences Building","score":0.7207022569097735},{"key":"life-science-laboratories","name":"Life Science Laboratories","score":0.6154504630363153},{"key":"sustainable-engineering-laboratories","name":"Sustainable Engineering Laboratories","score":0.6108409037712274}]},
+        {"id":"roof-courtyard","expected":["olver-green-roof"],"first_expected_rank":1,"unsupported":false,"matches":[{"key":"olver-green-roof","name":"Rooftop courtyard and green roof","score":0.7837363529991973},{"key":"durfee-conservatory","name":"Durfee Conservatory","score":0.6111679311141179},{"key":"olver-rain-garden","name":"Design Building rain garden","score":0.5968071469843228}]},
+        {"id":"ten-thousand-gallons","expected":["lsl-rainwater-cistern"],"first_expected_rank":1,"unsupported":false,"matches":[{"key":"lsl-rainwater-cistern","name":"Life Science Laboratories rainwater cistern","score":0.7042338305705872},{"key":"ilc-stormwater-site","name":"Integrative Learning Center stormwater landscape","score":0.5638631994756463},{"key":"campus-pond","name":"Campus Pond","score":0.5474199355085438}]},
+        {"id":"green-rating","expected":["topic-leed"],"first_expected_rank":1,"unsupported":false,"matches":[{"key":"topic-leed","name":"LEED certification","score":0.7248452295758312},{"key":"sustainable-engineering-laboratories","name":"Sustainable Engineering Laboratories","score":0.5070101072897752},{"key":"farm-agrivoltaics","name":"Agrivoltaic solar array at the South Deerfield farm","score":0.49855414043765334}]},
+        {"id":"chemical-free-grounds","expected":["green-grounds"],"first_expected_rank":1,"unsupported":false,"matches":[{"key":"green-grounds","name":"Green Grounds: campus landscape care","score":0.7462032013073467},{"key":"campus-pond","name":"Campus Pond","score":0.6997299835796851},{"key":"topic-permaculture","name":"UMass Permaculture gardens","score":0.6601918909452077}]},
+        {"id":"sedum-roof","expected":["ilc-green-roof"],"first_expected_rank":1,"unsupported":false,"matches":[{"key":"ilc-green-roof","name":"Integrative Learning Center green roof","score":0.6721483830855315},{"key":"olver-green-roof","name":"Rooftop courtyard and green roof","score":0.5551720908045075},{"key":"ilc-stormwater-site","name":"Integrative Learning Center stormwater landscape","score":0.5323290342047425}]},
+        {"id":"durfee-typo","expected":["durfee-conservatory"],"first_expected_rank":1,"unsupported":false,"matches":[{"key":"durfee-conservatory","name":"Durfee Conservatory","score":0.663598211536294},{"key":"olver-green-roof","name":"Rooftop courtyard and green roof","score":0.5355800943370397},{"key":"fine-arts-center","name":"Fine Arts Center","score":0.5074821426091553}]},
+        {"id":"unsupported-reactor","expected":[],"first_expected_rank":null,"unsupported":true,"matches":[{"key":"central-heating-plant","name":"Central Heating Plant","score":0.6554339518346536},{"key":"crotty-hall","name":"Crotty Hall","score":0.6379767145838768},{"key":"computer-sciences-laboratories","name":"Computer Sciences Laboratories","score":0.6227364645977386}]},
+        {"id":"unsupported-passport","expected":[],"first_expected_rank":null,"unsupported":true,"matches":[{"key":"computer-science-building","name":"Computer Science Building","score":0.6005001924879927},{"key":"computer-sciences-laboratories","name":"Computer Sciences Laboratories","score":0.5900928885937397},{"key":"old-chapel","name":"Old Chapel","score":0.5666342009120038}]},
+        {"id":"unsupported-aquarium","expected":[],"first_expected_rank":null,"unsupported":true,"matches":[{"key":"worcester-commons","name":"Worcester Commons","score":0.6019149946164493},{"key":"campus-pond","name":"Campus Pond","score":0.586634758902289},{"key":"integrative-learning-center","name":"Integrative Learning Center","score":0.5791847059275748}]},
+        {"id":"unsupported-launchpad","expected":[],"first_expected_rank":null,"unsupported":true,"matches":[{"key":"pvta-buses","name":"PVTA bus service","score":0.5809112260353053},{"key":"computer-sciences-laboratories","name":"Computer Sciences Laboratories","score":0.5585926237830122},{"key":"computer-science-building","name":"Computer Science Building","score":0.5573027806201482}]},
+        {"id":"hard-tropical","expected":["durfee-conservatory"],"first_expected_rank":4,"unsupported":false,"matches":[{"key":"ilc-stormwater-site","name":"Integrative Learning Center stormwater landscape","score":0.5745577749000527},{"key":"solar-canopy-north-lot","name":"North campus solar canopies","score":0.568426098570774},{"key":"north-energy-exchange-center","name":"North Energy Exchange Center","score":0.5604239073829634}]},
+        {"id":"hard-pipette","expected":["lab-plastic-recycling"],"first_expected_rank":1,"unsupported":false,"matches":[{"key":"lab-plastic-recycling","name":"Lab plastic recycling pilot","score":0.7279638473668154},{"key":"surplus-property-barn","name":"Surplus Property Barn","score":0.5662781144606089},{"key":"lsl-rainwater-cistern","name":"Life Science Laboratories rainwater cistern","score":0.5644728050853812}]},
+        {"id":"hard-cheap-jacket","expected":["hampden-new2u"],"first_expected_rank":1,"unsupported":false,"matches":[{"key":"hampden-new2u","name":"New2U Thrift Store","score":0.6157468521621395},{"key":"surplus-property-barn","name":"Surplus Property Barn","score":0.60482815269137},{"key":"old-chapel","name":"Old Chapel","score":0.554395649074814}]},
+        {"id":"hard-office-cabinets","expected":["surplus-property-barn"],"first_expected_rank":1,"unsupported":false,"matches":[{"key":"surplus-property-barn","name":"Surplus Property Barn","score":0.7445792826796875},{"key":"central-heating-plant","name":"Central Heating Plant","score":0.6157578247408546},{"key":"hampden-new2u","name":"New2U Thrift Store","score":0.6031455919978198}]},
+        {"id":"hard-sun-grazing","expected":["farm-agrivoltaics"],"first_expected_rank":1,"unsupported":false,"matches":[{"key":"farm-agrivoltaics","name":"Agrivoltaic solar array at the South Deerfield farm","score":0.6390084236806256},{"key":"solar-canopy-north-lot","name":"North campus solar canopies","score":0.5699825152588316},{"key":"robsham-solar-canopies","name":"Robsham Visitor Center solar canopies","score":0.5690334562181767}]},
+        {"id":"hard-water-steam","expected":["chp-reclaimed-water"],"first_expected_rank":1,"unsupported":false,"matches":[{"key":"chp-reclaimed-water","name":"Reclaimed water at the Central Heating Plant","score":0.6681986113663889},{"key":"central-heating-plant","name":"Central Heating Plant","score":0.5881576730555493},{"key":"campus-pond","name":"Campus Pond","score":0.5852171312838208}]},
+        {"id":"hard-free-heat","expected":["chp-solar-hot-water"],"first_expected_rank":1,"unsupported":false,"matches":[{"key":"chp-solar-hot-water","name":"Solar hot water at the Central Heating Plant","score":0.7005615591611929},{"key":"chp-reclaimed-water","name":"Reclaimed water at the Central Heating Plant","score":0.6583234009240213},{"key":"north-energy-exchange-center","name":"North Energy Exchange Center","score":0.5990413172829314}]},
+        {"id":"hard-food-neighbors","expected":["food-for-all-garden"],"first_expected_rank":1,"unsupported":false,"matches":[{"key":"food-for-all-garden","name":"Food for All Garden","score":0.6106836901274356},{"key":"hillside-permaculture-garden","name":"Hillside Permaculture Garden","score":0.6007962498603372},{"key":"berkshire-permaculture-garden","name":"Berkshire Permaculture Garden","score":0.5942409041434107}]},
+        {"id":"hard-help-insects","expected":["pollinator-garden"],"first_expected_rank":1,"unsupported":false,"matches":[{"key":"pollinator-garden","name":"Pollinator Garden","score":0.6580989062861448},{"key":"berkshire-permaculture-garden","name":"Berkshire Permaculture Garden","score":0.5787765365359271},{"key":"franklin-permaculture-garden","name":"Franklin Permaculture Garden","score":0.5747039683808097}]},
+        {"id":"hard-no-sprays","expected":["green-grounds"],"first_expected_rank":1,"unsupported":false,"matches":[{"key":"green-grounds","name":"Green Grounds: campus landscape care","score":0.6884792978078618},{"key":"topic-permaculture","name":"UMass Permaculture gardens","score":0.6281963682883606},{"key":"campus-pond","name":"Campus Pond","score":0.6130066002407624}]},
+        {"id":"hard-econ-power","expected":["crotty-hall"],"first_expected_rank":2,"unsupported":false,"matches":[{"key":"topic-campus-solar","name":"Solar power at UMass Amherst","score":0.5507185011075221},{"key":"crotty-hall","name":"Crotty Hall","score":0.5448976224492466},{"key":"farm-agrivoltaics","name":"Agrivoltaic solar array at the South Deerfield farm","score":0.5112194597966598}]},
+        {"id":"hard-workout-roof","expected":["recreation-center"],"first_expected_rank":3,"unsupported":false,"matches":[{"key":"solar-canopy-north-lot","name":"North campus solar canopies","score":0.6763076794192974},{"key":"topic-campus-solar","name":"Solar power at UMass Amherst","score":0.6542177090377422},{"key":"recreation-center","name":"Recreation Center","score":0.6518799147563011}]},
+        {"id":"hard-public-roof","expected":["olver-green-roof"],"first_expected_rank":1,"unsupported":false,"matches":[{"key":"olver-green-roof","name":"Rooftop courtyard and green roof","score":0.6447344391002554},{"key":"durfee-conservatory","name":"Durfee Conservatory","score":0.6347886420446183},{"key":"ilc-green-roof","name":"Integrative Learning Center green roof","score":0.616349784796604}]},
+        {"id":"hard-rebuild-labs","expected":["physical-sciences-building"],"first_expected_rank":1,"unsupported":false,"matches":[{"key":"physical-sciences-building","name":"Physical Sciences Building","score":0.6984923251916461},{"key":"life-science-laboratories","name":"Life Science Laboratories","score":0.6326742397734126},{"key":"surplus-property-barn","name":"Surplus Property Barn","score":0.6173112480961205}]},
+        {"id":"hard-roof-water","expected":["olver-rain-garden"],"first_expected_rank":1,"unsupported":false,"matches":[{"key":"olver-rain-garden","name":"Design Building rain garden","score":0.6866954383668992},{"key":"olver-green-roof","name":"Rooftop courtyard and green roof","score":0.6805848311385281},{"key":"ilc-green-roof","name":"Integrative Learning Center green roof","score":0.5910533052510104}]},
+        {"id":"hard-rating","expected":["topic-leed"],"first_expected_rank":1,"unsupported":false,"matches":[{"key":"topic-leed","name":"LEED certification","score":0.6697254911091767},{"key":"green-grounds","name":"Green Grounds: campus landscape care","score":0.5188410698793028},{"key":"surplus-property-barn","name":"Surplus Property Barn","score":0.5175072522836064}]},
+        {"id":"noisy-phone","expected":["solar-charging-haigis"],"first_expected_rank":1,"unsupported":false,"matches":[{"key":"solar-charging-haigis","name":"Solar charging station at the Haigis Mall bus stop","score":0.6837124620653504},{"key":"ev-robsham-lot","name":"EV charging at the Robsham Visitor Center lot","score":0.6551241121168426},{"key":"robsham-solar-canopies","name":"Robsham Visitor Center solar canopies","score":0.6101785028321025}]},
+        {"id":"noisy-thrift","expected":["hampden-new2u"],"first_expected_rank":1,"unsupported":false,"matches":[{"key":"hampden-new2u","name":"New2U Thrift Store","score":0.7122372159518748},{"key":"surplus-property-barn","name":"Surplus Property Barn","score":0.657967703248771},{"key":"solar-canopy-north-lot","name":"North campus solar canopies","score":0.6190622186938083}]},
+        {"id":"noisy-durfee","expected":["durfee-conservatory"],"first_expected_rank":1,"unsupported":false,"matches":[{"key":"durfee-conservatory","name":"Durfee Conservatory","score":0.7199530279492369},{"key":"central-heating-plant","name":"Central Heating Plant","score":0.6770589578151158},{"key":"north-energy-exchange-center","name":"North Energy Exchange Center","score":0.6751154936779798}]},
+        {"id":"noisy-cistern","expected":["lsl-rainwater-cistern"],"first_expected_rank":1,"unsupported":false,"matches":[{"key":"lsl-rainwater-cistern","name":"Life Science Laboratories rainwater cistern","score":0.7847693189561477},{"key":"campus-pond","name":"Campus Pond","score":0.6859926724573318},{"key":"life-science-laboratories","name":"Life Science Laboratories","score":0.6799234765325048}]},
+        {"id":"noisy-polymers","expected":["lab-plastic-recycling"],"first_expected_rank":1,"unsupported":false,"matches":[{"key":"lab-plastic-recycling","name":"Lab plastic recycling pilot","score":0.6978199807991293},{"key":"sustainable-engineering-laboratories","name":"Sustainable Engineering Laboratories","score":0.6963082557345621},{"key":"surplus-property-barn","name":"Surplus Property Barn","score":0.6339166574211863}]},
+        {"id":"noisy-wood","expected":["olver-design-building"],"first_expected_rank":1,"unsupported":false,"matches":[{"key":"olver-design-building","name":"John W. Olver Design Building","score":0.6489480028813326},{"key":"sustainable-engineering-laboratories","name":"Sustainable Engineering Laboratories","score":0.6310690161736308},{"key":"olver-green-roof","name":"Rooftop courtyard and green roof","score":0.630820315309688}]},
+        {"id":"noisy-farm","expected":["farm-agrivoltaics"],"first_expected_rank":1,"unsupported":false,"matches":[{"key":"farm-agrivoltaics","name":"Agrivoltaic solar array at the South Deerfield farm","score":0.6869229753386075},{"key":"solar-canopy-north-lot","name":"North campus solar canopies","score":0.6598072203856234},{"key":"robsham-solar-canopies","name":"Robsham Visitor Center solar canopies","score":0.6542336851480104}]},
+        {"id":"noisy-bus","expected":["pvta-buses"],"first_expected_rank":1,"unsupported":false,"matches":[{"key":"pvta-buses","name":"PVTA bus service","score":0.7123549922521383},{"key":"topic-valleybike","name":"ValleyBike","score":0.6422995074316507},{"key":"valleybike-haigis","name":"ValleyBike station at Haigis Mall","score":0.6084835191686971}]},
+        {"id":"typo-pipette","expected":["lab-plastic-recycling"],"first_expected_rank":1,"unsupported":false,"matches":[{"key":"lab-plastic-recycling","name":"Lab plastic recycling pilot","score":0.7055073054668956},{"key":"surplus-property-barn","name":"Surplus Property Barn","score":0.5817721333548758},{"key":"sustainable-engineering-laboratories","name":"Sustainable Engineering Laboratories","score":0.5734784837714132}]},
+        {"id":"typo-thrift","expected":["hampden-new2u"],"first_expected_rank":1,"unsupported":false,"matches":[{"key":"hampden-new2u","name":"New2U Thrift Store","score":0.6176421998910614},{"key":"north-energy-exchange-center","name":"North Energy Exchange Center","score":0.5235338355920773},{"key":"chp-reclaimed-water","name":"Reclaimed water at the Central Heating Plant","score":0.5122107814317528}]},
+        {"id":"typo-grazing","expected":["farm-agrivoltaics"],"first_expected_rank":1,"unsupported":false,"matches":[{"key":"farm-agrivoltaics","name":"Agrivoltaic solar array at the South Deerfield farm","score":0.6583092441223772},{"key":"food-for-all-garden","name":"Food for All Garden","score":0.587242668721314},{"key":"topic-permaculture","name":"UMass Permaculture gardens","score":0.5849905364423703}]},
+        {"id":"typo-roof","expected":["ilc-green-roof"],"first_expected_rank":1,"unsupported":false,"matches":[{"key":"ilc-green-roof","name":"Integrative Learning Center green roof","score":0.6768161443634565},{"key":"olver-green-roof","name":"Rooftop courtyard and green roof","score":0.5964647065199644},{"key":"ilc-stormwater-site","name":"Integrative Learning Center stormwater landscape","score":0.557046530423789}]},
+        {"id":"distinguish-water","expected":["chp-reclaimed-water"],"first_expected_rank":1,"unsupported":false,"matches":[{"key":"chp-reclaimed-water","name":"Reclaimed water at the Central Heating Plant","score":0.6964336807656835},{"key":"chp-solar-hot-water","name":"Solar hot water at the Central Heating Plant","score":0.6172812948783521},{"key":"central-heating-plant","name":"Central Heating Plant","score":0.6016968470331597}]},
+        {"id":"distinguish-training","expected":["champions-center"],"first_expected_rank":2,"unsupported":false,"matches":[{"key":"recreation-center","name":"Recreation Center","score":0.7103238461344822},{"key":"champions-center","name":"Kennedy Champions Center","score":0.70588143868995},{"key":"fine-arts-center","name":"Fine Arts Center","score":0.6485439963348578}]},
+        {"id":"distinguish-store","expected":["hampden-new2u"],"first_expected_rank":1,"unsupported":false,"matches":[{"key":"hampden-new2u","name":"New2U Thrift Store","score":0.6523832879008746},{"key":"surplus-property-barn","name":"Surplus Property Barn","score":0.648806824760645},{"key":"central-heating-plant","name":"Central Heating Plant","score":0.5589829856140874}]},
+        {"id":"distinguish-greenhouse","expected":["cns-greenhouse"],"first_expected_rank":1,"unsupported":false,"matches":[{"key":"cns-greenhouse","name":"CNS Research and Education Greenhouse","score":0.7348738469723997},{"key":"durfee-conservatory","name":"Durfee Conservatory","score":0.6138880765613635},{"key":"topic-leed","name":"LEED certification","score":0.5818902010755598}]}
+      ],
+      "input_limit_probes": [
+        {"kind":"Query","repeated_words":20,"result":{"accepted":true}},
+        {"kind":"Document","repeated_words":20,"result":{"accepted":true}},
+        {"kind":"Query","repeated_words":240,"result":{"accepted":true}},
+        {"kind":"Document","repeated_words":240,"result":{"accepted":true}},
+        {"kind":"Query","repeated_words":254,"result":{"accepted":true}},
+        {"kind":"Document","repeated_words":254,"result":{"accepted":true}},
+        {"kind":"Query","repeated_words":255,"result":{"accepted":true}},
+        {"kind":"Document","repeated_words":255,"result":{"accepted":true}},
+        {"kind":"Query","repeated_words":256,"result":{"accepted":true}},
+        {"kind":"Document","repeated_words":256,"result":{"accepted":true}},
+        {"kind":"Query","repeated_words":300,"result":{"accepted":true}},
+        {"kind":"Document","repeated_words":300,"result":{"accepted":true}},
+        {"kind":"Query","repeated_words":500,"result":{"accepted":true}},
+        {"kind":"Document","repeated_words":500,"result":{"accepted":true}},
+        {"kind":"Query","repeated_words":510,"result":{"accepted":false,"limit":512,"tokens":520}},
+        {"kind":"Document","repeated_words":510,"result":{"accepted":true}},
+        {"kind":"Query","repeated_words":511,"result":{"accepted":false,"limit":512,"tokens":521}},
+        {"kind":"Document","repeated_words":511,"result":{"accepted":false,"limit":512,"tokens":513}},
+        {"kind":"Query","repeated_words":512,"result":{"accepted":false,"limit":512,"tokens":522}},
+        {"kind":"Document","repeated_words":512,"result":{"accepted":false,"limit":512,"tokens":514}},
+        {"kind":"Query","repeated_words":600,"result":{"accepted":false,"limit":512,"tokens":610}},
+        {"kind":"Document","repeated_words":600,"result":{"accepted":false,"limit":512,"tokens":602}}
+      ]
+    },
+    {
+      "model": {
+        "dimension": 384,
+        "max_tokens": 256,
+        "name": "sentence-transformers/all-MiniLM-L6-v2",
+        "pipeline_version": "fastembed-7.1.5/fp32/retrieval-v1",
+        "repository": "Qdrant/all-MiniLM-L6-v2-onnx",
+        "revision": "d13954661f83248295ba75c1ed411eef3b7b936e"
+      },
+      "full_document_metrics": {
+        "all_supported": {
+          "count": 64,
+          "hit_1": 57,
+          "hit_3": 63,
+          "mrr": 0.9345238095238096
+        },
+        "concept": {
+          "count": 5,
+          "hit_1": 5,
+          "hit_3": 5,
+          "mrr": 1.0
+        },
+        "development": {
+          "count": 8,
+          "hit_1": 8,
+          "hit_3": 8,
+          "mrr": 1.0
+        },
+        "disambiguation": {
+          "count": 9,
+          "hit_1": 9,
+          "hit_3": 9,
+          "mrr": 1.0
+        },
+        "hard-disambiguation": {
+          "count": 4,
+          "hit_1": 3,
+          "hit_3": 4,
+          "mrr": 0.8333333333333333
+        },
+        "hard-paraphrase": {
+          "count": 16,
+          "hit_1": 12,
+          "hit_3": 15,
+          "mrr": 0.8526785714285714
+        },
+        "hard-typo": {
+          "count": 4,
+          "hit_1": 4,
+          "hit_3": 4,
+          "mrr": 1.0
+        },
+        "noisy-query": {
+          "count": 8,
+          "hit_1": 6,
+          "hit_3": 8,
+          "mrr": 0.8541666666666666
+        },
+        "paraphrase": {
+          "count": 6,
+          "hit_1": 6,
+          "hit_3": 6,
+          "mrr": 1.0
+        },
+        "specific-fact": {
+          "count": 1,
+          "hit_1": 1,
+          "hit_3": 1,
+          "mrr": 1.0
+        },
+        "specific-name": {
+          "count": 2,
+          "hit_1": 2,
+          "hit_3": 2,
+          "mrr": 1.0
+        },
+        "typo": {
+          "count": 1,
+          "hit_1": 1,
+          "hit_3": 1,
+          "mrr": 1.0
+        }
+      },
+      "word_overlap_baseline": {
+        "count": 64,
+        "hit_1": 47,
+        "hit_3": 55,
+        "mrr": 0.8086270121426373
+      },
+      "paragraph_metrics": {
+        "count": 64,
+        "hit_1": 53,
+        "hit_3": 63,
+        "mrr": 0.9024621212121213
+      },
+      "postgres_metrics": {
+        "supported_queries": 64,
+        "expected_first": 57,
+        "expected_in_top_3": 63
+      },
+      "measurements": {
+        "document_embedding_ms": 2864,
+        "query_embedding_p50_ms": 11.060699,
+        "query_embedding_p95_ms": 19.337408,
+        "peak_rss_kib": 211144
+      },
+      "per_case": [
+        {"id":"development-1","expected":["hampden-new2u"],"first_expected_rank":1,"unsupported":false,"matches":[{"key":"hampden-new2u","name":"New2U Thrift Store","score":0.5030597456922118},{"key":"surplus-property-barn","name":"Surplus Property Barn","score":0.45865952473669874},{"key":"berkshire-permaculture-garden","name":"Berkshire Permaculture Garden","score":0.3053124130546567}]},
+        {"id":"development-2","expected":["olver-design-building"],"first_expected_rank":1,"unsupported":false,"matches":[{"key":"olver-design-building","name":"John W. Olver Design Building","score":0.5139876282359855},{"key":"life-science-laboratories","name":"Life Science Laboratories","score":0.3767758124912197},{"key":"worcester-commons","name":"Worcester Commons","score":0.356383587142579}]},
+        {"id":"development-3","expected":["chp-solar-hot-water"],"first_expected_rank":1,"unsupported":false,"matches":[{"key":"chp-solar-hot-water","name":"Solar hot water at the Central Heating Plant","score":0.6676515416106747},{"key":"chp-reclaimed-water","name":"Reclaimed water at the Central Heating Plant","score":0.5589207526063132},{"key":"central-heating-plant","name":"Central Heating Plant","score":0.4419791838705242}]},
+        {"id":"development-4","expected":["farm-agrivoltaics"],"first_expected_rank":1,"unsupported":false,"matches":[{"key":"farm-agrivoltaics","name":"Agrivoltaic solar array at the South Deerfield farm","score":0.4901699569402606},{"key":"topic-campus-solar","name":"Solar power at UMass Amherst","score":0.42235660638687744},{"key":"solar-canopy-north-lot","name":"North campus solar canopies","score":0.3852920994662251}]},
+        {"id":"development-5","expected":["lsl-rainwater-cistern"],"first_expected_rank":1,"unsupported":false,"matches":[{"key":"lsl-rainwater-cistern","name":"Life Science Laboratories rainwater cistern","score":0.7448350846293347},{"key":"life-science-laboratories","name":"Life Science Laboratories","score":0.5613744200375671},{"key":"lab-plastic-recycling","name":"Lab plastic recycling pilot","score":0.4674854914957881}]},
+        {"id":"development-6","expected":["lab-plastic-recycling"],"first_expected_rank":1,"unsupported":false,"matches":[{"key":"lab-plastic-recycling","name":"Lab plastic recycling pilot","score":0.670861552787132},{"key":"lsl-rainwater-cistern","name":"Life Science Laboratories rainwater cistern","score":0.2533568685446638},{"key":"surplus-property-barn","name":"Surplus Property Barn","score":0.24355302616669883}]},
+        {"id":"development-7","expected":["olver-rain-garden","ilc-stormwater-site","ilc-green-roof","southwest-concourse"],"first_expected_rank":1,"unsupported":false,"matches":[{"key":"ilc-stormwater-site","name":"Integrative Learning Center stormwater landscape","score":0.5519947773593953},{"key":"campus-pond","name":"Campus Pond","score":0.5222836328083247},{"key":"olver-rain-garden","name":"Design Building rain garden","score":0.4540152805054935}]},
+        {"id":"development-8","expected":["durfee-conservatory"],"first_expected_rank":1,"unsupported":false,"matches":[{"key":"durfee-conservatory","name":"Durfee Conservatory","score":0.3743840397434904},{"key":"ilc-stormwater-site","name":"Integrative Learning Center stormwater landscape","score":0.33149833909977366},{"key":"ilc-green-roof","name":"Integrative Learning Center green roof","score":0.3288272947640507}]},
+        {"id":"phone-power","expected":["solar-charging-haigis"],"first_expected_rank":1,"unsupported":false,"matches":[{"key":"solar-charging-haigis","name":"Solar charging station at the Haigis Mall bus stop","score":0.5323246639797944},{"key":"ev-robsham-lot","name":"EV charging at the Robsham Visitor Center lot","score":0.37487939586719926},{"key":"robsham-solar-canopies","name":"Robsham Visitor Center solar canopies","score":0.3494566475827801}]},
+        {"id":"free-bus","expected":["pvta-buses"],"first_expected_rank":1,"unsupported":false,"matches":[{"key":"pvta-buses","name":"PVTA bus service","score":0.3467212013647311},{"key":"topic-ev-charging","name":"Electric vehicle charging on campus","score":0.27113710468433816},{"key":"ev-fleet-physical-plant","name":"Fleet EV charging at the Physical Plant","score":0.24108086610630922}]},
+        {"id":"garage-charger","expected":["ev-campus-center-garage"],"first_expected_rank":1,"unsupported":false,"matches":[{"key":"ev-campus-center-garage","name":"EV charging at the Campus Center Parking Garage","score":0.7398953316990339},{"key":"topic-ev-charging","name":"Electric vehicle charging on campus","score":0.669200284317006},{"key":"ev-fleet-physical-plant","name":"Fleet EV charging at the Physical Plant","score":0.5962048125029508}]},
+        {"id":"borrow-bike","expected":["topic-valleybike"],"first_expected_rank":1,"unsupported":false,"matches":[{"key":"topic-valleybike","name":"ValleyBike","score":0.38071786969367066},{"key":"ev-fleet-physical-plant","name":"Fleet EV charging at the Physical Plant","score":0.3359712337878528},{"key":"valleybike-ilc","name":"ValleyBike station at the Integrative Learning Center","score":0.32477881605479986}]},
+        {"id":"department-reuse","expected":["surplus-property-barn"],"first_expected_rank":1,"unsupported":false,"matches":[{"key":"surplus-property-barn","name":"Surplus Property Barn","score":0.5762194559028462},{"key":"hampden-new2u","name":"New2U Thrift Store","score":0.39606078317613086},{"key":"computer-sciences-laboratories","name":"Computer Sciences Laboratories","score":0.2696781651604173}]},
+        {"id":"pollinators","expected":["pollinator-garden"],"first_expected_rank":1,"unsupported":false,"matches":[{"key":"pollinator-garden","name":"Pollinator Garden","score":0.665539369186713},{"key":"berkshire-dining-commons","name":"Berkshire Dining Commons","score":0.4114564221603996},{"key":"food-for-all-garden","name":"Food for All Garden","score":0.40022276671307866}]},
+        {"id":"community-food","expected":["food-for-all-garden"],"first_expected_rank":1,"unsupported":false,"matches":[{"key":"food-for-all-garden","name":"Food for All Garden","score":0.6883773301677005},{"key":"berkshire-dining-commons","name":"Berkshire Dining Commons","score":0.5406247895041183},{"key":"franklin-dining-commons","name":"Franklin Dining Commons","score":0.5321172330272917}]},
+        {"id":"franklin-lawn","expected":["franklin-permaculture-garden"],"first_expected_rank":1,"unsupported":false,"matches":[{"key":"franklin-permaculture-garden","name":"Franklin Permaculture Garden","score":0.650395106784764},{"key":"berkshire-permaculture-garden","name":"Berkshire Permaculture Garden","score":0.5586756311344575},{"key":"franklin-dining-commons","name":"Franklin Dining Commons","score":0.5396726725318585}]},
+        {"id":"hillside-crops","expected":["hillside-permaculture-garden"],"first_expected_rank":1,"unsupported":false,"matches":[{"key":"hillside-permaculture-garden","name":"Hillside Permaculture Garden","score":0.4716474721871618},{"key":"food-for-all-garden","name":"Food for All Garden","score":0.4095773035286071},{"key":"berkshire-dining-commons","name":"Berkshire Dining Commons","score":0.34759924969423955}]},
+        {"id":"warm-condensate","expected":["chp-solar-hot-water"],"first_expected_rank":1,"unsupported":false,"matches":[{"key":"chp-solar-hot-water","name":"Solar hot water at the Central Heating Plant","score":0.5847112935788971},{"key":"chp-reclaimed-water","name":"Reclaimed water at the Central Heating Plant","score":0.4986263878597878},{"key":"central-heating-plant","name":"Central Heating Plant","score":0.4656637477452334}]},
+        {"id":"treated-wastewater","expected":["chp-reclaimed-water"],"first_expected_rank":1,"unsupported":false,"matches":[{"key":"chp-reclaimed-water","name":"Reclaimed water at the Central Heating Plant","score":0.5904553640249732},{"key":"central-heating-plant","name":"Central Heating Plant","score":0.3777690893628909},{"key":"lsl-rainwater-cistern","name":"Life Science Laboratories rainwater cistern","score":0.3480927918332609}]},
+        {"id":"electricity-and-steam","expected":["central-heating-plant"],"first_expected_rank":1,"unsupported":false,"matches":[{"key":"central-heating-plant","name":"Central Heating Plant","score":0.7823398836488936},{"key":"north-energy-exchange-center","name":"North Energy Exchange Center","score":0.6264526717181038},{"key":"chp-reclaimed-water","name":"Reclaimed water at the Central Heating Plant","score":0.5604592510056694}]},
+        {"id":"economics-net-zero","expected":["crotty-hall"],"first_expected_rank":1,"unsupported":false,"matches":[{"key":"crotty-hall","name":"Crotty Hall","score":0.5406524762730993},{"key":"central-heating-plant","name":"Central Heating Plant","score":0.4622486934538698},{"key":"computer-sciences-laboratories","name":"Computer Sciences Laboratories","score":0.44847490636773063}]},
+        {"id":"visitor-solar","expected":["robsham-solar-canopies"],"first_expected_rank":1,"unsupported":false,"matches":[{"key":"robsham-solar-canopies","name":"Robsham Visitor Center solar canopies","score":0.7233611986380348},{"key":"solar-canopy-southwest-lot","name":"Southwest solar canopies","score":0.5746805666291874},{"key":"solar-canopy-west-lot","name":"Solar canopies by the Fleet Garage","score":0.5464655798151031}]},
+        {"id":"first-platinum","expected":["computer-sciences-laboratories"],"first_expected_rank":1,"unsupported":false,"matches":[{"key":"computer-sciences-laboratories","name":"Computer Sciences Laboratories","score":0.7712545191489647},{"key":"computer-science-building","name":"Computer Science Building","score":0.5730403503530096},{"key":"life-science-laboratories","name":"Life Science Laboratories","score":0.5471303140608904}]},
+        {"id":"basketball-solar","expected":["champions-center"],"first_expected_rank":1,"unsupported":false,"matches":[{"key":"champions-center","name":"Kennedy Champions Center","score":0.5751828318741702},{"key":"recreation-center","name":"Recreation Center","score":0.548327733825259},{"key":"fine-arts-center","name":"Fine Arts Center","score":0.5024223239088635}]},
+        {"id":"gym-solar","expected":["recreation-center"],"first_expected_rank":1,"unsupported":false,"matches":[{"key":"recreation-center","name":"Recreation Center","score":0.699684018085985},{"key":"topic-campus-solar","name":"Solar power at UMass Amherst","score":0.5749104392898156},{"key":"fine-arts-center","name":"Fine Arts Center","score":0.560729443784248}]},
+        {"id":"adaptable-labs","expected":["physical-sciences-building"],"first_expected_rank":1,"unsupported":false,"matches":[{"key":"physical-sciences-building","name":"Physical Sciences Building","score":0.6911072135101662},{"key":"life-science-laboratories","name":"Life Science Laboratories","score":0.6043426050640202},{"key":"computer-sciences-laboratories","name":"Computer Sciences Laboratories","score":0.5181794681902967}]},
+        {"id":"roof-courtyard","expected":["olver-green-roof"],"first_expected_rank":1,"unsupported":false,"matches":[{"key":"olver-green-roof","name":"Rooftop courtyard and green roof","score":0.7314342916357678},{"key":"southwest-concourse","name":"Southwest Concourse","score":0.4604200181246665},{"key":"olver-rain-garden","name":"Design Building rain garden","score":0.4587825810023848}]},
+        {"id":"ten-thousand-gallons","expected":["lsl-rainwater-cistern"],"first_expected_rank":1,"unsupported":false,"matches":[{"key":"lsl-rainwater-cistern","name":"Life Science Laboratories rainwater cistern","score":0.6361577521724096},{"key":"life-science-laboratories","name":"Life Science Laboratories","score":0.40484802775921985},{"key":"campus-pond","name":"Campus Pond","score":0.40327464161992105}]},
+        {"id":"green-rating","expected":["topic-leed"],"first_expected_rank":1,"unsupported":false,"matches":[{"key":"topic-leed","name":"LEED certification","score":0.61046047174094},{"key":"computer-sciences-laboratories","name":"Computer Sciences Laboratories","score":0.4082252800211436},{"key":"cns-greenhouse","name":"CNS Research and Education Greenhouse","score":0.34590390094123563}]},
+        {"id":"chemical-free-grounds","expected":["green-grounds"],"first_expected_rank":1,"unsupported":false,"matches":[{"key":"green-grounds","name":"Green Grounds: campus landscape care","score":0.6154838227811621},{"key":"campus-pond","name":"Campus Pond","score":0.5109010312542718},{"key":"ilc-stormwater-site","name":"Integrative Learning Center stormwater landscape","score":0.47066174336506317}]},
+        {"id":"sedum-roof","expected":["ilc-green-roof"],"first_expected_rank":1,"unsupported":false,"matches":[{"key":"ilc-green-roof","name":"Integrative Learning Center green roof","score":0.6285840253657435},{"key":"olver-green-roof","name":"Rooftop courtyard and green roof","score":0.45260443126012245},{"key":"fine-arts-center","name":"Fine Arts Center","score":0.34830521710002577}]},
+        {"id":"durfee-typo","expected":["durfee-conservatory"],"first_expected_rank":1,"unsupported":false,"matches":[{"key":"durfee-conservatory","name":"Durfee Conservatory","score":0.5561293905123842},{"key":"life-science-laboratories","name":"Life Science Laboratories","score":0.26145863296480976},{"key":"computer-sciences-laboratories","name":"Computer Sciences Laboratories","score":0.2461848486453368}]},
+        {"id":"unsupported-reactor","expected":[],"first_expected_rank":null,"unsupported":true,"matches":[{"key":"computer-sciences-laboratories","name":"Computer Sciences Laboratories","score":0.5498487484101867},{"key":"central-heating-plant","name":"Central Heating Plant","score":0.5000173978837179},{"key":"north-energy-exchange-center","name":"North Energy Exchange Center","score":0.47727294306859297}]},
+        {"id":"unsupported-passport","expected":[],"first_expected_rank":null,"unsupported":true,"matches":[{"key":"ev-campus-center-garage","name":"EV charging at the Campus Center Parking Garage","score":0.27880324830582237},{"key":"south-college","name":"South College","score":0.2664235699844005},{"key":"umass-police-station","name":"UMass Police Station","score":0.25719150560765214}]},
+        {"id":"unsupported-aquarium","expected":[],"first_expected_rank":null,"unsupported":true,"matches":[{"key":"integrative-learning-center","name":"Integrative Learning Center","score":0.3893126747280701},{"key":"fine-arts-center","name":"Fine Arts Center","score":0.36255512142801793},{"key":"computer-sciences-laboratories","name":"Computer Sciences Laboratories","score":0.3192858550759404}]},
+        {"id":"unsupported-launchpad","expected":[],"first_expected_rank":null,"unsupported":true,"matches":[{"key":"recreation-center","name":"Recreation Center","score":0.3996513342764524},{"key":"champions-center","name":"Kennedy Champions Center","score":0.33489598332800746},{"key":"fine-arts-center","name":"Fine Arts Center","score":0.31010080052460187}]},
+        {"id":"hard-tropical","expected":["durfee-conservatory"],"first_expected_rank":7,"unsupported":false,"matches":[{"key":"north-energy-exchange-center","name":"North Energy Exchange Center","score":0.31160700376451117},{"key":"integrative-learning-center","name":"Integrative Learning Center","score":0.3057623607246411},{"key":"ilc-stormwater-site","name":"Integrative Learning Center stormwater landscape","score":0.30069496718718414}]},
+        {"id":"hard-pipette","expected":["lab-plastic-recycling"],"first_expected_rank":1,"unsupported":false,"matches":[{"key":"lab-plastic-recycling","name":"Lab plastic recycling pilot","score":0.6033458717404266},{"key":"life-science-laboratories","name":"Life Science Laboratories","score":0.253643322635548},{"key":"lsl-rainwater-cistern","name":"Life Science Laboratories rainwater cistern","score":0.24330736511912854}]},
+        {"id":"hard-cheap-jacket","expected":["hampden-new2u"],"first_expected_rank":2,"unsupported":false,"matches":[{"key":"surplus-property-barn","name":"Surplus Property Barn","score":0.3279654346578944},{"key":"hampden-new2u","name":"New2U Thrift Store","score":0.32114794400367264},{"key":"worcester-commons","name":"Worcester Commons","score":0.29882463345658233}]},
+        {"id":"hard-office-cabinets","expected":["surplus-property-barn"],"first_expected_rank":1,"unsupported":false,"matches":[{"key":"surplus-property-barn","name":"Surplus Property Barn","score":0.58040110420821},{"key":"integrative-learning-center","name":"Integrative Learning Center","score":0.3736460733691048},{"key":"old-chapel","name":"Old Chapel","score":0.3590466382584596}]},
+        {"id":"hard-sun-grazing","expected":["farm-agrivoltaics"],"first_expected_rank":1,"unsupported":false,"matches":[{"key":"farm-agrivoltaics","name":"Agrivoltaic solar array at the South Deerfield farm","score":0.36821395618337766},{"key":"robsham-solar-canopies","name":"Robsham Visitor Center solar canopies","score":0.3303696508953362},{"key":"solar-canopy-north-lot","name":"North campus solar canopies","score":0.32313018530877835}]},
+        {"id":"hard-water-steam","expected":["chp-reclaimed-water"],"first_expected_rank":1,"unsupported":false,"matches":[{"key":"chp-reclaimed-water","name":"Reclaimed water at the Central Heating Plant","score":0.5874369671979464},{"key":"central-heating-plant","name":"Central Heating Plant","score":0.4104676971125708},{"key":"campus-pond","name":"Campus Pond","score":0.40131523788936263}]},
+        {"id":"hard-free-heat","expected":["chp-solar-hot-water"],"first_expected_rank":1,"unsupported":false,"matches":[{"key":"chp-solar-hot-water","name":"Solar hot water at the Central Heating Plant","score":0.5344194620756171},{"key":"chp-reclaimed-water","name":"Reclaimed water at the Central Heating Plant","score":0.4928784471594084},{"key":"central-heating-plant","name":"Central Heating Plant","score":0.3600291537906981}]},
+        {"id":"hard-food-neighbors","expected":["food-for-all-garden"],"first_expected_rank":1,"unsupported":false,"matches":[{"key":"food-for-all-garden","name":"Food for All Garden","score":0.4017615397689694},{"key":"berkshire-dining-commons","name":"Berkshire Dining Commons","score":0.37015534978376363},{"key":"hillside-permaculture-garden","name":"Hillside Permaculture Garden","score":0.3532542004800023}]},
+        {"id":"hard-help-insects","expected":["pollinator-garden"],"first_expected_rank":1,"unsupported":false,"matches":[{"key":"pollinator-garden","name":"Pollinator Garden","score":0.532882052970441},{"key":"berkshire-dining-commons","name":"Berkshire Dining Commons","score":0.33148777337321106},{"key":"olver-rain-garden","name":"Design Building rain garden","score":0.3216364917852021}]},
+        {"id":"hard-no-sprays","expected":["green-grounds"],"first_expected_rank":1,"unsupported":false,"matches":[{"key":"green-grounds","name":"Green Grounds: campus landscape care","score":0.5942265030469354},{"key":"campus-pond","name":"Campus Pond","score":0.4370170532581465},{"key":"ilc-stormwater-site","name":"Integrative Learning Center stormwater landscape","score":0.4007224003193961}]},
+        {"id":"hard-econ-power","expected":["crotty-hall"],"first_expected_rank":2,"unsupported":false,"matches":[{"key":"north-energy-exchange-center","name":"North Energy Exchange Center","score":0.3702367021408374},{"key":"crotty-hall","name":"Crotty Hall","score":0.32733058968455747},{"key":"topic-campus-solar","name":"Solar power at UMass Amherst","score":0.3235979163644371}]},
+        {"id":"hard-workout-roof","expected":["recreation-center"],"first_expected_rank":1,"unsupported":false,"matches":[{"key":"recreation-center","name":"Recreation Center","score":0.5174052172355792},{"key":"solar-canopy-north-lot","name":"North campus solar canopies","score":0.50959596663295},{"key":"fine-arts-center","name":"Fine Arts Center","score":0.5093174839254373}]},
+        {"id":"hard-public-roof","expected":["olver-green-roof"],"first_expected_rank":1,"unsupported":false,"matches":[{"key":"olver-green-roof","name":"Rooftop courtyard and green roof","score":0.4003640107180559},{"key":"green-grounds","name":"Green Grounds: campus landscape care","score":0.36738681246538724},{"key":"durfee-conservatory","name":"Durfee Conservatory","score":0.366284995527589}]},
+        {"id":"hard-rebuild-labs","expected":["physical-sciences-building"],"first_expected_rank":1,"unsupported":false,"matches":[{"key":"physical-sciences-building","name":"Physical Sciences Building","score":0.542778514007519},{"key":"life-science-laboratories","name":"Life Science Laboratories","score":0.5055012164406454},{"key":"computer-sciences-laboratories","name":"Computer Sciences Laboratories","score":0.39835284378181923}]},
+        {"id":"hard-roof-water","expected":["olver-rain-garden"],"first_expected_rank":2,"unsupported":false,"matches":[{"key":"olver-green-roof","name":"Rooftop courtyard and green roof","score":0.5556020763240427},{"key":"olver-rain-garden","name":"Design Building rain garden","score":0.4788084443019508},{"key":"ilc-green-roof","name":"Integrative Learning Center green roof","score":0.4587144380136322}]},
+        {"id":"hard-rating","expected":["topic-leed"],"first_expected_rank":1,"unsupported":false,"matches":[{"key":"topic-leed","name":"LEED certification","score":0.49346523011003673},{"key":"life-science-laboratories","name":"Life Science Laboratories","score":0.36195256636073897},{"key":"computer-sciences-laboratories","name":"Computer Sciences Laboratories","score":0.3493895112764444}]},
+        {"id":"noisy-phone","expected":["solar-charging-haigis"],"first_expected_rank":1,"unsupported":false,"matches":[{"key":"solar-charging-haigis","name":"Solar charging station at the Haigis Mall bus stop","score":0.3570217395235903},{"key":"computer-sciences-laboratories","name":"Computer Sciences Laboratories","score":0.33585497529063896},{"key":"ev-robsham-lot","name":"EV charging at the Robsham Visitor Center lot","score":0.3355926965555961}]},
+        {"id":"noisy-thrift","expected":["hampden-new2u"],"first_expected_rank":1,"unsupported":false,"matches":[{"key":"hampden-new2u","name":"New2U Thrift Store","score":0.5265345560115875},{"key":"worcester-commons","name":"Worcester Commons","score":0.41964295746709834},{"key":"ev-robsham-lot","name":"EV charging at the Robsham Visitor Center lot","score":0.38747432310292296}]},
+        {"id":"noisy-durfee","expected":["durfee-conservatory"],"first_expected_rank":1,"unsupported":false,"matches":[{"key":"durfee-conservatory","name":"Durfee Conservatory","score":0.45181257998655183},{"key":"central-heating-plant","name":"Central Heating Plant","score":0.39983071478025295},{"key":"integrative-learning-center","name":"Integrative Learning Center","score":0.3748812269378632}]},
+        {"id":"noisy-cistern","expected":["lsl-rainwater-cistern"],"first_expected_rank":1,"unsupported":false,"matches":[{"key":"lsl-rainwater-cistern","name":"Life Science Laboratories rainwater cistern","score":0.6681931285147266},{"key":"campus-pond","name":"Campus Pond","score":0.6062056852123325},{"key":"life-science-laboratories","name":"Life Science Laboratories","score":0.4833828964001236}]},
+        {"id":"noisy-polymers","expected":["lab-plastic-recycling"],"first_expected_rank":1,"unsupported":false,"matches":[{"key":"lab-plastic-recycling","name":"Lab plastic recycling pilot","score":0.5575151280002378},{"key":"life-science-laboratories","name":"Life Science Laboratories","score":0.49843580243787444},{"key":"sustainable-engineering-laboratories","name":"Sustainable Engineering Laboratories","score":0.4635508552417821}]},
+        {"id":"noisy-wood","expected":["olver-design-building"],"first_expected_rank":1,"unsupported":false,"matches":[{"key":"olver-design-building","name":"John W. Olver Design Building","score":0.6110802809433221},{"key":"integrative-learning-center","name":"Integrative Learning Center","score":0.4848308564684015},{"key":"ilc-green-roof","name":"Integrative Learning Center green roof","score":0.45166829620416593}]},
+        {"id":"noisy-farm","expected":["farm-agrivoltaics"],"first_expected_rank":3,"unsupported":false,"matches":[{"key":"solar-canopy-north-lot","name":"North campus solar canopies","score":0.5064667174746622},{"key":"topic-campus-solar","name":"Solar power at UMass Amherst","score":0.49499990129322874},{"key":"farm-agrivoltaics","name":"Agrivoltaic solar array at the South Deerfield farm","score":0.4818565704303702}]},
+        {"id":"noisy-bus","expected":["pvta-buses"],"first_expected_rank":2,"unsupported":false,"matches":[{"key":"topic-valleybike","name":"ValleyBike","score":0.5214612064690103},{"key":"pvta-buses","name":"PVTA bus service","score":0.49329952977024843},{"key":"valleybike-haigis","name":"ValleyBike station at Haigis Mall","score":0.42105224571667477}]},
+        {"id":"typo-pipette","expected":["lab-plastic-recycling"],"first_expected_rank":1,"unsupported":false,"matches":[{"key":"lab-plastic-recycling","name":"Lab plastic recycling pilot","score":0.4638149594590684},{"key":"life-science-laboratories","name":"Life Science Laboratories","score":0.20087441904226902},{"key":"surplus-property-barn","name":"Surplus Property Barn","score":0.19479103112218626}]},
+        {"id":"typo-thrift","expected":["hampden-new2u"],"first_expected_rank":1,"unsupported":false,"matches":[{"key":"hampden-new2u","name":"New2U Thrift Store","score":0.20338256271606048},{"key":"durfee-conservatory","name":"Durfee Conservatory","score":0.17007041152834879},{"key":"olver-green-roof","name":"Rooftop courtyard and green roof","score":0.14713464257658843}]},
+        {"id":"typo-grazing","expected":["farm-agrivoltaics"],"first_expected_rank":1,"unsupported":false,"matches":[{"key":"farm-agrivoltaics","name":"Agrivoltaic solar array at the South Deerfield farm","score":0.32828344692278627},{"key":"olver-green-roof","name":"Rooftop courtyard and green roof","score":0.28649681831011586},{"key":"food-for-all-garden","name":"Food for All Garden","score":0.23189467878923475}]},
+        {"id":"typo-roof","expected":["ilc-green-roof"],"first_expected_rank":1,"unsupported":false,"matches":[{"key":"ilc-green-roof","name":"Integrative Learning Center green roof","score":0.465947326128195},{"key":"olver-green-roof","name":"Rooftop courtyard and green roof","score":0.32260764068218756},{"key":"fine-arts-center","name":"Fine Arts Center","score":0.23968354982818588}]},
+        {"id":"distinguish-water","expected":["chp-reclaimed-water"],"first_expected_rank":1,"unsupported":false,"matches":[{"key":"chp-reclaimed-water","name":"Reclaimed water at the Central Heating Plant","score":0.6326510033297672},{"key":"lsl-rainwater-cistern","name":"Life Science Laboratories rainwater cistern","score":0.4794727109536502},{"key":"campus-pond","name":"Campus Pond","score":0.4682368805463531}]},
+        {"id":"distinguish-training","expected":["champions-center"],"first_expected_rank":3,"unsupported":false,"matches":[{"key":"recreation-center","name":"Recreation Center","score":0.6863685746039814},{"key":"fine-arts-center","name":"Fine Arts Center","score":0.6159550410641818},{"key":"champions-center","name":"Kennedy Champions Center","score":0.6079195199477126}]},
+        {"id":"distinguish-store","expected":["hampden-new2u"],"first_expected_rank":1,"unsupported":false,"matches":[{"key":"hampden-new2u","name":"New2U Thrift Store","score":0.4916277051061372},{"key":"surplus-property-barn","name":"Surplus Property Barn","score":0.4734451738060609},{"key":"lab-plastic-recycling","name":"Lab plastic recycling pilot","score":0.32851608023786505}]},
+        {"id":"distinguish-greenhouse","expected":["cns-greenhouse"],"first_expected_rank":1,"unsupported":false,"matches":[{"key":"cns-greenhouse","name":"CNS Research and Education Greenhouse","score":0.6764276826059988},{"key":"life-science-laboratories","name":"Life Science Laboratories","score":0.45968995482874797},{"key":"durfee-conservatory","name":"Durfee Conservatory","score":0.44809251497204683}]}
+      ],
+      "input_limit_probes": [
+        {"kind":"Query","repeated_words":20,"result":{"accepted":true}},
+        {"kind":"Document","repeated_words":20,"result":{"accepted":true}},
+        {"kind":"Query","repeated_words":240,"result":{"accepted":true}},
+        {"kind":"Document","repeated_words":240,"result":{"accepted":true}},
+        {"kind":"Query","repeated_words":254,"result":{"accepted":true}},
+        {"kind":"Document","repeated_words":254,"result":{"accepted":true}},
+        {"kind":"Query","repeated_words":255,"result":{"accepted":false,"limit":256,"tokens":257}},
+        {"kind":"Document","repeated_words":255,"result":{"accepted":false,"limit":256,"tokens":257}},
+        {"kind":"Query","repeated_words":256,"result":{"accepted":false,"limit":256,"tokens":258}},
+        {"kind":"Document","repeated_words":256,"result":{"accepted":false,"limit":256,"tokens":258}},
+        {"kind":"Query","repeated_words":300,"result":{"accepted":false,"limit":256,"tokens":302}},
+        {"kind":"Document","repeated_words":300,"result":{"accepted":false,"limit":256,"tokens":302}},
+        {"kind":"Query","repeated_words":500,"result":{"accepted":false,"limit":256,"tokens":502}},
+        {"kind":"Document","repeated_words":500,"result":{"accepted":false,"limit":256,"tokens":502}},
+        {"kind":"Query","repeated_words":510,"result":{"accepted":false,"limit":256,"tokens":512}},
+        {"kind":"Document","repeated_words":510,"result":{"accepted":false,"limit":256,"tokens":512}},
+        {"kind":"Query","repeated_words":511,"result":{"accepted":false,"limit":256,"tokens":513}},
+        {"kind":"Document","repeated_words":511,"result":{"accepted":false,"limit":256,"tokens":513}},
+        {"kind":"Query","repeated_words":512,"result":{"accepted":false,"limit":256,"tokens":514}},
+        {"kind":"Document","repeated_words":512,"result":{"accepted":false,"limit":256,"tokens":514}},
+        {"kind":"Query","repeated_words":600,"result":{"accepted":false,"limit":256,"tokens":602}},
+        {"kind":"Document","repeated_words":600,"result":{"accepted":false,"limit":256,"tokens":602}}
+      ]
+    }
+  ]
+}
