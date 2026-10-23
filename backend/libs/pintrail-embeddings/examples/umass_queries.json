@@ -1,0 +1,34 @@
+[
+  {
+    "question": "Where can I buy second-hand clothes and furniture rather than throw useful things away?",
+    "expected": ["hampden-new2u"]
+  },
+  {
+    "question": "Which building uses large panels of glued wood instead of much of its steel and concrete?",
+    "expected": ["olver-design-building"]
+  },
+  {
+    "question": "Where is sunlight used to preheat water before the heating plant makes steam?",
+    "expected": ["chp-solar-hot-water"]
+  },
+  {
+    "question": "Which place combines farming with panels that generate electricity?",
+    "expected": ["farm-agrivoltaics"]
+  },
+  {
+    "question": "Where is collected rainwater stored underground and reused by the Life Science Laboratories?",
+    "expected": ["lsl-rainwater-cistern"]
+  },
+  {
+    "question": "How are used pipette tip boxes turned back into new laboratory plastics?",
+    "expected": ["lab-plastic-recycling"]
+  },
+  {
+    "question": "Where do plants and soil help absorb rain runoff rather than send it straight into storm drains?",
+    "expected": ["olver-rain-garden", "ilc-stormwater-site", "ilc-green-roof", "southwest-concourse"]
+  },
+  {
+    "question": "Where can I step into a rainforest room and warm up on my way to class in winter?",
+    "expected": ["durfee-conservatory"]
+  }
+]

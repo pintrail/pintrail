@@ -1,0 +1,38 @@
+name: Search storage
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  postgres-storage:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    services:
+      postgres:
+        image: pgvector/pgvector:0.8.7-pg17-bookworm
+        env:
+          POSTGRES_USER: pintrail
+          POSTGRES_PASSWORD: pintrail
+          POSTGRES_DB: pintrail_search_lab
+        ports: [5432:5432]
+        options: >-
+          --health-cmd "pg_isready -U pintrail -d pintrail_search_lab"
+          --health-interval 5s --health-timeout 3s --health-retries 10
+    env:
+      DATABASE_URL: postgres://pintrail:pintrail@localhost:5432/pintrail_search_lab
+    steps:
+      - uses: actions/checkout@v4
+      - run: rustup toolchain install
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: backend
+      - run: cargo clippy -p pintrail-embeddings --features postgres --all-targets --locked -- -D warnings
+      - run: cargo test -p pintrail-embeddings --features postgres --locked
+      - run: cargo clippy -p pintrail-worker --features semantic-search --all-targets --locked -- -D warnings
+      - run: cargo test -p pintrail-worker --features semantic-search --locked
