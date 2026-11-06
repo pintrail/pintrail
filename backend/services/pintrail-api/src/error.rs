@@ -46,6 +46,9 @@ pub enum AppError {
     #[error("rate limit exceeded")]
     TooManyRequests,
 
+    #[error("{0}")]
+    ServiceUnavailable(&'static str),
+
     #[error(transparent)]
     Internal(#[from] anyhow::Error),
 }
@@ -73,6 +76,7 @@ impl AppError {
             AppError::NotFound(_) => StatusCode::NOT_FOUND,
             AppError::Conflict(_) => StatusCode::CONFLICT,
             AppError::TooManyRequests => StatusCode::TOO_MANY_REQUESTS,
+            AppError::ServiceUnavailable(_) => StatusCode::SERVICE_UNAVAILABLE,
             AppError::Internal(_) => StatusCode::INTERNAL_SERVER_ERROR,
         }
     }

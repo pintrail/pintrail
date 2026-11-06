@@ -1,0 +1,14 @@
+[
+  {"category":"exact-name","question":"Durfee Conservatory","expected":["durfee-conservatory"]},
+  {"category":"exact-name","question":"New2U Thrift Store","expected":["hampden-new2u"]},
+  {"category":"exact-name","question":"Computer Science Building","expected":["computer-science-building"]},
+  {"category":"exact-name","question":"Central Heating Plant","expected":["central-heating-plant"]},
+  {"category":"exact-name","question":"ValleyBike","expected":["topic-valleybike"]},
+  {"category":"exact-name","question":"LEED certification","expected":["topic-leed"]},
+  {"category":"rare-term","question":"Polycarbin","expected":["lab-plastic-recycling"]},
+  {"category":"rare-term","question":"electrochromic","expected":["worcester-commons"]},
+  {"category":"rare-term","question":"agrivoltaics","expected":["farm-agrivoltaics"]},
+  {"category":"quoted-phrase","question":"\"pipette tip boxes\"","expected":["lab-plastic-recycling"]},
+  {"category":"quoted-phrase","question":"\"rainwater harvesting\"","expected":["franklin-permaculture-garden"]},
+  {"category":"quoted-name","question":"\"Computer Science Building\"","expected":["computer-science-building"]}
+]

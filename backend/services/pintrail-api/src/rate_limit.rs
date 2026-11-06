@@ -49,6 +49,8 @@ pub const LOGIN_PER_IP: Quota = Quota::new(30, 900);
 /// sends an email, so the limit protects other people's inboxes as much as
 /// this service.
 pub const EMAIL_TRIGGER_PER_IP: Quota = Quota::new(5, 900);
+/// Authenticated search requests per account, counted separately per replica.
+pub const SEARCH_PER_ACCOUNT: Quota = Quota::new(60, 60);
 
 #[derive(Debug, Default)]
 struct Bucket {

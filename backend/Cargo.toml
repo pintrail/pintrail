@@ -1,17 +1,19 @@
 [workspace]
 resolver = "2"
-members = ["libs/pintrail-storage", "services/pintrail-api", "services/pintrail-worker"]
+members = ["libs/pintrail-storage", "libs/pintrail-embeddings", "services/pintrail-api", "services/pintrail-worker"]
 
 # Shared across both binaries so the API and worker never disagree about
 # how a row is deserialized or how the queue is polled.
 [workspace.dependencies]
 anyhow = "1"
+fastembed = { version = "=7.1.5", default-features = false, features = ["ort-download-binaries-rustls-tls", "hf-hub-rustls-tls"] }
 argon2 = "0.5"
 aws-config = { version = "1", features = ["behavior-version-latest"] }
 aws-sdk-s3 = "1"
 minijinja = { version = "2", features = ["loader"] }
 image = { version = "0.25", default-features = false, features = ["jpeg", "png", "webp", "gif"] }
 pintrail-storage = { path = "libs/pintrail-storage" }
+pintrail-embeddings = { path = "libs/pintrail-embeddings" }
 webp = "0.3"
 axum = "0.8"
 axum-extra = { version = "0.10", features = ["cookie"] }

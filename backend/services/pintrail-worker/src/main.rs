@@ -7,6 +7,7 @@
 
 mod media;
 mod queue;
+mod search_embeddings;
 mod search_index;
 mod trail_route;
 
@@ -94,12 +95,61 @@ impl Config {
 async fn main() -> anyhow::Result<()> {
     let _ = dotenvy::dotenv();
 
+    // Local text backfills need PostgreSQL only, not S3 or a running web API.
+    if std::env::args().nth(1).as_deref() == Some("index-search-text-once") {
+        let database_url = std::env::var("DATABASE_URL").context("DATABASE_URL is required")?;
+        let db = PgPoolOptions::new()
+            .max_connections(2)
+            .connect(&database_url)
+            .await?;
+        search_index::poll_once(&db, 1000, 3, 300).await?;
+        println!("Processed one batch of up to 1000 ready search-text jobs.");
+        return Ok(());
+    }
+
     tracing_subscriber::fmt()
         .with_env_filter(
             tracing_subscriber::EnvFilter::try_from_default_env()
                 .unwrap_or_else(|_| "pintrail_worker=debug,info".into()),
         )
         .init();
+
+    // A PostgreSQL-only semantic-search worker for local development. It runs
+    // continuously, so edits are processed without a separate indexing command.
+    if matches!(
+        std::env::args().nth(1).as_deref(),
+        Some("search-loop" | "index-search-once")
+    ) {
+        let database_url = std::env::var("DATABASE_URL").context("DATABASE_URL is required")?;
+        let db = PgPoolOptions::new()
+            .max_connections(4)
+            .connect(&database_url)
+            .await?;
+        let mut embeddings = search_embeddings::Worker::load(&db).await?;
+        let once = std::env::args().nth(1).as_deref() == Some("index-search-once");
+        loop {
+            if let Err(err) = search_index::poll_once(&db, 64, 3, 300).await {
+                if once {
+                    return Err(err);
+                }
+                tracing::error!(error=?err,"search text cycle failed; retrying next poll");
+            }
+            if let Err(err) = embeddings.poll_once(&db, 64).await {
+                if once {
+                    return Err(err);
+                }
+                tracing::error!(error=?err,"embedding cycle failed; retrying next poll");
+            }
+            if once {
+                break;
+            }
+            tokio::select! {
+                _=tokio::time::sleep(Duration::from_secs(2))=>{},
+                _=shutdown_signal()=>break,
+            }
+        }
+        return Ok(());
+    }
 
     let config = Config::from_env()?;
 
@@ -126,7 +176,8 @@ async fn main() -> anyhow::Result<()> {
         "pintrail-worker started"
     );
 
-    run(&db, &storage, &config, router.as_ref()).await;
+    let embeddings = search_embeddings::Worker::configured(&db).await?;
+    run(&db, &storage, &config, router.as_ref(), embeddings).await;
 
     tracing::info!("pintrail-worker stopped");
     Ok(())
@@ -137,6 +188,7 @@ async fn run(
     storage: &Storage,
     config: &Config,
     router: Option<&trail_route::Valhalla>,
+    mut embeddings: Option<search_embeddings::Worker>,
 ) {
     let mut ticker = tokio::time::interval(config.poll_interval);
     // If a batch overruns a tick, catch up with one run rather than firing
@@ -162,6 +214,11 @@ async fn run(
                 .await
                 {
                     tracing::error!(error = ?err, "search indexing cycle failed");
+                }
+                if let Some(embeddings)=embeddings.as_mut() {
+                    if let Err(err)=embeddings.poll_once(db,config.batch_size).await {
+                        tracing::error!(error=?err,"embedding cycle failed");
+                    }
                 }
                 // Routing is its own queue too: a slow or down router must
                 // not hold up media or search.

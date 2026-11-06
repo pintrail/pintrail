@@ -1,0 +1,7 @@
+[
+  {"question":"Which artifact mentions electrochromic technology?","expected":["worcester-commons"]},
+  {"question":"Where is the Polycarbin recycling project?","expected":["lab-plastic-recycling"]},
+  {"question":"Where can I see agrivoltaics?","expected":["farm-agrivoltaics"]},
+  {"question":"Where is Durfee Conservatory?","expected":["durfee-conservatory"]},
+  {"question":"Show me New2U Thrift Store.","expected":["hampden-new2u"]}
+]

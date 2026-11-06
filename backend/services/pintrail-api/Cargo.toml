@@ -5,12 +5,17 @@ edition.workspace = true
 license.workspace = true
 rust-version.workspace = true
 
+[features]
+# Opt in after the separate pgvector schema is installed.
+semantic-search = ["dep:pintrail-embeddings"]
+
 [dependencies]
 anyhow.workspace = true
 argon2.workspace = true
 aws-config.workspace = true
 aws-sdk-s3.workspace = true
 pintrail-storage.workspace = true
+pintrail-embeddings = { workspace = true, features = ["postgres"], optional = true }
 axum.workspace = true
 axum-extra.workspace = true
 chrono.workspace = true
@@ -33,3 +38,7 @@ reqwest.workspace = true
 image.workspace = true
 webp.workspace = true
 pulldown-cmark = { version = "0.13.4", default-features = false, features = ["html"] }
+
+[dev-dependencies]
+pintrail-embeddings = { workspace = true, features = ["test-provider"] }
+tower = { version = "0.5", features = ["util"] }

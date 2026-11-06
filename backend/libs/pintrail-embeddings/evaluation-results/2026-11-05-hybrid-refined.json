@@ -1,0 +1,5559 @@
+{
+  "date": "2026-11-05",
+  "transport": "real HTTP, full API, isolated lab on port 5434",
+  "model": "BAAI/bge-base-en-v1.5",
+  "artifacts": 58,
+  "source_parent_commit": "c0dd70949f4de2c6a40cfd63d66d5da31dfe3acb",
+  "limitations": "Policy informed by original development failures. Original labels and model weights unchanged. Five diagnostic paraphrases frozen before the first refined run; none are independent student validation. CPU/WSL debug observations, not production benchmarks.",
+  "fusion": {
+    "version": "semantic-first-v1",
+    "candidate_limit_per_branch": 50,
+    "rank_offset": 60,
+    "short_lookup_max_words": 3,
+    "selective_match_max": 3,
+    "semantic_first_for_questions": true,
+    "exact_name_priority": true
+  },
+  "fixture_sha256": {
+    "umass_queries.json": "080f8917d7cb8d46f25a3299924e8af6f85559f8178e2c4e6b3063a1fb61123b",
+    "semantic_cases.json": "4397e12598f18e93b64d4b4c740449e5c55312ba75f5f2f9ee484c0715370095",
+    "harder_cases.json": "1e33de18ad76931f4a29e0bb3fba4fad29d914563276aed26c52dc620d2b14ba",
+    "lexical_cases.json": "7ac1dbfcdb337dd74b61ed34548d2f35288469047a3a8a6d9d5192a042c3178c",
+    "hybrid_diagnostics.json": "23bd81ae55c85ff5d80996677c8a28ac753ee4048be415a602e6de7d1033a4f7"
+  },
+  "corpus_hash": "5ba43f774a75de4a8f668a851fb85145",
+  "reports": [
+    {
+      "mode": "semantic",
+      "metrics": {
+        "existing": {
+          "supported": 64,
+          "expected_first": 62,
+          "expected_in_top_3": 64
+        },
+        "lexical": {
+          "supported": 12,
+          "expected_first": 9,
+          "expected_in_top_3": 10
+        },
+        "diagnostics": {
+          "supported": 5,
+          "expected_first": 4,
+          "expected_in_top_3": 4
+        }
+      },
+      "latency_ms": {
+        "p50": 56.817731999984744,
+        "p95": 81.43236199998682
+      },
+      "results": [
+        {
+          "group": "existing",
+          "question": "Where can I buy second-hand clothes and furniture rather than throw useful things away?",
+          "expected": [
+            "hampden-new2u"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "New2U Thrift Store",
+              "score": 0.6316632973646096,
+              "semantic_score": 0.6316632973646096
+            },
+            {
+              "name": "Surplus Property Barn",
+              "score": 0.6244381590673027,
+              "semantic_score": 0.6244381590673027
+            },
+            {
+              "name": "Lab plastic recycling pilot",
+              "score": 0.4438996050417856,
+              "semantic_score": 0.4438996050417856
+            }
+          ]
+        },
+        {
+          "group": "existing",
+          "question": "Which building uses large panels of glued wood instead of much of its steel and concrete?",
+          "expected": [
+            "olver-design-building"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "John W. Olver Design Building",
+              "score": 0.6080680594322586,
+              "semantic_score": 0.6080680594322586
+            },
+            {
+              "name": "Sustainable Engineering Laboratories",
+              "score": 0.5285694846088625,
+              "semantic_score": 0.5285694846088625
+            },
+            {
+              "name": "Life Science Laboratories",
+              "score": 0.5252348467567663,
+              "semantic_score": 0.5252348467567663
+            }
+          ]
+        },
+        {
+          "group": "existing",
+          "question": "Where is sunlight used to preheat water before the heating plant makes steam?",
+          "expected": [
+            "chp-solar-hot-water"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "Solar hot water at the Central Heating Plant",
+              "score": 0.7446791516969619,
+              "semantic_score": 0.7446791516969619
+            },
+            {
+              "name": "Reclaimed water at the Central Heating Plant",
+              "score": 0.6551285139262727,
+              "semantic_score": 0.6551285139262727
+            },
+            {
+              "name": "Central Heating Plant",
+              "score": 0.6258204060257792,
+              "semantic_score": 0.6258204060257792
+            }
+          ]
+        },
+        {
+          "group": "existing",
+          "question": "Which place combines farming with panels that generate electricity?",
+          "expected": [
+            "farm-agrivoltaics"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "Agrivoltaic solar array at the South Deerfield farm",
+              "score": 0.6582019751662102,
+              "semantic_score": 0.6582019751662102
+            },
+            {
+              "name": "Solar power at UMass Amherst",
+              "score": 0.5598553252263392,
+              "semantic_score": 0.5598553252263392
+            },
+            {
+              "name": "Central Heating Plant",
+              "score": 0.5561123557225054,
+              "semantic_score": 0.5561123557225054
+            }
+          ]
+        },
+        {
+          "group": "existing",
+          "question": "Where is collected rainwater stored underground and reused by the Life Science Laboratories?",
+          "expected": [
+            "lsl-rainwater-cistern"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "Life Science Laboratories rainwater cistern",
+              "score": 0.7865981674071976,
+              "semantic_score": 0.7865981674071976
+            },
+            {
+              "name": "Life Science Laboratories",
+              "score": 0.6225699107474029,
+              "semantic_score": 0.6225699107474029
+            },
+            {
+              "name": "Lab plastic recycling pilot",
+              "score": 0.5927752256393811,
+              "semantic_score": 0.5927752256393811
+            }
+          ]
+        },
+        {
+          "group": "existing",
+          "question": "How are used pipette tip boxes turned back into new laboratory plastics?",
+          "expected": [
+            "lab-plastic-recycling"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "Lab plastic recycling pilot",
+              "score": 0.7110601425444428,
+              "semantic_score": 0.7110601425444428
+            },
+            {
+              "name": "Surplus Property Barn",
+              "score": 0.49926808498265174,
+              "semantic_score": 0.49926808498265174
+            },
+            {
+              "name": "Life Science Laboratories",
+              "score": 0.4745670647977662,
+              "semantic_score": 0.4745670647977662
+            }
+          ]
+        },
+        {
+          "group": "existing",
+          "question": "Where do plants and soil help absorb rain runoff rather than send it straight into storm drains?",
+          "expected": [
+            "olver-rain-garden",
+            "ilc-stormwater-site",
+            "ilc-green-roof",
+            "southwest-concourse"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "Design Building rain garden",
+              "score": 0.6728212432372798,
+              "semantic_score": 0.6728212432372798
+            },
+            {
+              "name": "Integrative Learning Center stormwater landscape",
+              "score": 0.6482602181125579,
+              "semantic_score": 0.6482602181125579
+            },
+            {
+              "name": "Campus Pond",
+              "score": 0.6086717844010091,
+              "semantic_score": 0.6086717844010091
+            }
+          ]
+        },
+        {
+          "group": "existing",
+          "question": "Where can I step into a rainforest room and warm up on my way to class in winter?",
+          "expected": [
+            "durfee-conservatory"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "Durfee Conservatory",
+              "score": 0.560393366837131,
+              "semantic_score": 0.560393366837131
+            },
+            {
+              "name": "North Energy Exchange Center",
+              "score": 0.5388114773518967,
+              "semantic_score": 0.5388114773518967
+            },
+            {
+              "name": "Integrative Learning Center",
+              "score": 0.5203402614188474,
+              "semantic_score": 0.5203402614188474
+            }
+          ]
+        },
+        {
+          "group": "existing",
+          "question": "My phone battery is dying while I wait for the bus. Is there a place powered by the sun where I can plug it in?",
+          "expected": [
+            "solar-charging-haigis"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "Solar charging station at the Haigis Mall bus stop",
+              "score": 0.7157618108490986,
+              "semantic_score": 0.7157618108490986
+            },
+            {
+              "name": "EV charging at the Robsham Visitor Center lot",
+              "score": 0.58949304003869,
+              "semantic_score": 0.58949304003869
+            },
+            {
+              "name": "PVTA bus service",
+              "score": 0.574450799126858,
+              "semantic_score": 0.574450799126858
+            }
+          ]
+        },
+        {
+          "group": "existing",
+          "question": "How can students travel into neighboring towns without paying for a bus ticket?",
+          "expected": [
+            "pvta-buses"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "PVTA bus service",
+              "score": 0.5922081846694506,
+              "semantic_score": 0.5922081846694506
+            },
+            {
+              "name": "ValleyBike",
+              "score": 0.5170952040922155,
+              "semantic_score": 0.5170952040922155
+            },
+            {
+              "name": "Solar charging station at the Haigis Mall bus stop",
+              "score": 0.502384454154064,
+              "semantic_score": 0.502384454154064
+            }
+          ]
+        },
+        {
+          "group": "existing",
+          "question": "Where can I charge an electric car in the Campus Center Parking Garage?",
+          "expected": [
+            "ev-campus-center-garage"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "EV charging at the Campus Center Parking Garage",
+              "score": 0.8427895494950595,
+              "semantic_score": 0.8427895494950595
+            },
+            {
+              "name": "Electric vehicle charging on campus",
+              "score": 0.7606577705160912,
+              "semantic_score": 0.7606577705160912
+            },
+            {
+              "name": "EV charging at the Robsham Visitor Center lot",
+              "score": 0.7388564348221298,
+              "semantic_score": 0.7388564348221298
+            }
+          ]
+        },
+        {
+          "group": "existing",
+          "question": "Can I borrow an electric bicycle at one station and leave it at a different station?",
+          "expected": [
+            "topic-valleybike"
+          ],
+          "expected_first": false,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "ValleyBike station at the Integrative Learning Center",
+              "score": 0.6104715184079951,
+              "semantic_score": 0.6104715184079951
+            },
+            {
+              "name": "ValleyBike station in Southwest",
+              "score": 0.6021070595788349,
+              "semantic_score": 0.6021070595788349
+            },
+            {
+              "name": "ValleyBike",
+              "score": 0.5751179963209674,
+              "semantic_score": 0.5751179963209674
+            }
+          ]
+        },
+        {
+          "group": "existing",
+          "question": "Our university department has spare desks. Where can another department get them instead of buying new furniture?",
+          "expected": [
+            "surplus-property-barn"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "Surplus Property Barn",
+              "score": 0.6788517810967661,
+              "semantic_score": 0.6788517810967661
+            },
+            {
+              "name": "New2U Thrift Store",
+              "score": 0.6162786390200338,
+              "semantic_score": 0.6162786390200338
+            },
+            {
+              "name": "Fleet EV charging at the Physical Plant",
+              "score": 0.5192116498947734,
+              "semantic_score": 0.5192116498947734
+            }
+          ]
+        },
+        {
+          "group": "existing",
+          "question": "Which garden provides food and water for bees, butterflies and hummingbirds?",
+          "expected": [
+            "pollinator-garden"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "Pollinator Garden",
+              "score": 0.6879958529469014,
+              "semantic_score": 0.6879958529469014
+            },
+            {
+              "name": "Food for All Garden",
+              "score": 0.5361777556737167,
+              "semantic_score": 0.5361777556737167
+            },
+            {
+              "name": "UMass Permaculture gardens",
+              "score": 0.5349959059051196,
+              "semantic_score": 0.5349959059051196
+            }
+          ]
+        },
+        {
+          "group": "existing",
+          "question": "Which garden grows fresh produce for the Amherst Survival Center and a community meal program?",
+          "expected": [
+            "food-for-all-garden"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "Food for All Garden",
+              "score": 0.7298440015130512,
+              "semantic_score": 0.7298440015130512
+            },
+            {
+              "name": "Franklin Dining Commons",
+              "score": 0.5896221674839893,
+              "semantic_score": 0.5896221674839893
+            },
+            {
+              "name": "Berkshire Permaculture Garden",
+              "score": 0.580750232711366,
+              "semantic_score": 0.580750232711366
+            }
+          ]
+        },
+        {
+          "group": "existing",
+          "question": "Which garden replaced a lawn beside Franklin Dining Commons and supplies it with fruit, vegetables and herbs?",
+          "expected": [
+            "franklin-permaculture-garden"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "Franklin Permaculture Garden",
+              "score": 0.6816053999905795,
+              "semantic_score": 0.6816053999905795
+            },
+            {
+              "name": "Franklin Dining Commons",
+              "score": 0.6810165034816326,
+              "semantic_score": 0.6810165034816326
+            },
+            {
+              "name": "Berkshire Permaculture Garden",
+              "score": 0.6245599798989637,
+              "semantic_score": 0.6245599798989637
+            }
+          ]
+        },
+        {
+          "group": "existing",
+          "question": "Where were food plants from India grown at the chancellor's residence?",
+          "expected": [
+            "hillside-permaculture-garden"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "Hillside Permaculture Garden",
+              "score": 0.6398684978485153,
+              "semantic_score": 0.6398684978485153
+            },
+            {
+              "name": "Food for All Garden",
+              "score": 0.5228487023260386,
+              "semantic_score": 0.5228487023260386
+            },
+            {
+              "name": "Franklin Permaculture Garden",
+              "score": 0.5188941359519995,
+              "semantic_score": 0.5188941359519995
+            }
+          ]
+        },
+        {
+          "group": "existing",
+          "question": "What installation warms returning water with sunlight so the steam plant needs to burn less gas?",
+          "expected": [
+            "chp-solar-hot-water"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "Solar hot water at the Central Heating Plant",
+              "score": 0.7056397269320113,
+              "semantic_score": 0.7056397269320113
+            },
+            {
+              "name": "Reclaimed water at the Central Heating Plant",
+              "score": 0.6398526334235959,
+              "semantic_score": 0.6398526334235959
+            },
+            {
+              "name": "Central Heating Plant",
+              "score": 0.6161067166583037,
+              "semantic_score": 0.6161067166583037
+            }
+          ]
+        },
+        {
+          "group": "existing",
+          "question": "Where is treated sewage cleaned further and used in boilers instead of drinking water?",
+          "expected": [
+            "chp-reclaimed-water"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "Reclaimed water at the Central Heating Plant",
+              "score": 0.6551625276387055,
+              "semantic_score": 0.6551625276387055
+            },
+            {
+              "name": "Solar hot water at the Central Heating Plant",
+              "score": 0.5290811446550929,
+              "semantic_score": 0.5290811446550929
+            },
+            {
+              "name": "Central Heating Plant",
+              "score": 0.5085971982230693,
+              "semantic_score": 0.5085971982230693
+            }
+          ]
+        },
+        {
+          "group": "existing",
+          "question": "Which campus facility produces both electricity and the steam used to heat and cool buildings?",
+          "expected": [
+            "central-heating-plant"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "Central Heating Plant",
+              "score": 0.7608072472581453,
+              "semantic_score": 0.7608072472581453
+            },
+            {
+              "name": "North Energy Exchange Center",
+              "score": 0.6412044426907437,
+              "semantic_score": 0.6412044426907437
+            },
+            {
+              "name": "Crotty Hall",
+              "score": 0.6265986339210928,
+              "semantic_score": 0.6265986339210928
+            }
+          ]
+        },
+        {
+          "group": "existing",
+          "question": "Which economics building was designed to make as much energy as it consumes each year?",
+          "expected": [
+            "crotty-hall"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "Crotty Hall",
+              "score": 0.5942792793638855,
+              "semantic_score": 0.5942792793638855
+            },
+            {
+              "name": "Life Science Laboratories",
+              "score": 0.5589088648990723,
+              "semantic_score": 0.5589088648990723
+            },
+            {
+              "name": "North Energy Exchange Center",
+              "score": 0.5471577976064373,
+              "semantic_score": 0.5471577976064373
+            }
+          ]
+        },
+        {
+          "group": "existing",
+          "question": "Where is the first solar parking canopy in the UMass system, beside the visitor center?",
+          "expected": [
+            "robsham-solar-canopies"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "Robsham Visitor Center solar canopies",
+              "score": 0.822863417691946,
+              "semantic_score": 0.822863417691946
+            },
+            {
+              "name": "Southwest solar canopies",
+              "score": 0.7347024387281379,
+              "semantic_score": 0.7347024387281379
+            },
+            {
+              "name": "Solar canopies by the Fleet Garage",
+              "score": 0.7269826367728355,
+              "semantic_score": 0.7269826367728355
+            }
+          ]
+        },
+        {
+          "group": "existing",
+          "question": "Which computing laboratory building completed in 2025 was the first on campus to earn LEED Platinum?",
+          "expected": [
+            "computer-sciences-laboratories"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "Computer Sciences Laboratories",
+              "score": 0.7480656058749527,
+              "semantic_score": 0.7480656058749527
+            },
+            {
+              "name": "LEED certification",
+              "score": 0.6536259284911372,
+              "semantic_score": 0.6536259284911372
+            },
+            {
+              "name": "Computer Science Building",
+              "score": 0.6338344115512348,
+              "semantic_score": 0.6338344115512348
+            }
+          ]
+        },
+        {
+          "group": "existing",
+          "question": "Which basketball practice building earned LEED Gold and has rooftop solar?",
+          "expected": [
+            "champions-center"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "Kennedy Champions Center",
+              "score": 0.698836600919175,
+              "semantic_score": 0.698836600919175
+            },
+            {
+              "name": "Recreation Center",
+              "score": 0.5910198227727741,
+              "semantic_score": 0.5910198227727741
+            },
+            {
+              "name": "Life Science Laboratories",
+              "score": 0.5741790786874854,
+              "semantic_score": 0.5741790786874854
+            }
+          ]
+        },
+        {
+          "group": "existing",
+          "question": "Which campus gym generates electricity from panels on its large flat roof?",
+          "expected": [
+            "recreation-center"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "Recreation Center",
+              "score": 0.6768594751180794,
+              "semantic_score": 0.6768594751180794
+            },
+            {
+              "name": "Solar power at UMass Amherst",
+              "score": 0.6156284258698066,
+              "semantic_score": 0.6156284258698066
+            },
+            {
+              "name": "North campus solar canopies",
+              "score": 0.5940028010012,
+              "semantic_score": 0.5940028010012
+            }
+          ]
+        },
+        {
+          "group": "existing",
+          "question": "Which physics and chemistry research building was designed so its laboratories can be rearranged instead of demolishing the building?",
+          "expected": [
+            "physical-sciences-building"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "Physical Sciences Building",
+              "score": 0.6742029786109924,
+              "semantic_score": 0.6742029786109924
+            },
+            {
+              "name": "Life Science Laboratories",
+              "score": 0.5720688700675964,
+              "semantic_score": 0.5720688700675964
+            },
+            {
+              "name": "Sustainable Engineering Laboratories",
+              "score": 0.5438709802781405,
+              "semantic_score": 0.5438709802781405
+            }
+          ]
+        },
+        {
+          "group": "existing",
+          "question": "Where is a public courtyard with native plants and built-in seating on the Design Building roof?",
+          "expected": [
+            "olver-green-roof"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "Rooftop courtyard and green roof",
+              "score": 0.7486458570572875,
+              "semantic_score": 0.7486458570572875
+            },
+            {
+              "name": "Southwest Concourse",
+              "score": 0.5914694288896195,
+              "semantic_score": 0.5914694288896195
+            },
+            {
+              "name": "Design Building rain garden",
+              "score": 0.57493787110599,
+              "semantic_score": 0.57493787110599
+            }
+          ]
+        },
+        {
+          "group": "existing",
+          "question": "Which underground tank can store up to 10,000 gallons of rainwater for laboratory and landscape uses?",
+          "expected": [
+            "lsl-rainwater-cistern"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "Life Science Laboratories rainwater cistern",
+              "score": 0.6843336224555969,
+              "semantic_score": 0.6843336224555969
+            },
+            {
+              "name": "Design Building rain garden",
+              "score": 0.5521091961535473,
+              "semantic_score": 0.5521091961535473
+            },
+            {
+              "name": "Integrative Learning Center stormwater landscape",
+              "score": 0.5465538931296603,
+              "semantic_score": 0.5465538931296603
+            }
+          ]
+        },
+        {
+          "group": "existing",
+          "question": "What green-building rating system awards Certified, Silver, Gold or Platinum based on earned points?",
+          "expected": [
+            "topic-leed"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "LEED certification",
+              "score": 0.715445628980585,
+              "semantic_score": 0.715445628980585
+            },
+            {
+              "name": "CNS Research and Education Greenhouse",
+              "score": 0.600239264936539,
+              "semantic_score": 0.600239264936539
+            },
+            {
+              "name": "Life Science Laboratories",
+              "score": 0.5776518490729553,
+              "semantic_score": 0.5776518490729553
+            }
+          ]
+        },
+        {
+          "group": "existing",
+          "question": "How is most of the campus landscape maintained without artificial pesticides or fertilizers?",
+          "expected": [
+            "green-grounds"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "Green Grounds: campus landscape care",
+              "score": 0.7762552997838276,
+              "semantic_score": 0.7762552997838276
+            },
+            {
+              "name": "Campus Pond",
+              "score": 0.6473066104380558,
+              "semantic_score": 0.6473066104380558
+            },
+            {
+              "name": "UMass Permaculture gardens",
+              "score": 0.6246441305532322,
+              "semantic_score": 0.6246441305532322
+            }
+          ]
+        },
+        {
+          "group": "existing",
+          "question": "Which ILC roof has about 15,000 square feet of hardy sedum plants instead of bare roofing?",
+          "expected": [
+            "ilc-green-roof"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "Integrative Learning Center green roof",
+              "score": 0.6338751752525764,
+              "semantic_score": 0.6338751752525764
+            },
+            {
+              "name": "Rooftop courtyard and green roof",
+              "score": 0.5356302218878347,
+              "semantic_score": 0.5356302218878347
+            },
+            {
+              "name": "Southwest Concourse",
+              "score": 0.47823699919647056,
+              "semantic_score": 0.47823699919647056
+            }
+          ]
+        },
+        {
+          "group": "existing",
+          "question": "Where is Durfee conservatry?",
+          "expected": [
+            "durfee-conservatory"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "Durfee Conservatory",
+              "score": 0.6239867396350948,
+              "semantic_score": 0.6239867396350948
+            },
+            {
+              "name": "Old Chapel",
+              "score": 0.4433303011456381,
+              "semantic_score": 0.4433303011456381
+            },
+            {
+              "name": "Berkshire Dining Commons",
+              "score": 0.44016746285073394,
+              "semantic_score": 0.44016746285073394
+            }
+          ]
+        },
+        {
+          "group": "existing",
+          "question": "Where is the campus nuclear fusion reactor?",
+          "expected": [],
+          "expected_first": false,
+          "expected_in_top_3": false,
+          "matches": [
+            {
+              "name": "North Energy Exchange Center",
+              "score": 0.5559573569450333,
+              "semantic_score": 0.5559573569450333
+            },
+            {
+              "name": "Central Heating Plant",
+              "score": 0.5539599657059345,
+              "semantic_score": 0.5539599657059345
+            },
+            {
+              "name": "Recreation Center",
+              "score": 0.5520521812252389,
+              "semantic_score": 0.5520521812252389
+            }
+          ]
+        },
+        {
+          "group": "existing",
+          "question": "Which campus office renews foreign passports?",
+          "expected": [],
+          "expected_first": false,
+          "expected_in_top_3": false,
+          "matches": [
+            {
+              "name": "Southwest Concourse",
+              "score": 0.4806806267322046,
+              "semantic_score": 0.4806806267322046
+            },
+            {
+              "name": "New2U Thrift Store",
+              "score": 0.4796575283595962,
+              "semantic_score": 0.4796575283595962
+            },
+            {
+              "name": "Computer Science Building",
+              "score": 0.46133832748717096,
+              "semantic_score": 0.46133832748717096
+            }
+          ]
+        },
+        {
+          "group": "existing",
+          "question": "Where is the campus aquarium containing deep-sea sharks?",
+          "expected": [],
+          "expected_first": false,
+          "expected_in_top_3": false,
+          "matches": [
+            {
+              "name": "Campus Pond",
+              "score": 0.5150398133612254,
+              "semantic_score": 0.5150398133612254
+            },
+            {
+              "name": "Fine Arts Center",
+              "score": 0.48568232144152135,
+              "semantic_score": 0.48568232144152135
+            },
+            {
+              "name": "Durfee Conservatory",
+              "score": 0.47878118049075113,
+              "semantic_score": 0.47878118049075113
+            }
+          ]
+        },
+        {
+          "group": "existing",
+          "question": "Which campus rocket launch pad sends satellites into orbit?",
+          "expected": [],
+          "expected_first": false,
+          "expected_in_top_3": false,
+          "matches": [
+            {
+              "name": "Recreation Center",
+              "score": 0.5056238161030254,
+              "semantic_score": 0.5056238161030254
+            },
+            {
+              "name": "North campus solar canopies",
+              "score": 0.4853152172549524,
+              "semantic_score": 0.4853152172549524
+            },
+            {
+              "name": "Fleet EV charging at the Physical Plant",
+              "score": 0.47801619506078374,
+              "semantic_score": 0.47801619506078374
+            }
+          ]
+        },
+        {
+          "group": "existing",
+          "question": "I need a little tropical escape between lectures when everything outdoors is freezing. What place fits?",
+          "expected": [
+            "durfee-conservatory"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "Durfee Conservatory",
+              "score": 0.538450133343035,
+              "semantic_score": 0.538450133343035
+            },
+            {
+              "name": "North Energy Exchange Center",
+              "score": 0.5039100196442047,
+              "semantic_score": 0.5039100196442047
+            },
+            {
+              "name": "Crotty Hall",
+              "score": 0.4783783360912959,
+              "semantic_score": 0.4783783360912959
+            }
+          ]
+        },
+        {
+          "group": "existing",
+          "question": "Our lab keeps throwing away the rigid boxes left after pipetting. Is there a way to give that plastic another life?",
+          "expected": [
+            "lab-plastic-recycling"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "Lab plastic recycling pilot",
+              "score": 0.6951437359877145,
+              "semantic_score": 0.6951437359877145
+            },
+            {
+              "name": "Surplus Property Barn",
+              "score": 0.5165924449673229,
+              "semantic_score": 0.5165924449673229
+            },
+            {
+              "name": "Life Science Laboratories",
+              "score": 0.5078902547294062,
+              "semantic_score": 0.5078902547294062
+            }
+          ]
+        },
+        {
+          "group": "existing",
+          "question": "I'm furnishing my student room on a tiny budget and need a used jacket too. Where should I look?",
+          "expected": [
+            "hampden-new2u"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "New2U Thrift Store",
+              "score": 0.6619730574988626,
+              "semantic_score": 0.6619730574988626
+            },
+            {
+              "name": "Surplus Property Barn",
+              "score": 0.5935377990005047,
+              "semantic_score": 0.5935377990005047
+            },
+            {
+              "name": "Franklin Dining Commons",
+              "score": 0.513641164926477,
+              "semantic_score": 0.513641164926477
+            }
+          ]
+        },
+        {
+          "group": "existing",
+          "question": "Our academic unit needs cabinets another unit no longer wants. Is there a university reuse showroom?",
+          "expected": [
+            "surplus-property-barn"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "Surplus Property Barn",
+              "score": 0.7115997328281084,
+              "semantic_score": 0.7115997328281084
+            },
+            {
+              "name": "New2U Thrift Store",
+              "score": 0.628859099345723,
+              "semantic_score": 0.628859099345723
+            },
+            {
+              "name": "Sustainable Engineering Laboratories",
+              "score": 0.5536889699882971,
+              "semantic_score": 0.5536889699882971
+            }
+          ]
+        },
+        {
+          "group": "existing",
+          "question": "Where can animals graze underneath equipment that harvests sunshine?",
+          "expected": [
+            "farm-agrivoltaics"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "Agrivoltaic solar array at the South Deerfield farm",
+              "score": 0.6115721562673864,
+              "semantic_score": 0.6115721562673864
+            },
+            {
+              "name": "Berkshire Dining Commons",
+              "score": 0.5340291857719421,
+              "semantic_score": 0.5340291857719421
+            },
+            {
+              "name": "North campus solar canopies",
+              "score": 0.5199992549417962,
+              "semantic_score": 0.5199992549417962
+            }
+          ]
+        },
+        {
+          "group": "existing",
+          "question": "How does the university avoid boiling perfectly drinkable water when it could use cleaned wastewater?",
+          "expected": [
+            "chp-reclaimed-water"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "Reclaimed water at the Central Heating Plant",
+              "score": 0.6159493467551275,
+              "semantic_score": 0.6159493467551275
+            },
+            {
+              "name": "Campus Pond",
+              "score": 0.5512185796006217,
+              "semantic_score": 0.5512185796006217
+            },
+            {
+              "name": "Solar hot water at the Central Heating Plant",
+              "score": 0.5350925292378017,
+              "semantic_score": 0.5350925292378017
+            }
+          ]
+        },
+        {
+          "group": "existing",
+          "question": "What uses free warmth from the sky to reduce the fuel needed to turn returning water into steam?",
+          "expected": [
+            "chp-solar-hot-water"
+          ],
+          "expected_first": false,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "Reclaimed water at the Central Heating Plant",
+              "score": 0.6363585699673759,
+              "semantic_score": 0.6363585699673759
+            },
+            {
+              "name": "Solar hot water at the Central Heating Plant",
+              "score": 0.6320973196145857,
+              "semantic_score": 0.6320973196145857
+            },
+            {
+              "name": "Central Heating Plant",
+              "score": 0.5619814208712984,
+              "semantic_score": 0.5619814208712984
+            }
+          ]
+        },
+        {
+          "group": "existing",
+          "question": "Is there a growing space whose harvest helps neighbors struggling to get enough to eat?",
+          "expected": [
+            "food-for-all-garden"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "Food for All Garden",
+              "score": 0.6044984833592756,
+              "semantic_score": 0.6044984833592756
+            },
+            {
+              "name": "Berkshire Dining Commons",
+              "score": 0.5619276835832259,
+              "semantic_score": 0.5619276835832259
+            },
+            {
+              "name": "UMass Permaculture gardens",
+              "score": 0.5596037578110445,
+              "semantic_score": 0.5596037578110445
+            }
+          ]
+        },
+        {
+          "group": "existing",
+          "question": "I want to see a planted habitat that gives nectar-seeking insects and hummingbirds food and water. Where should I look?",
+          "expected": [
+            "pollinator-garden"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "Pollinator Garden",
+              "score": 0.6561787948182118,
+              "semantic_score": 0.6561787948182118
+            },
+            {
+              "name": "UMass Permaculture gardens",
+              "score": 0.5848418969104454,
+              "semantic_score": 0.5848418969104454
+            },
+            {
+              "name": "Franklin Dining Commons",
+              "score": 0.5796946598191327,
+              "semantic_score": 0.5796946598191327
+            }
+          ]
+        },
+        {
+          "group": "existing",
+          "question": "How does the university look after its grounds while avoiding manufactured weed and bug treatments?",
+          "expected": [
+            "green-grounds"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "Green Grounds: campus landscape care",
+              "score": 0.7053708048275606,
+              "semantic_score": 0.7053708048275606
+            },
+            {
+              "name": "UMass Permaculture gardens",
+              "score": 0.5746583849598943,
+              "semantic_score": 0.5746583849598943
+            },
+            {
+              "name": "Campus Pond",
+              "score": 0.5724788048939251,
+              "semantic_score": 0.5724788048939251
+            }
+          ]
+        },
+        {
+          "group": "existing",
+          "question": "Which home of the people who study markets balances the power it consumes with power it makes?",
+          "expected": [
+            "crotty-hall"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "Crotty Hall",
+              "score": 0.5024593780765332,
+              "semantic_score": 0.5024593780765332
+            },
+            {
+              "name": "Central Heating Plant",
+              "score": 0.5012751227737059,
+              "semantic_score": 0.5012751227737059
+            },
+            {
+              "name": "North Energy Exchange Center",
+              "score": 0.4613458468134516,
+              "semantic_score": 0.4613458468134516
+            }
+          ]
+        },
+        {
+          "group": "existing",
+          "question": "Where can students work out beneath a rooftop that harvests sunlight for electricity?",
+          "expected": [
+            "recreation-center"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "Recreation Center",
+              "score": 0.640367107435161,
+              "semantic_score": 0.640367107435161
+            },
+            {
+              "name": "Solar power at UMass Amherst",
+              "score": 0.6017674392295497,
+              "semantic_score": 0.6017674392295497
+            },
+            {
+              "name": "Fine Arts Center",
+              "score": 0.6004701616061354,
+              "semantic_score": 0.6004701616061354
+            }
+          ]
+        },
+        {
+          "group": "existing",
+          "question": "Can I sit among native plants above the architecture school's building rather than at ground level?",
+          "expected": [
+            "olver-green-roof"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "Rooftop courtyard and green roof",
+              "score": 0.6051803215800854,
+              "semantic_score": 0.6051803215800854
+            },
+            {
+              "name": "Southwest Concourse",
+              "score": 0.5633554458618204,
+              "semantic_score": 0.5633554458618204
+            },
+            {
+              "name": "Green Grounds: campus landscape care",
+              "score": 0.5459450971435216,
+              "semantic_score": 0.5459450971435216
+            }
+          ]
+        },
+        {
+          "group": "existing",
+          "question": "Which research facility can keep changing its laboratory layout as experiments change, rather than being knocked down?",
+          "expected": [
+            "physical-sciences-building"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "Physical Sciences Building",
+              "score": 0.5826304456436144,
+              "semantic_score": 0.5826304456436144
+            },
+            {
+              "name": "Life Science Laboratories",
+              "score": 0.5664850990194005,
+              "semantic_score": 0.5664850990194005
+            },
+            {
+              "name": "Sustainable Engineering Laboratories",
+              "score": 0.523196572495324,
+              "semantic_score": 0.523196572495324
+            }
+          ]
+        },
+        {
+          "group": "existing",
+          "question": "What planted hollow beside the architecture building catches water from the roof so it can seep away?",
+          "expected": [
+            "olver-rain-garden"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "Design Building rain garden",
+              "score": 0.6401122092866558,
+              "semantic_score": 0.6401122092866558
+            },
+            {
+              "name": "Rooftop courtyard and green roof",
+              "score": 0.5978687768295513,
+              "semantic_score": 0.5978687768295513
+            },
+            {
+              "name": "Life Science Laboratories rainwater cistern",
+              "score": 0.5560027956962585,
+              "semantic_score": 0.5560027956962585
+            }
+          ]
+        },
+        {
+          "group": "existing",
+          "question": "What certification tells me how well a structure scored on saving resources, with a precious-metal top tier?",
+          "expected": [
+            "topic-leed"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "LEED certification",
+              "score": 0.6145722090002891,
+              "semantic_score": 0.6145722090002891
+            },
+            {
+              "name": "Life Science Laboratories",
+              "score": 0.5357895961560606,
+              "semantic_score": 0.5357895961560606
+            },
+            {
+              "name": "Sustainable Engineering Laboratories",
+              "score": 0.5238344555690649,
+              "semantic_score": 0.5238344555690649
+            }
+          ]
+        },
+        {
+          "group": "existing",
+          "question": "I'm new here and don't know the names of places. My laptop is almost dead, I'm waiting for public transport, and I would like an outdoor plug that gets its power from sunshine. What artifact should I look at?",
+          "expected": [
+            "solar-charging-haigis"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "Solar charging station at the Haigis Mall bus stop",
+              "score": 0.6444290412750975,
+              "semantic_score": 0.6444290412750975
+            },
+            {
+              "name": "EV charging at the Robsham Visitor Center lot",
+              "score": 0.5811397377072993,
+              "semantic_score": 0.5811397377072993
+            },
+            {
+              "name": "Agrivoltaic solar array at the South Deerfield farm",
+              "score": 0.5573972727419819,
+              "semantic_score": 0.5573972727419819
+            }
+          ]
+        },
+        {
+          "group": "existing",
+          "question": "I don't have a car and I am trying to spend less this semester. I remember hearing students could buy things other students left behind at move-out, like clothes and lamps. Which place is that?",
+          "expected": [
+            "hampden-new2u"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "New2U Thrift Store",
+              "score": 0.7293426983723686,
+              "semantic_score": 0.7293426983723686
+            },
+            {
+              "name": "Surplus Property Barn",
+              "score": 0.6352494253965497,
+              "semantic_score": 0.6352494253965497
+            },
+            {
+              "name": "Food for All Garden",
+              "score": 0.5613227413509005,
+              "semantic_score": 0.5613227413509005
+            }
+          ]
+        },
+        {
+          "group": "existing",
+          "question": "This probably sounds vague, but a friend mentioned a quiet place on campus with tropical plants where people warm up during winter between classes. I forgot its name. Can you find it?",
+          "expected": [
+            "durfee-conservatory"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "Durfee Conservatory",
+              "score": 0.7072230577469073,
+              "semantic_score": 0.7072230577469073
+            },
+            {
+              "name": "UMass Permaculture gardens",
+              "score": 0.6400772500130282,
+              "semantic_score": 0.6400772500130282
+            },
+            {
+              "name": "Hillside Permaculture Garden",
+              "score": 0.6256926432664878,
+              "semantic_score": 0.6256926432664878
+            }
+          ]
+        },
+        {
+          "group": "existing",
+          "question": "I'm not asking about the pond or the power station. I mean the tank hidden below the Life Science Laboratories landscape that saves rain for things that don't require drinking-quality water. What is it?",
+          "expected": [
+            "lsl-rainwater-cistern"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "Life Science Laboratories rainwater cistern",
+              "score": 0.7149504760174419,
+              "semantic_score": 0.7149504760174419
+            },
+            {
+              "name": "Campus Pond",
+              "score": 0.6340844486297751,
+              "semantic_score": 0.6340844486297751
+            },
+            {
+              "name": "Integrative Learning Center stormwater landscape",
+              "score": 0.6183605029936207,
+              "semantic_score": 0.6183605029936207
+            }
+          ]
+        },
+        {
+          "group": "existing",
+          "question": "There are so many sustainability projects that I can't remember which is which. The one I mean collects empty pipette boxes and sends the material back into making laboratory supplies, instead of treating it all as garbage.",
+          "expected": [
+            "lab-plastic-recycling"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "Lab plastic recycling pilot",
+              "score": 0.6491113158728743,
+              "semantic_score": 0.6491113158728743
+            },
+            {
+              "name": "Sustainable Engineering Laboratories",
+              "score": 0.5911481163148603,
+              "semantic_score": 0.5911481163148603
+            },
+            {
+              "name": "Life Science Laboratories",
+              "score": 0.583821942350637,
+              "semantic_score": 0.583821942350637
+            }
+          ]
+        },
+        {
+          "group": "existing",
+          "question": "Someone told me there is an architecture and construction teaching building made from layers of wood glued into big structural panels. I am interested in the material, not gardens or solar panels. Which building?",
+          "expected": [
+            "olver-design-building"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "John W. Olver Design Building",
+              "score": 0.686697125434895,
+              "semantic_score": 0.686697125434895
+            },
+            {
+              "name": "Integrative Learning Center",
+              "score": 0.6413778111855688,
+              "semantic_score": 0.6413778111855688
+            },
+            {
+              "name": "Sustainable Engineering Laboratories",
+              "score": 0.625439643859881,
+              "semantic_score": 0.625439643859881
+            }
+          ]
+        },
+        {
+          "group": "existing",
+          "question": "I saw a project where raising electricity-generating panels higher left room underneath for crops or livestock. It was university agricultural land rather than a parking lot. Which project was that?",
+          "expected": [
+            "farm-agrivoltaics"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "Agrivoltaic solar array at the South Deerfield farm",
+              "score": 0.6774709166742523,
+              "semantic_score": 0.6774709166742523
+            },
+            {
+              "name": "North campus solar canopies",
+              "score": 0.6043848090791466,
+              "semantic_score": 0.6043848090791466
+            },
+            {
+              "name": "Solar canopies by the Fleet Garage",
+              "score": 0.5889156705788644,
+              "semantic_score": 0.5889156705788644
+            }
+          ]
+        },
+        {
+          "group": "existing",
+          "question": "I'd rather not drive or rent a bicycle. I am a student trying to reach the neighboring towns using frequent public transport without buying a ticket. Which campus service should I read about?",
+          "expected": [
+            "pvta-buses"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "PVTA bus service",
+              "score": 0.6560279540982348,
+              "semantic_score": 0.6560279540982348
+            },
+            {
+              "name": "ValleyBike",
+              "score": 0.6294558489971386,
+              "semantic_score": 0.6294558489971386
+            },
+            {
+              "name": "ValleyBike station at Haigis Mall",
+              "score": 0.5913424844349922,
+              "semantic_score": 0.5913424844349922
+            }
+          ]
+        },
+        {
+          "group": "existing",
+          "question": "pipete tip box recyling in the labs",
+          "expected": [
+            "lab-plastic-recycling"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "Lab plastic recycling pilot",
+              "score": 0.6492549212119227,
+              "semantic_score": 0.6492549212119227
+            },
+            {
+              "name": "Life Science Laboratories",
+              "score": 0.4907158315181732,
+              "semantic_score": 0.4907158315181732
+            },
+            {
+              "name": "Surplus Property Barn",
+              "score": 0.47928777213619866,
+              "semantic_score": 0.47928777213619866
+            }
+          ]
+        },
+        {
+          "group": "existing",
+          "question": "New2U thirft stroe used furnture",
+          "expected": [
+            "hampden-new2u"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "New2U Thrift Store",
+              "score": 0.5536422234497528,
+              "semantic_score": 0.5536422234497528
+            },
+            {
+              "name": "North Energy Exchange Center",
+              "score": 0.48121536225906314,
+              "semantic_score": 0.48121536225906314
+            },
+            {
+              "name": "Surplus Property Barn",
+              "score": 0.44852850147912615,
+              "semantic_score": 0.44852850147912615
+            }
+          ]
+        },
+        {
+          "group": "existing",
+          "question": "soler pannels above crops and grazng animals",
+          "expected": [
+            "farm-agrivoltaics"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "Agrivoltaic solar array at the South Deerfield farm",
+              "score": 0.5359228444329377,
+              "semantic_score": 0.5359228444329377
+            },
+            {
+              "name": "UMass Permaculture gardens",
+              "score": 0.5260372130826495,
+              "semantic_score": 0.5260372130826495
+            },
+            {
+              "name": "Berkshire Dining Commons",
+              "score": 0.5169705728327582,
+              "semantic_score": 0.5169705728327582
+            }
+          ]
+        },
+        {
+          "group": "existing",
+          "question": "ILC gren roof with sedum plnts",
+          "expected": [
+            "ilc-green-roof"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "Integrative Learning Center green roof",
+              "score": 0.6063309654400604,
+              "semantic_score": 0.6063309654400604
+            },
+            {
+              "name": "Rooftop courtyard and green roof",
+              "score": 0.5392392780210462,
+              "semantic_score": 0.5392392780210462
+            },
+            {
+              "name": "John W. Olver Design Building",
+              "score": 0.4710823629996377,
+              "semantic_score": 0.4710823629996377
+            }
+          ]
+        },
+        {
+          "group": "existing",
+          "question": "Not collecting rain in a tank: which heating-plant project uses water that has already gone through the town's sewage treatment?",
+          "expected": [
+            "chp-reclaimed-water"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "Reclaimed water at the Central Heating Plant",
+              "score": 0.6610865977017671,
+              "semantic_score": 0.6610865977017671
+            },
+            {
+              "name": "Solar hot water at the Central Heating Plant",
+              "score": 0.5702063185099806,
+              "semantic_score": 0.5702063185099806
+            },
+            {
+              "name": "Central Heating Plant",
+              "score": 0.5555779404137419,
+              "semantic_score": 0.5555779404137419
+            }
+          ]
+        },
+        {
+          "group": "existing",
+          "question": "I mean the training home of the basketball teams with solar on its roof, not the general student gym. Which building is it?",
+          "expected": [
+            "champions-center"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "Kennedy Champions Center",
+              "score": 0.7026049785003242,
+              "semantic_score": 0.7026049785003242
+            },
+            {
+              "name": "Recreation Center",
+              "score": 0.665623784438215,
+              "semantic_score": 0.665623784438215
+            },
+            {
+              "name": "Computer Science Building",
+              "score": 0.6135153364484343,
+              "semantic_score": 0.6135153364484343
+            }
+          ]
+        },
+        {
+          "group": "existing",
+          "question": "Which reuse place sells students clothes and lamps, rather than transferring university office equipment between departments?",
+          "expected": [
+            "hampden-new2u"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "New2U Thrift Store",
+              "score": 0.6747211641649491,
+              "semantic_score": 0.6747211641649491
+            },
+            {
+              "name": "Surplus Property Barn",
+              "score": 0.6472853948898719,
+              "semantic_score": 0.6472853948898719
+            },
+            {
+              "name": "Recreation Center",
+              "score": 0.5078731491339319,
+              "semantic_score": 0.5078731491339319
+            }
+          ]
+        },
+        {
+          "group": "existing",
+          "question": "Which greenhouse is used for Plant, Soil, and Insect Sciences research and teaching and earned LEED Gold, rather than being the old rainforest refuge?",
+          "expected": [
+            "cns-greenhouse"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "CNS Research and Education Greenhouse",
+              "score": 0.7196631765767176,
+              "semantic_score": 0.7196631765767176
+            },
+            {
+              "name": "Life Science Laboratories",
+              "score": 0.6183801152253058,
+              "semantic_score": 0.6183801152253058
+            },
+            {
+              "name": "Durfee Conservatory",
+              "score": 0.6145826901000285,
+              "semantic_score": 0.6145826901000285
+            }
+          ]
+        },
+        {
+          "group": "lexical",
+          "question": "Durfee Conservatory",
+          "expected": [
+            "durfee-conservatory"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "Durfee Conservatory",
+              "score": 0.710969644131097,
+              "semantic_score": 0.710969644131097
+            },
+            {
+              "name": "Fine Arts Center",
+              "score": 0.4726628910296373,
+              "semantic_score": 0.4726628910296373
+            },
+            {
+              "name": "Old Chapel",
+              "score": 0.45425001059473225,
+              "semantic_score": 0.45425001059473225
+            }
+          ]
+        },
+        {
+          "group": "lexical",
+          "question": "New2U Thrift Store",
+          "expected": [
+            "hampden-new2u"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "New2U Thrift Store",
+              "score": 0.7922050716815899,
+              "semantic_score": 0.7922050716815899
+            },
+            {
+              "name": "Surplus Property Barn",
+              "score": 0.52513819932938,
+              "semantic_score": 0.52513819932938
+            },
+            {
+              "name": "Lab plastic recycling pilot",
+              "score": 0.45627010911224,
+              "semantic_score": 0.45627010911224
+            }
+          ]
+        },
+        {
+          "group": "lexical",
+          "question": "Computer Science Building",
+          "expected": [
+            "computer-science-building"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "Computer Science Building",
+              "score": 0.7423001410901077,
+              "semantic_score": 0.7423001410901077
+            },
+            {
+              "name": "Computer Sciences Laboratories",
+              "score": 0.7347895977277923,
+              "semantic_score": 0.7347895977277923
+            },
+            {
+              "name": "Physical Sciences Building",
+              "score": 0.6301707535473526,
+              "semantic_score": 0.6301707535473526
+            }
+          ]
+        },
+        {
+          "group": "lexical",
+          "question": "Central Heating Plant",
+          "expected": [
+            "central-heating-plant"
+          ],
+          "expected_first": false,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "Solar hot water at the Central Heating Plant",
+              "score": 0.6893445415577435,
+              "semantic_score": 0.6893445415577435
+            },
+            {
+              "name": "Central Heating Plant",
+              "score": 0.6867658452961743,
+              "semantic_score": 0.6867658452961743
+            },
+            {
+              "name": "Reclaimed water at the Central Heating Plant",
+              "score": 0.6632370322081841,
+              "semantic_score": 0.6632370322081841
+            }
+          ]
+        },
+        {
+          "group": "lexical",
+          "question": "ValleyBike",
+          "expected": [
+            "topic-valleybike"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "ValleyBike",
+              "score": 0.7307664247673125,
+              "semantic_score": 0.7307664247673125
+            },
+            {
+              "name": "ValleyBike station in Southwest",
+              "score": 0.6634070890746341,
+              "semantic_score": 0.6634070890746341
+            },
+            {
+              "name": "ValleyBike station at the Integrative Learning Center",
+              "score": 0.6472857436240489,
+              "semantic_score": 0.6472857436240489
+            }
+          ]
+        },
+        {
+          "group": "lexical",
+          "question": "LEED certification",
+          "expected": [
+            "topic-leed"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "LEED certification",
+              "score": 0.7475163792044451,
+              "semantic_score": 0.7475163792044451
+            },
+            {
+              "name": "CNS Research and Education Greenhouse",
+              "score": 0.6473225775572611,
+              "semantic_score": 0.6473225775572611
+            },
+            {
+              "name": "Integrative Learning Center",
+              "score": 0.6276020769349115,
+              "semantic_score": 0.6276020769349115
+            }
+          ]
+        },
+        {
+          "group": "lexical",
+          "question": "Polycarbin",
+          "expected": [
+            "lab-plastic-recycling"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "Lab plastic recycling pilot",
+              "score": 0.6133344356219763,
+              "semantic_score": 0.6133344356219763
+            },
+            {
+              "name": "Sustainable Engineering Laboratories",
+              "score": 0.4611397797888568,
+              "semantic_score": 0.4611397797888568
+            },
+            {
+              "name": "Life Science Laboratories",
+              "score": 0.4449684654110546,
+              "semantic_score": 0.4449684654110546
+            }
+          ]
+        },
+        {
+          "group": "lexical",
+          "question": "electrochromic",
+          "expected": [
+            "worcester-commons"
+          ],
+          "expected_first": false,
+          "expected_in_top_3": false,
+          "matches": [
+            {
+              "name": "LEED certification",
+              "score": 0.47544905396993054,
+              "semantic_score": 0.47544905396993054
+            },
+            {
+              "name": "CNS Research and Education Greenhouse",
+              "score": 0.47288897310364264,
+              "semantic_score": 0.47288897310364264
+            },
+            {
+              "name": "Integrative Learning Center",
+              "score": 0.4619191655065523,
+              "semantic_score": 0.4619191655065523
+            }
+          ]
+        },
+        {
+          "group": "lexical",
+          "question": "agrivoltaics",
+          "expected": [
+            "farm-agrivoltaics"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "Agrivoltaic solar array at the South Deerfield farm",
+              "score": 0.7502162381813583,
+              "semantic_score": 0.7502162381813583
+            },
+            {
+              "name": "Robsham Visitor Center solar canopies",
+              "score": 0.5370630969534494,
+              "semantic_score": 0.5370630969534494
+            },
+            {
+              "name": "North campus solar canopies",
+              "score": 0.5356596516548587,
+              "semantic_score": 0.5356596516548587
+            }
+          ]
+        },
+        {
+          "group": "lexical",
+          "question": "\"pipette tip boxes\"",
+          "expected": [
+            "lab-plastic-recycling"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "Lab plastic recycling pilot",
+              "score": 0.53497889429459,
+              "semantic_score": 0.53497889429459
+            },
+            {
+              "name": "New2U Thrift Store",
+              "score": 0.3845659471401509,
+              "semantic_score": 0.3845659471401509
+            },
+            {
+              "name": "Berkshire Permaculture Garden",
+              "score": 0.38415089940127056,
+              "semantic_score": 0.38415089940127056
+            }
+          ]
+        },
+        {
+          "group": "lexical",
+          "question": "\"rainwater harvesting\"",
+          "expected": [
+            "franklin-permaculture-garden"
+          ],
+          "expected_first": false,
+          "expected_in_top_3": false,
+          "matches": [
+            {
+              "name": "Life Science Laboratories rainwater cistern",
+              "score": 0.6399876260750083,
+              "semantic_score": 0.6399876260750083
+            },
+            {
+              "name": "Design Building rain garden",
+              "score": 0.634425369638157,
+              "semantic_score": 0.634425369638157
+            },
+            {
+              "name": "Integrative Learning Center stormwater landscape",
+              "score": 0.5713874186911428,
+              "semantic_score": 0.5713874186911428
+            }
+          ]
+        },
+        {
+          "group": "lexical",
+          "question": "\"Computer Science Building\"",
+          "expected": [
+            "computer-science-building"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "Computer Science Building",
+              "score": 0.7284237359691466,
+              "semantic_score": 0.7284237359691466
+            },
+            {
+              "name": "Computer Sciences Laboratories",
+              "score": 0.7160589268172745,
+              "semantic_score": 0.7160589268172745
+            },
+            {
+              "name": "Physical Sciences Building",
+              "score": 0.6252089812978043,
+              "semantic_score": 0.6252089812978043
+            }
+          ]
+        },
+        {
+          "group": "diagnostics",
+          "question": "Which artifact mentions electrochromic technology?",
+          "expected": [
+            "worcester-commons"
+          ],
+          "expected_first": false,
+          "expected_in_top_3": false,
+          "matches": [
+            {
+              "name": "South College",
+              "score": 0.48469165423765403,
+              "semantic_score": 0.48469165423765403
+            },
+            {
+              "name": "Old Chapel",
+              "score": 0.4571734274991035,
+              "semantic_score": 0.4571734274991035
+            },
+            {
+              "name": "Lab plastic recycling pilot",
+              "score": 0.4507812823634494,
+              "semantic_score": 0.4507812823634494
+            }
+          ]
+        },
+        {
+          "group": "diagnostics",
+          "question": "Where is the Polycarbin recycling project?",
+          "expected": [
+            "lab-plastic-recycling"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "Lab plastic recycling pilot",
+              "score": 0.6300518268130559,
+              "semantic_score": 0.6300518268130559
+            },
+            {
+              "name": "Life Science Laboratories",
+              "score": 0.481577519994387,
+              "semantic_score": 0.481577519994387
+            },
+            {
+              "name": "Sustainable Engineering Laboratories",
+              "score": 0.46859342983004315,
+              "semantic_score": 0.46859342983004315
+            }
+          ]
+        },
+        {
+          "group": "diagnostics",
+          "question": "Where can I see agrivoltaics?",
+          "expected": [
+            "farm-agrivoltaics"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "Agrivoltaic solar array at the South Deerfield farm",
+              "score": 0.7187883090251302,
+              "semantic_score": 0.7187883090251302
+            },
+            {
+              "name": "North campus solar canopies",
+              "score": 0.553852567308799,
+              "semantic_score": 0.553852567308799
+            },
+            {
+              "name": "Robsham Visitor Center solar canopies",
+              "score": 0.5498369276718964,
+              "semantic_score": 0.5498369276718964
+            }
+          ]
+        },
+        {
+          "group": "diagnostics",
+          "question": "Where is Durfee Conservatory?",
+          "expected": [
+            "durfee-conservatory"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "Durfee Conservatory",
+              "score": 0.6809403870808398,
+              "semantic_score": 0.6809403870808398
+            },
+            {
+              "name": "Fine Arts Center",
+              "score": 0.4482711820764126,
+              "semantic_score": 0.4482711820764126
+            },
+            {
+              "name": "Old Chapel",
+              "score": 0.4206180714455723,
+              "semantic_score": 0.4206180714455723
+            }
+          ]
+        },
+        {
+          "group": "diagnostics",
+          "question": "Show me New2U Thrift Store.",
+          "expected": [
+            "hampden-new2u"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "New2U Thrift Store",
+              "score": 0.7308034358146882,
+              "semantic_score": 0.7308034358146882
+            },
+            {
+              "name": "Surplus Property Barn",
+              "score": 0.5153217929985277,
+              "semantic_score": 0.5153217929985277
+            },
+            {
+              "name": "ValleyBike station at Haigis Mall",
+              "score": 0.4289730404583264,
+              "semantic_score": 0.4289730404583264
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "mode": "keyword",
+      "metrics": {
+        "existing": {
+          "supported": 64,
+          "expected_first": 5,
+          "expected_in_top_3": 5
+        },
+        "lexical": {
+          "supported": 12,
+          "expected_first": 12,
+          "expected_in_top_3": 12
+        },
+        "diagnostics": {
+          "supported": 5,
+          "expected_first": 1,
+          "expected_in_top_3": 1
+        }
+      },
+      "latency_ms": {
+        "p50": 5.549172000002045,
+        "p95": 7.128285999982609
+      },
+      "results": [
+        {
+          "group": "existing",
+          "question": "Where can I buy second-hand clothes and furniture rather than throw useful things away?",
+          "expected": [
+            "hampden-new2u"
+          ],
+          "expected_first": false,
+          "expected_in_top_3": false,
+          "matches": []
+        },
+        {
+          "group": "existing",
+          "question": "Which building uses large panels of glued wood instead of much of its steel and concrete?",
+          "expected": [
+            "olver-design-building"
+          ],
+          "expected_first": false,
+          "expected_in_top_3": false,
+          "matches": []
+        },
+        {
+          "group": "existing",
+          "question": "Where is sunlight used to preheat water before the heating plant makes steam?",
+          "expected": [
+            "chp-solar-hot-water"
+          ],
+          "expected_first": false,
+          "expected_in_top_3": false,
+          "matches": []
+        },
+        {
+          "group": "existing",
+          "question": "Which place combines farming with panels that generate electricity?",
+          "expected": [
+            "farm-agrivoltaics"
+          ],
+          "expected_first": false,
+          "expected_in_top_3": false,
+          "matches": []
+        },
+        {
+          "group": "existing",
+          "question": "Where is collected rainwater stored underground and reused by the Life Science Laboratories?",
+          "expected": [
+            "lsl-rainwater-cistern"
+          ],
+          "expected_first": false,
+          "expected_in_top_3": false,
+          "matches": []
+        },
+        {
+          "group": "existing",
+          "question": "How are used pipette tip boxes turned back into new laboratory plastics?",
+          "expected": [
+            "lab-plastic-recycling"
+          ],
+          "expected_first": false,
+          "expected_in_top_3": false,
+          "matches": []
+        },
+        {
+          "group": "existing",
+          "question": "Where do plants and soil help absorb rain runoff rather than send it straight into storm drains?",
+          "expected": [
+            "olver-rain-garden",
+            "ilc-stormwater-site",
+            "ilc-green-roof",
+            "southwest-concourse"
+          ],
+          "expected_first": false,
+          "expected_in_top_3": false,
+          "matches": []
+        },
+        {
+          "group": "existing",
+          "question": "Where can I step into a rainforest room and warm up on my way to class in winter?",
+          "expected": [
+            "durfee-conservatory"
+          ],
+          "expected_first": false,
+          "expected_in_top_3": false,
+          "matches": []
+        },
+        {
+          "group": "existing",
+          "question": "My phone battery is dying while I wait for the bus. Is there a place powered by the sun where I can plug it in?",
+          "expected": [
+            "solar-charging-haigis"
+          ],
+          "expected_first": false,
+          "expected_in_top_3": false,
+          "matches": []
+        },
+        {
+          "group": "existing",
+          "question": "How can students travel into neighboring towns without paying for a bus ticket?",
+          "expected": [
+            "pvta-buses"
+          ],
+          "expected_first": false,
+          "expected_in_top_3": false,
+          "matches": []
+        },
+        {
+          "group": "existing",
+          "question": "Where can I charge an electric car in the Campus Center Parking Garage?",
+          "expected": [
+            "ev-campus-center-garage"
+          ],
+          "expected_first": false,
+          "expected_in_top_3": false,
+          "matches": [
+            {
+              "name": "Electric vehicle charging on campus",
+              "score": 0.010163499973714352,
+              "keyword_score": 0.010163499973714352
+            }
+          ]
+        },
+        {
+          "group": "existing",
+          "question": "Can I borrow an electric bicycle at one station and leave it at a different station?",
+          "expected": [
+            "topic-valleybike"
+          ],
+          "expected_first": false,
+          "expected_in_top_3": false,
+          "matches": []
+        },
+        {
+          "group": "existing",
+          "question": "Our university department has spare desks. Where can another department get them instead of buying new furniture?",
+          "expected": [
+            "surplus-property-barn"
+          ],
+          "expected_first": false,
+          "expected_in_top_3": false,
+          "matches": []
+        },
+        {
+          "group": "existing",
+          "question": "Which garden provides food and water for bees, butterflies and hummingbirds?",
+          "expected": [
+            "pollinator-garden"
+          ],
+          "expected_first": false,
+          "expected_in_top_3": false,
+          "matches": []
+        },
+        {
+          "group": "existing",
+          "question": "Which garden grows fresh produce for the Amherst Survival Center and a community meal program?",
+          "expected": [
+            "food-for-all-garden"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "Food for All Garden",
+              "score": 0.006439742632210255,
+              "keyword_score": 0.006439742632210255
+            }
+          ]
+        },
+        {
+          "group": "existing",
+          "question": "Which garden replaced a lawn beside Franklin Dining Commons and supplies it with fruit, vegetables and herbs?",
+          "expected": [
+            "franklin-permaculture-garden"
+          ],
+          "expected_first": false,
+          "expected_in_top_3": false,
+          "matches": []
+        },
+        {
+          "group": "existing",
+          "question": "Where were food plants from India grown at the chancellor's residence?",
+          "expected": [
+            "hillside-permaculture-garden"
+          ],
+          "expected_first": false,
+          "expected_in_top_3": false,
+          "matches": []
+        },
+        {
+          "group": "existing",
+          "question": "What installation warms returning water with sunlight so the steam plant needs to burn less gas?",
+          "expected": [
+            "chp-solar-hot-water"
+          ],
+          "expected_first": false,
+          "expected_in_top_3": false,
+          "matches": []
+        },
+        {
+          "group": "existing",
+          "question": "Where is treated sewage cleaned further and used in boilers instead of drinking water?",
+          "expected": [
+            "chp-reclaimed-water"
+          ],
+          "expected_first": false,
+          "expected_in_top_3": false,
+          "matches": []
+        },
+        {
+          "group": "existing",
+          "question": "Which campus facility produces both electricity and the steam used to heat and cool buildings?",
+          "expected": [
+            "central-heating-plant"
+          ],
+          "expected_first": false,
+          "expected_in_top_3": false,
+          "matches": []
+        },
+        {
+          "group": "existing",
+          "question": "Which economics building was designed to make as much energy as it consumes each year?",
+          "expected": [
+            "crotty-hall"
+          ],
+          "expected_first": false,
+          "expected_in_top_3": false,
+          "matches": []
+        },
+        {
+          "group": "existing",
+          "question": "Where is the first solar parking canopy in the UMass system, beside the visitor center?",
+          "expected": [
+            "robsham-solar-canopies"
+          ],
+          "expected_first": false,
+          "expected_in_top_3": false,
+          "matches": []
+        },
+        {
+          "group": "existing",
+          "question": "Which computing laboratory building completed in 2025 was the first on campus to earn LEED Platinum?",
+          "expected": [
+            "computer-sciences-laboratories"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "Computer Sciences Laboratories",
+              "score": 0.002320185536518693,
+              "keyword_score": 0.002320185536518693
+            }
+          ]
+        },
+        {
+          "group": "existing",
+          "question": "Which basketball practice building earned LEED Gold and has rooftop solar?",
+          "expected": [
+            "champions-center"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "Kennedy Champions Center",
+              "score": 0.0020790020935237408,
+              "keyword_score": 0.0020790020935237408
+            }
+          ]
+        },
+        {
+          "group": "existing",
+          "question": "Which campus gym generates electricity from panels on its large flat roof?",
+          "expected": [
+            "recreation-center"
+          ],
+          "expected_first": false,
+          "expected_in_top_3": false,
+          "matches": []
+        },
+        {
+          "group": "existing",
+          "question": "Which physics and chemistry research building was designed so its laboratories can be rearranged instead of demolishing the building?",
+          "expected": [
+            "physical-sciences-building"
+          ],
+          "expected_first": false,
+          "expected_in_top_3": false,
+          "matches": []
+        },
+        {
+          "group": "existing",
+          "question": "Where is a public courtyard with native plants and built-in seating on the Design Building roof?",
+          "expected": [
+            "olver-green-roof"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "Rooftop courtyard and green roof",
+              "score": 0.005235602147877216,
+              "keyword_score": 0.005235602147877216
+            }
+          ]
+        },
+        {
+          "group": "existing",
+          "question": "Which underground tank can store up to 10,000 gallons of rainwater for laboratory and landscape uses?",
+          "expected": [
+            "lsl-rainwater-cistern"
+          ],
+          "expected_first": false,
+          "expected_in_top_3": false,
+          "matches": []
+        },
+        {
+          "group": "existing",
+          "question": "What green-building rating system awards Certified, Silver, Gold or Platinum based on earned points?",
+          "expected": [
+            "topic-leed"
+          ],
+          "expected_first": false,
+          "expected_in_top_3": false,
+          "matches": []
+        },
+        {
+          "group": "existing",
+          "question": "How is most of the campus landscape maintained without artificial pesticides or fertilizers?",
+          "expected": [
+            "green-grounds"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "Green Grounds: campus landscape care",
+              "score": 0.09090909361839294,
+              "keyword_score": 0.09090909361839294
+            }
+          ]
+        },
+        {
+          "group": "existing",
+          "question": "Which ILC roof has about 15,000 square feet of hardy sedum plants instead of bare roofing?",
+          "expected": [
+            "ilc-green-roof"
+          ],
+          "expected_first": false,
+          "expected_in_top_3": false,
+          "matches": []
+        },
+        {
+          "group": "existing",
+          "question": "Where is Durfee conservatry?",
+          "expected": [
+            "durfee-conservatory"
+          ],
+          "expected_first": false,
+          "expected_in_top_3": false,
+          "matches": []
+        },
+        {
+          "group": "existing",
+          "question": "Where is the campus nuclear fusion reactor?",
+          "expected": [],
+          "expected_first": false,
+          "expected_in_top_3": false,
+          "matches": []
+        },
+        {
+          "group": "existing",
+          "question": "Which campus office renews foreign passports?",
+          "expected": [],
+          "expected_first": false,
+          "expected_in_top_3": false,
+          "matches": []
+        },
+        {
+          "group": "existing",
+          "question": "Where is the campus aquarium containing deep-sea sharks?",
+          "expected": [],
+          "expected_first": false,
+          "expected_in_top_3": false,
+          "matches": []
+        },
+        {
+          "group": "existing",
+          "question": "Which campus rocket launch pad sends satellites into orbit?",
+          "expected": [],
+          "expected_first": false,
+          "expected_in_top_3": false,
+          "matches": []
+        },
+        {
+          "group": "existing",
+          "question": "I need a little tropical escape between lectures when everything outdoors is freezing. What place fits?",
+          "expected": [
+            "durfee-conservatory"
+          ],
+          "expected_first": false,
+          "expected_in_top_3": false,
+          "matches": []
+        },
+        {
+          "group": "existing",
+          "question": "Our lab keeps throwing away the rigid boxes left after pipetting. Is there a way to give that plastic another life?",
+          "expected": [
+            "lab-plastic-recycling"
+          ],
+          "expected_first": false,
+          "expected_in_top_3": false,
+          "matches": []
+        },
+        {
+          "group": "existing",
+          "question": "I'm furnishing my student room on a tiny budget and need a used jacket too. Where should I look?",
+          "expected": [
+            "hampden-new2u"
+          ],
+          "expected_first": false,
+          "expected_in_top_3": false,
+          "matches": []
+        },
+        {
+          "group": "existing",
+          "question": "Our academic unit needs cabinets another unit no longer wants. Is there a university reuse showroom?",
+          "expected": [
+            "surplus-property-barn"
+          ],
+          "expected_first": false,
+          "expected_in_top_3": false,
+          "matches": []
+        },
+        {
+          "group": "existing",
+          "question": "Where can animals graze underneath equipment that harvests sunshine?",
+          "expected": [
+            "farm-agrivoltaics"
+          ],
+          "expected_first": false,
+          "expected_in_top_3": false,
+          "matches": []
+        },
+        {
+          "group": "existing",
+          "question": "How does the university avoid boiling perfectly drinkable water when it could use cleaned wastewater?",
+          "expected": [
+            "chp-reclaimed-water"
+          ],
+          "expected_first": false,
+          "expected_in_top_3": false,
+          "matches": []
+        },
+        {
+          "group": "existing",
+          "question": "What uses free warmth from the sky to reduce the fuel needed to turn returning water into steam?",
+          "expected": [
+            "chp-solar-hot-water"
+          ],
+          "expected_first": false,
+          "expected_in_top_3": false,
+          "matches": []
+        },
+        {
+          "group": "existing",
+          "question": "Is there a growing space whose harvest helps neighbors struggling to get enough to eat?",
+          "expected": [
+            "food-for-all-garden"
+          ],
+          "expected_first": false,
+          "expected_in_top_3": false,
+          "matches": []
+        },
+        {
+          "group": "existing",
+          "question": "I want to see a planted habitat that gives nectar-seeking insects and hummingbirds food and water. Where should I look?",
+          "expected": [
+            "pollinator-garden"
+          ],
+          "expected_first": false,
+          "expected_in_top_3": false,
+          "matches": []
+        },
+        {
+          "group": "existing",
+          "question": "How does the university look after its grounds while avoiding manufactured weed and bug treatments?",
+          "expected": [
+            "green-grounds"
+          ],
+          "expected_first": false,
+          "expected_in_top_3": false,
+          "matches": []
+        },
+        {
+          "group": "existing",
+          "question": "Which home of the people who study markets balances the power it consumes with power it makes?",
+          "expected": [
+            "crotty-hall"
+          ],
+          "expected_first": false,
+          "expected_in_top_3": false,
+          "matches": []
+        },
+        {
+          "group": "existing",
+          "question": "Where can students work out beneath a rooftop that harvests sunlight for electricity?",
+          "expected": [
+            "recreation-center"
+          ],
+          "expected_first": false,
+          "expected_in_top_3": false,
+          "matches": []
+        },
+        {
+          "group": "existing",
+          "question": "Can I sit among native plants above the architecture school's building rather than at ground level?",
+          "expected": [
+            "olver-green-roof"
+          ],
+          "expected_first": false,
+          "expected_in_top_3": false,
+          "matches": []
+        },
+        {
+          "group": "existing",
+          "question": "Which research facility can keep changing its laboratory layout as experiments change, rather than being knocked down?",
+          "expected": [
+            "physical-sciences-building"
+          ],
+          "expected_first": false,
+          "expected_in_top_3": false,
+          "matches": []
+        },
+        {
+          "group": "existing",
+          "question": "What planted hollow beside the architecture building catches water from the roof so it can seep away?",
+          "expected": [
+            "olver-rain-garden"
+          ],
+          "expected_first": false,
+          "expected_in_top_3": false,
+          "matches": []
+        },
+        {
+          "group": "existing",
+          "question": "What certification tells me how well a structure scored on saving resources, with a precious-metal top tier?",
+          "expected": [
+            "topic-leed"
+          ],
+          "expected_first": false,
+          "expected_in_top_3": false,
+          "matches": []
+        },
+        {
+          "group": "existing",
+          "question": "I'm new here and don't know the names of places. My laptop is almost dead, I'm waiting for public transport, and I would like an outdoor plug that gets its power from sunshine. What artifact should I look at?",
+          "expected": [
+            "solar-charging-haigis"
+          ],
+          "expected_first": false,
+          "expected_in_top_3": false,
+          "matches": []
+        },
+        {
+          "group": "existing",
+          "question": "I don't have a car and I am trying to spend less this semester. I remember hearing students could buy things other students left behind at move-out, like clothes and lamps. Which place is that?",
+          "expected": [
+            "hampden-new2u"
+          ],
+          "expected_first": false,
+          "expected_in_top_3": false,
+          "matches": []
+        },
+        {
+          "group": "existing",
+          "question": "This probably sounds vague, but a friend mentioned a quiet place on campus with tropical plants where people warm up during winter between classes. I forgot its name. Can you find it?",
+          "expected": [
+            "durfee-conservatory"
+          ],
+          "expected_first": false,
+          "expected_in_top_3": false,
+          "matches": []
+        },
+        {
+          "group": "existing",
+          "question": "I'm not asking about the pond or the power station. I mean the tank hidden below the Life Science Laboratories landscape that saves rain for things that don't require drinking-quality water. What is it?",
+          "expected": [
+            "lsl-rainwater-cistern"
+          ],
+          "expected_first": false,
+          "expected_in_top_3": false,
+          "matches": []
+        },
+        {
+          "group": "existing",
+          "question": "There are so many sustainability projects that I can't remember which is which. The one I mean collects empty pipette boxes and sends the material back into making laboratory supplies, instead of treating it all as garbage.",
+          "expected": [
+            "lab-plastic-recycling"
+          ],
+          "expected_first": false,
+          "expected_in_top_3": false,
+          "matches": []
+        },
+        {
+          "group": "existing",
+          "question": "Someone told me there is an architecture and construction teaching building made from layers of wood glued into big structural panels. I am interested in the material, not gardens or solar panels. Which building?",
+          "expected": [
+            "olver-design-building"
+          ],
+          "expected_first": false,
+          "expected_in_top_3": false,
+          "matches": [
+            {
+              "name": "Computer Science Building",
+              "score": 0.09259259700775146,
+              "keyword_score": 0.09259259700775146
+            },
+            {
+              "name": "Kennedy Champions Center",
+              "score": 0.06976744532585144,
+              "keyword_score": 0.06976744532585144
+            },
+            {
+              "name": "Solar power at UMass Amherst",
+              "score": 0.019630687311291695,
+              "keyword_score": 0.019630687311291695
+            }
+          ]
+        },
+        {
+          "group": "existing",
+          "question": "I saw a project where raising electricity-generating panels higher left room underneath for crops or livestock. It was university agricultural land rather than a parking lot. Which project was that?",
+          "expected": [
+            "farm-agrivoltaics"
+          ],
+          "expected_first": false,
+          "expected_in_top_3": false,
+          "matches": []
+        },
+        {
+          "group": "existing",
+          "question": "I'd rather not drive or rent a bicycle. I am a student trying to reach the neighboring towns using frequent public transport without buying a ticket. Which campus service should I read about?",
+          "expected": [
+            "pvta-buses"
+          ],
+          "expected_first": false,
+          "expected_in_top_3": false,
+          "matches": []
+        },
+        {
+          "group": "existing",
+          "question": "pipete tip box recyling in the labs",
+          "expected": [
+            "lab-plastic-recycling"
+          ],
+          "expected_first": false,
+          "expected_in_top_3": false,
+          "matches": []
+        },
+        {
+          "group": "existing",
+          "question": "New2U thirft stroe used furnture",
+          "expected": [
+            "hampden-new2u"
+          ],
+          "expected_first": false,
+          "expected_in_top_3": false,
+          "matches": []
+        },
+        {
+          "group": "existing",
+          "question": "soler pannels above crops and grazng animals",
+          "expected": [
+            "farm-agrivoltaics"
+          ],
+          "expected_first": false,
+          "expected_in_top_3": false,
+          "matches": []
+        },
+        {
+          "group": "existing",
+          "question": "ILC gren roof with sedum plnts",
+          "expected": [
+            "ilc-green-roof"
+          ],
+          "expected_first": false,
+          "expected_in_top_3": false,
+          "matches": []
+        },
+        {
+          "group": "existing",
+          "question": "Not collecting rain in a tank: which heating-plant project uses water that has already gone through the town's sewage treatment?",
+          "expected": [
+            "chp-reclaimed-water"
+          ],
+          "expected_first": false,
+          "expected_in_top_3": false,
+          "matches": []
+        },
+        {
+          "group": "existing",
+          "question": "I mean the training home of the basketball teams with solar on its roof, not the general student gym. Which building is it?",
+          "expected": [
+            "champions-center"
+          ],
+          "expected_first": false,
+          "expected_in_top_3": false,
+          "matches": []
+        },
+        {
+          "group": "existing",
+          "question": "Which reuse place sells students clothes and lamps, rather than transferring university office equipment between departments?",
+          "expected": [
+            "hampden-new2u"
+          ],
+          "expected_first": false,
+          "expected_in_top_3": false,
+          "matches": []
+        },
+        {
+          "group": "existing",
+          "question": "Which greenhouse is used for Plant, Soil, and Insect Sciences research and teaching and earned LEED Gold, rather than being the old rainforest refuge?",
+          "expected": [
+            "cns-greenhouse"
+          ],
+          "expected_first": false,
+          "expected_in_top_3": false,
+          "matches": []
+        },
+        {
+          "group": "lexical",
+          "question": "Durfee Conservatory",
+          "expected": [
+            "durfee-conservatory"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "Durfee Conservatory",
+              "score": 0.27272728085517883,
+              "keyword_score": 0.27272728085517883
+            }
+          ]
+        },
+        {
+          "group": "lexical",
+          "question": "New2U Thrift Store",
+          "expected": [
+            "hampden-new2u"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "New2U Thrift Store",
+              "score": 0.2755681872367859,
+              "keyword_score": 0.2755681872367859
+            }
+          ]
+        },
+        {
+          "group": "lexical",
+          "question": "Computer Science Building",
+          "expected": [
+            "computer-science-building"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "Computer Science Building",
+              "score": 0.2869728282094002,
+              "keyword_score": 0.2869728282094002
+            },
+            {
+              "name": "Computer Sciences Laboratories",
+              "score": 0.11382734775543213,
+              "keyword_score": 0.11382734775543213
+            },
+            {
+              "name": "LEED certification",
+              "score": 0.057591624557971954,
+              "keyword_score": 0.057591624557971954
+            }
+          ]
+        },
+        {
+          "group": "lexical",
+          "question": "Central Heating Plant",
+          "expected": [
+            "central-heating-plant"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "Central Heating Plant",
+              "score": 0.27272728085517883,
+              "keyword_score": 0.27272728085517883
+            },
+            {
+              "name": "Reclaimed water at the Central Heating Plant",
+              "score": 0.4564296007156372,
+              "keyword_score": 0.4564296007156372
+            },
+            {
+              "name": "Solar hot water at the Central Heating Plant",
+              "score": 0.4518911838531494,
+              "keyword_score": 0.4518911838531494
+            }
+          ]
+        },
+        {
+          "group": "lexical",
+          "question": "ValleyBike",
+          "expected": [
+            "topic-valleybike"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "ValleyBike",
+              "score": 0.4125874191522598,
+              "keyword_score": 0.4125874191522598
+            },
+            {
+              "name": "ValleyBike station at Haigis Mall",
+              "score": 0.4125874191522598,
+              "keyword_score": 0.4125874191522598
+            },
+            {
+              "name": "ValleyBike station at the Integrative Learning Center",
+              "score": 0.4125874191522598,
+              "keyword_score": 0.4125874191522598
+            }
+          ]
+        },
+        {
+          "group": "lexical",
+          "question": "LEED certification",
+          "expected": [
+            "topic-leed"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "LEED certification",
+              "score": 0.2929292991757393,
+              "keyword_score": 0.2929292991757393
+            },
+            {
+              "name": "Worcester Commons",
+              "score": 0.1304347813129425,
+              "keyword_score": 0.1304347813129425
+            },
+            {
+              "name": "CNS Research and Education Greenhouse",
+              "score": 0.1304347813129425,
+              "keyword_score": 0.1304347813129425
+            }
+          ]
+        },
+        {
+          "group": "lexical",
+          "question": "Polycarbin",
+          "expected": [
+            "lab-plastic-recycling"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "Lab plastic recycling pilot",
+              "score": 0.09090909361839294,
+              "keyword_score": 0.09090909361839294
+            }
+          ]
+        },
+        {
+          "group": "lexical",
+          "question": "electrochromic",
+          "expected": [
+            "worcester-commons"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "Worcester Commons",
+              "score": 0.09090909361839294,
+              "keyword_score": 0.09090909361839294
+            }
+          ]
+        },
+        {
+          "group": "lexical",
+          "question": "agrivoltaics",
+          "expected": [
+            "farm-agrivoltaics"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "Agrivoltaic solar array at the South Deerfield farm",
+              "score": 0.4125874191522598,
+              "keyword_score": 0.4125874191522598
+            }
+          ]
+        },
+        {
+          "group": "lexical",
+          "question": "\"pipette tip boxes\"",
+          "expected": [
+            "lab-plastic-recycling"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "Lab plastic recycling pilot",
+              "score": 0.09090909361839294,
+              "keyword_score": 0.09090909361839294
+            }
+          ]
+        },
+        {
+          "group": "lexical",
+          "question": "\"rainwater harvesting\"",
+          "expected": [
+            "franklin-permaculture-garden"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "Franklin Permaculture Garden",
+              "score": 0.09090909361839294,
+              "keyword_score": 0.09090909361839294
+            },
+            {
+              "name": "Life Science Laboratories rainwater cistern",
+              "score": 0.09090909361839294,
+              "keyword_score": 0.09090909361839294
+            }
+          ]
+        },
+        {
+          "group": "lexical",
+          "question": "\"Computer Science Building\"",
+          "expected": [
+            "computer-science-building"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "Computer Science Building",
+              "score": 0.27272728085517883,
+              "keyword_score": 0.27272728085517883
+            },
+            {
+              "name": "Computer Sciences Laboratories",
+              "score": 0.09090909361839294,
+              "keyword_score": 0.09090909361839294
+            }
+          ]
+        },
+        {
+          "group": "diagnostics",
+          "question": "Which artifact mentions electrochromic technology?",
+          "expected": [
+            "worcester-commons"
+          ],
+          "expected_first": false,
+          "expected_in_top_3": false,
+          "matches": []
+        },
+        {
+          "group": "diagnostics",
+          "question": "Where is the Polycarbin recycling project?",
+          "expected": [
+            "lab-plastic-recycling"
+          ],
+          "expected_first": false,
+          "expected_in_top_3": false,
+          "matches": []
+        },
+        {
+          "group": "diagnostics",
+          "question": "Where can I see agrivoltaics?",
+          "expected": [
+            "farm-agrivoltaics"
+          ],
+          "expected_first": false,
+          "expected_in_top_3": false,
+          "matches": []
+        },
+        {
+          "group": "diagnostics",
+          "question": "Where is Durfee Conservatory?",
+          "expected": [
+            "durfee-conservatory"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "Durfee Conservatory",
+              "score": 0.27272728085517883,
+              "keyword_score": 0.27272728085517883
+            }
+          ]
+        },
+        {
+          "group": "diagnostics",
+          "question": "Show me New2U Thrift Store.",
+          "expected": [
+            "hampden-new2u"
+          ],
+          "expected_first": false,
+          "expected_in_top_3": false,
+          "matches": []
+        }
+      ]
+    },
+    {
+      "mode": "hybrid",
+      "metrics": {
+        "existing": {
+          "supported": 64,
+          "expected_first": 62,
+          "expected_in_top_3": 64
+        },
+        "lexical": {
+          "supported": 12,
+          "expected_first": 12,
+          "expected_in_top_3": 12
+        },
+        "diagnostics": {
+          "supported": 5,
+          "expected_first": 4,
+          "expected_in_top_3": 4
+        }
+      },
+      "latency_ms": {
+        "p50": 58.570005000007086,
+        "p95": 82.02443300001505
+      },
+      "results": [
+        {
+          "group": "existing",
+          "question": "Where can I buy second-hand clothes and furniture rather than throw useful things away?",
+          "expected": [
+            "hampden-new2u"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "New2U Thrift Store",
+              "score": 0.01639344262295082,
+              "semantic_score": 0.6316632973646096
+            },
+            {
+              "name": "Surplus Property Barn",
+              "score": 0.016129032258064516,
+              "semantic_score": 0.6244381590673027
+            },
+            {
+              "name": "Lab plastic recycling pilot",
+              "score": 0.015873015873015872,
+              "semantic_score": 0.4438996050417856
+            }
+          ]
+        },
+        {
+          "group": "existing",
+          "question": "Which building uses large panels of glued wood instead of much of its steel and concrete?",
+          "expected": [
+            "olver-design-building"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "John W. Olver Design Building",
+              "score": 0.01639344262295082,
+              "semantic_score": 0.6080680594322586
+            },
+            {
+              "name": "Sustainable Engineering Laboratories",
+              "score": 0.016129032258064516,
+              "semantic_score": 0.5285694846088625
+            },
+            {
+              "name": "Life Science Laboratories",
+              "score": 0.015873015873015872,
+              "semantic_score": 0.5252348467567663
+            }
+          ]
+        },
+        {
+          "group": "existing",
+          "question": "Where is sunlight used to preheat water before the heating plant makes steam?",
+          "expected": [
+            "chp-solar-hot-water"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "Solar hot water at the Central Heating Plant",
+              "score": 0.01639344262295082,
+              "semantic_score": 0.7446791516969619
+            },
+            {
+              "name": "Reclaimed water at the Central Heating Plant",
+              "score": 0.016129032258064516,
+              "semantic_score": 0.6551285139262727
+            },
+            {
+              "name": "Central Heating Plant",
+              "score": 0.015873015873015872,
+              "semantic_score": 0.6258204060257792
+            }
+          ]
+        },
+        {
+          "group": "existing",
+          "question": "Which place combines farming with panels that generate electricity?",
+          "expected": [
+            "farm-agrivoltaics"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "Agrivoltaic solar array at the South Deerfield farm",
+              "score": 0.01639344262295082,
+              "semantic_score": 0.6582019751662102
+            },
+            {
+              "name": "Solar power at UMass Amherst",
+              "score": 0.016129032258064516,
+              "semantic_score": 0.5598553252263392
+            },
+            {
+              "name": "Central Heating Plant",
+              "score": 0.015873015873015872,
+              "semantic_score": 0.5561123557225054
+            }
+          ]
+        },
+        {
+          "group": "existing",
+          "question": "Where is collected rainwater stored underground and reused by the Life Science Laboratories?",
+          "expected": [
+            "lsl-rainwater-cistern"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "Life Science Laboratories rainwater cistern",
+              "score": 0.01639344262295082,
+              "semantic_score": 0.7865981674071976
+            },
+            {
+              "name": "Life Science Laboratories",
+              "score": 0.016129032258064516,
+              "semantic_score": 0.6225699107474029
+            },
+            {
+              "name": "Lab plastic recycling pilot",
+              "score": 0.015873015873015872,
+              "semantic_score": 0.5927752256393811
+            }
+          ]
+        },
+        {
+          "group": "existing",
+          "question": "How are used pipette tip boxes turned back into new laboratory plastics?",
+          "expected": [
+            "lab-plastic-recycling"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "Lab plastic recycling pilot",
+              "score": 0.01639344262295082,
+              "semantic_score": 0.7110601425444428
+            },
+            {
+              "name": "Surplus Property Barn",
+              "score": 0.016129032258064516,
+              "semantic_score": 0.49926808498265174
+            },
+            {
+              "name": "Life Science Laboratories",
+              "score": 0.015873015873015872,
+              "semantic_score": 0.4745670647977662
+            }
+          ]
+        },
+        {
+          "group": "existing",
+          "question": "Where do plants and soil help absorb rain runoff rather than send it straight into storm drains?",
+          "expected": [
+            "olver-rain-garden",
+            "ilc-stormwater-site",
+            "ilc-green-roof",
+            "southwest-concourse"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "Design Building rain garden",
+              "score": 0.01639344262295082,
+              "semantic_score": 0.6728212432372798
+            },
+            {
+              "name": "Integrative Learning Center stormwater landscape",
+              "score": 0.016129032258064516,
+              "semantic_score": 0.6482602181125579
+            },
+            {
+              "name": "Campus Pond",
+              "score": 0.015873015873015872,
+              "semantic_score": 0.6086717844010091
+            }
+          ]
+        },
+        {
+          "group": "existing",
+          "question": "Where can I step into a rainforest room and warm up on my way to class in winter?",
+          "expected": [
+            "durfee-conservatory"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "Durfee Conservatory",
+              "score": 0.01639344262295082,
+              "semantic_score": 0.560393366837131
+            },
+            {
+              "name": "North Energy Exchange Center",
+              "score": 0.016129032258064516,
+              "semantic_score": 0.5388114773518967
+            },
+            {
+              "name": "Integrative Learning Center",
+              "score": 0.015873015873015872,
+              "semantic_score": 0.5203402614188474
+            }
+          ]
+        },
+        {
+          "group": "existing",
+          "question": "My phone battery is dying while I wait for the bus. Is there a place powered by the sun where I can plug it in?",
+          "expected": [
+            "solar-charging-haigis"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "Solar charging station at the Haigis Mall bus stop",
+              "score": 0.01639344262295082,
+              "semantic_score": 0.7157618108490986
+            },
+            {
+              "name": "EV charging at the Robsham Visitor Center lot",
+              "score": 0.016129032258064516,
+              "semantic_score": 0.58949304003869
+            },
+            {
+              "name": "PVTA bus service",
+              "score": 0.015873015873015872,
+              "semantic_score": 0.574450799126858
+            }
+          ]
+        },
+        {
+          "group": "existing",
+          "question": "How can students travel into neighboring towns without paying for a bus ticket?",
+          "expected": [
+            "pvta-buses"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "PVTA bus service",
+              "score": 0.01639344262295082,
+              "semantic_score": 0.5922081846694506
+            },
+            {
+              "name": "ValleyBike",
+              "score": 0.016129032258064516,
+              "semantic_score": 0.5170952040922155
+            },
+            {
+              "name": "Solar charging station at the Haigis Mall bus stop",
+              "score": 0.015873015873015872,
+              "semantic_score": 0.502384454154064
+            }
+          ]
+        },
+        {
+          "group": "existing",
+          "question": "Where can I charge an electric car in the Campus Center Parking Garage?",
+          "expected": [
+            "ev-campus-center-garage"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "EV charging at the Campus Center Parking Garage",
+              "score": 0.01639344262295082,
+              "semantic_score": 0.8427895494950595
+            },
+            {
+              "name": "Electric vehicle charging on campus",
+              "score": 0.016129032258064516,
+              "semantic_score": 0.7606577705160912,
+              "keyword_score": 0.010163499973714352
+            },
+            {
+              "name": "EV charging at the Robsham Visitor Center lot",
+              "score": 0.015873015873015872,
+              "semantic_score": 0.7388564348221298
+            }
+          ]
+        },
+        {
+          "group": "existing",
+          "question": "Can I borrow an electric bicycle at one station and leave it at a different station?",
+          "expected": [
+            "topic-valleybike"
+          ],
+          "expected_first": false,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "ValleyBike station at the Integrative Learning Center",
+              "score": 0.01639344262295082,
+              "semantic_score": 0.6104715184079951
+            },
+            {
+              "name": "ValleyBike station in Southwest",
+              "score": 0.016129032258064516,
+              "semantic_score": 0.6021070595788349
+            },
+            {
+              "name": "ValleyBike",
+              "score": 0.015873015873015872,
+              "semantic_score": 0.5751179963209674
+            }
+          ]
+        },
+        {
+          "group": "existing",
+          "question": "Our university department has spare desks. Where can another department get them instead of buying new furniture?",
+          "expected": [
+            "surplus-property-barn"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "Surplus Property Barn",
+              "score": 0.01639344262295082,
+              "semantic_score": 0.6788517810967661
+            },
+            {
+              "name": "New2U Thrift Store",
+              "score": 0.016129032258064516,
+              "semantic_score": 0.6162786390200338
+            },
+            {
+              "name": "Fleet EV charging at the Physical Plant",
+              "score": 0.015873015873015872,
+              "semantic_score": 0.5192116498947734
+            }
+          ]
+        },
+        {
+          "group": "existing",
+          "question": "Which garden provides food and water for bees, butterflies and hummingbirds?",
+          "expected": [
+            "pollinator-garden"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "Pollinator Garden",
+              "score": 0.01639344262295082,
+              "semantic_score": 0.6879958529469014
+            },
+            {
+              "name": "Food for All Garden",
+              "score": 0.016129032258064516,
+              "semantic_score": 0.5361777556737167
+            },
+            {
+              "name": "UMass Permaculture gardens",
+              "score": 0.015873015873015872,
+              "semantic_score": 0.5349959059051196
+            }
+          ]
+        },
+        {
+          "group": "existing",
+          "question": "Which garden grows fresh produce for the Amherst Survival Center and a community meal program?",
+          "expected": [
+            "food-for-all-garden"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "Food for All Garden",
+              "score": 0.01639344262295082,
+              "semantic_score": 0.7298440015130512,
+              "keyword_score": 0.006439742632210255
+            },
+            {
+              "name": "Franklin Dining Commons",
+              "score": 0.016129032258064516,
+              "semantic_score": 0.5896221674839893
+            },
+            {
+              "name": "Berkshire Permaculture Garden",
+              "score": 0.015873015873015872,
+              "semantic_score": 0.580750232711366
+            }
+          ]
+        },
+        {
+          "group": "existing",
+          "question": "Which garden replaced a lawn beside Franklin Dining Commons and supplies it with fruit, vegetables and herbs?",
+          "expected": [
+            "franklin-permaculture-garden"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "Franklin Permaculture Garden",
+              "score": 0.01639344262295082,
+              "semantic_score": 0.6816053999905795
+            },
+            {
+              "name": "Franklin Dining Commons",
+              "score": 0.016129032258064516,
+              "semantic_score": 0.6810165034816326
+            },
+            {
+              "name": "Berkshire Permaculture Garden",
+              "score": 0.015873015873015872,
+              "semantic_score": 0.6245599798989637
+            }
+          ]
+        },
+        {
+          "group": "existing",
+          "question": "Where were food plants from India grown at the chancellor's residence?",
+          "expected": [
+            "hillside-permaculture-garden"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "Hillside Permaculture Garden",
+              "score": 0.01639344262295082,
+              "semantic_score": 0.6398684978485153
+            },
+            {
+              "name": "Food for All Garden",
+              "score": 0.016129032258064516,
+              "semantic_score": 0.5228487023260386
+            },
+            {
+              "name": "Franklin Permaculture Garden",
+              "score": 0.015873015873015872,
+              "semantic_score": 0.5188941359519995
+            }
+          ]
+        },
+        {
+          "group": "existing",
+          "question": "What installation warms returning water with sunlight so the steam plant needs to burn less gas?",
+          "expected": [
+            "chp-solar-hot-water"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "Solar hot water at the Central Heating Plant",
+              "score": 0.01639344262295082,
+              "semantic_score": 0.7056397269320113
+            },
+            {
+              "name": "Reclaimed water at the Central Heating Plant",
+              "score": 0.016129032258064516,
+              "semantic_score": 0.6398526334235959
+            },
+            {
+              "name": "Central Heating Plant",
+              "score": 0.015873015873015872,
+              "semantic_score": 0.6161067166583037
+            }
+          ]
+        },
+        {
+          "group": "existing",
+          "question": "Where is treated sewage cleaned further and used in boilers instead of drinking water?",
+          "expected": [
+            "chp-reclaimed-water"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "Reclaimed water at the Central Heating Plant",
+              "score": 0.01639344262295082,
+              "semantic_score": 0.6551625276387055
+            },
+            {
+              "name": "Solar hot water at the Central Heating Plant",
+              "score": 0.016129032258064516,
+              "semantic_score": 0.5290811446550929
+            },
+            {
+              "name": "Central Heating Plant",
+              "score": 0.015873015873015872,
+              "semantic_score": 0.5085971982230693
+            }
+          ]
+        },
+        {
+          "group": "existing",
+          "question": "Which campus facility produces both electricity and the steam used to heat and cool buildings?",
+          "expected": [
+            "central-heating-plant"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "Central Heating Plant",
+              "score": 0.01639344262295082,
+              "semantic_score": 0.7608072472581453
+            },
+            {
+              "name": "North Energy Exchange Center",
+              "score": 0.016129032258064516,
+              "semantic_score": 0.6412044426907437
+            },
+            {
+              "name": "Crotty Hall",
+              "score": 0.015873015873015872,
+              "semantic_score": 0.6265986339210928
+            }
+          ]
+        },
+        {
+          "group": "existing",
+          "question": "Which economics building was designed to make as much energy as it consumes each year?",
+          "expected": [
+            "crotty-hall"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "Crotty Hall",
+              "score": 0.01639344262295082,
+              "semantic_score": 0.5942792793638855
+            },
+            {
+              "name": "Life Science Laboratories",
+              "score": 0.016129032258064516,
+              "semantic_score": 0.5589088648990723
+            },
+            {
+              "name": "North Energy Exchange Center",
+              "score": 0.015873015873015872,
+              "semantic_score": 0.5471577976064373
+            }
+          ]
+        },
+        {
+          "group": "existing",
+          "question": "Where is the first solar parking canopy in the UMass system, beside the visitor center?",
+          "expected": [
+            "robsham-solar-canopies"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "Robsham Visitor Center solar canopies",
+              "score": 0.01639344262295082,
+              "semantic_score": 0.822863417691946
+            },
+            {
+              "name": "Southwest solar canopies",
+              "score": 0.016129032258064516,
+              "semantic_score": 0.7347024387281379
+            },
+            {
+              "name": "Solar canopies by the Fleet Garage",
+              "score": 0.015873015873015872,
+              "semantic_score": 0.7269826367728355
+            }
+          ]
+        },
+        {
+          "group": "existing",
+          "question": "Which computing laboratory building completed in 2025 was the first on campus to earn LEED Platinum?",
+          "expected": [
+            "computer-sciences-laboratories"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "Computer Sciences Laboratories",
+              "score": 0.01639344262295082,
+              "semantic_score": 0.7480656058749527,
+              "keyword_score": 0.002320185536518693
+            },
+            {
+              "name": "LEED certification",
+              "score": 0.016129032258064516,
+              "semantic_score": 0.6536259284911372
+            },
+            {
+              "name": "Computer Science Building",
+              "score": 0.015873015873015872,
+              "semantic_score": 0.6338344115512348
+            }
+          ]
+        },
+        {
+          "group": "existing",
+          "question": "Which basketball practice building earned LEED Gold and has rooftop solar?",
+          "expected": [
+            "champions-center"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "Kennedy Champions Center",
+              "score": 0.01639344262295082,
+              "semantic_score": 0.698836600919175,
+              "keyword_score": 0.0020790020935237408
+            },
+            {
+              "name": "Recreation Center",
+              "score": 0.016129032258064516,
+              "semantic_score": 0.5910198227727741
+            },
+            {
+              "name": "Life Science Laboratories",
+              "score": 0.015873015873015872,
+              "semantic_score": 0.5741790786874854
+            }
+          ]
+        },
+        {
+          "group": "existing",
+          "question": "Which campus gym generates electricity from panels on its large flat roof?",
+          "expected": [
+            "recreation-center"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "Recreation Center",
+              "score": 0.01639344262295082,
+              "semantic_score": 0.6768594751180794
+            },
+            {
+              "name": "Solar power at UMass Amherst",
+              "score": 0.016129032258064516,
+              "semantic_score": 0.6156284258698066
+            },
+            {
+              "name": "North campus solar canopies",
+              "score": 0.015873015873015872,
+              "semantic_score": 0.5940028010012
+            }
+          ]
+        },
+        {
+          "group": "existing",
+          "question": "Which physics and chemistry research building was designed so its laboratories can be rearranged instead of demolishing the building?",
+          "expected": [
+            "physical-sciences-building"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "Physical Sciences Building",
+              "score": 0.01639344262295082,
+              "semantic_score": 0.6742029786109924
+            },
+            {
+              "name": "Life Science Laboratories",
+              "score": 0.016129032258064516,
+              "semantic_score": 0.5720688700675964
+            },
+            {
+              "name": "Sustainable Engineering Laboratories",
+              "score": 0.015873015873015872,
+              "semantic_score": 0.5438709802781405
+            }
+          ]
+        },
+        {
+          "group": "existing",
+          "question": "Where is a public courtyard with native plants and built-in seating on the Design Building roof?",
+          "expected": [
+            "olver-green-roof"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "Rooftop courtyard and green roof",
+              "score": 0.01639344262295082,
+              "semantic_score": 0.7486458570572875,
+              "keyword_score": 0.005235602147877216
+            },
+            {
+              "name": "Southwest Concourse",
+              "score": 0.016129032258064516,
+              "semantic_score": 0.5914694288896195
+            },
+            {
+              "name": "Design Building rain garden",
+              "score": 0.015873015873015872,
+              "semantic_score": 0.57493787110599
+            }
+          ]
+        },
+        {
+          "group": "existing",
+          "question": "Which underground tank can store up to 10,000 gallons of rainwater for laboratory and landscape uses?",
+          "expected": [
+            "lsl-rainwater-cistern"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "Life Science Laboratories rainwater cistern",
+              "score": 0.01639344262295082,
+              "semantic_score": 0.6843336224555969
+            },
+            {
+              "name": "Design Building rain garden",
+              "score": 0.016129032258064516,
+              "semantic_score": 0.5521091961535473
+            },
+            {
+              "name": "Integrative Learning Center stormwater landscape",
+              "score": 0.015873015873015872,
+              "semantic_score": 0.5465538931296603
+            }
+          ]
+        },
+        {
+          "group": "existing",
+          "question": "What green-building rating system awards Certified, Silver, Gold or Platinum based on earned points?",
+          "expected": [
+            "topic-leed"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "LEED certification",
+              "score": 0.01639344262295082,
+              "semantic_score": 0.715445628980585
+            },
+            {
+              "name": "CNS Research and Education Greenhouse",
+              "score": 0.016129032258064516,
+              "semantic_score": 0.600239264936539
+            },
+            {
+              "name": "Life Science Laboratories",
+              "score": 0.015873015873015872,
+              "semantic_score": 0.5776518490729553
+            }
+          ]
+        },
+        {
+          "group": "existing",
+          "question": "How is most of the campus landscape maintained without artificial pesticides or fertilizers?",
+          "expected": [
+            "green-grounds"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "Green Grounds: campus landscape care",
+              "score": 0.01639344262295082,
+              "semantic_score": 0.7762552997838276,
+              "keyword_score": 0.09090909361839294
+            },
+            {
+              "name": "Campus Pond",
+              "score": 0.016129032258064516,
+              "semantic_score": 0.6473066104380558
+            },
+            {
+              "name": "UMass Permaculture gardens",
+              "score": 0.015873015873015872,
+              "semantic_score": 0.6246441305532322
+            }
+          ]
+        },
+        {
+          "group": "existing",
+          "question": "Which ILC roof has about 15,000 square feet of hardy sedum plants instead of bare roofing?",
+          "expected": [
+            "ilc-green-roof"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "Integrative Learning Center green roof",
+              "score": 0.01639344262295082,
+              "semantic_score": 0.6338751752525764
+            },
+            {
+              "name": "Rooftop courtyard and green roof",
+              "score": 0.016129032258064516,
+              "semantic_score": 0.5356302218878347
+            },
+            {
+              "name": "Southwest Concourse",
+              "score": 0.015873015873015872,
+              "semantic_score": 0.47823699919647056
+            }
+          ]
+        },
+        {
+          "group": "existing",
+          "question": "Where is Durfee conservatry?",
+          "expected": [
+            "durfee-conservatory"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "Durfee Conservatory",
+              "score": 0.01639344262295082,
+              "semantic_score": 0.6239867396350948
+            },
+            {
+              "name": "Old Chapel",
+              "score": 0.016129032258064516,
+              "semantic_score": 0.4433303011456381
+            },
+            {
+              "name": "Berkshire Dining Commons",
+              "score": 0.015873015873015872,
+              "semantic_score": 0.44016746285073394
+            }
+          ]
+        },
+        {
+          "group": "existing",
+          "question": "Where is the campus nuclear fusion reactor?",
+          "expected": [],
+          "expected_first": false,
+          "expected_in_top_3": false,
+          "matches": [
+            {
+              "name": "North Energy Exchange Center",
+              "score": 0.01639344262295082,
+              "semantic_score": 0.5559573569450333
+            },
+            {
+              "name": "Central Heating Plant",
+              "score": 0.016129032258064516,
+              "semantic_score": 0.5539599657059345
+            },
+            {
+              "name": "Recreation Center",
+              "score": 0.015873015873015872,
+              "semantic_score": 0.5520521812252389
+            }
+          ]
+        },
+        {
+          "group": "existing",
+          "question": "Which campus office renews foreign passports?",
+          "expected": [],
+          "expected_first": false,
+          "expected_in_top_3": false,
+          "matches": [
+            {
+              "name": "Southwest Concourse",
+              "score": 0.01639344262295082,
+              "semantic_score": 0.4806806267322046
+            },
+            {
+              "name": "New2U Thrift Store",
+              "score": 0.016129032258064516,
+              "semantic_score": 0.4796575283595962
+            },
+            {
+              "name": "Computer Science Building",
+              "score": 0.015873015873015872,
+              "semantic_score": 0.46133832748717096
+            }
+          ]
+        },
+        {
+          "group": "existing",
+          "question": "Where is the campus aquarium containing deep-sea sharks?",
+          "expected": [],
+          "expected_first": false,
+          "expected_in_top_3": false,
+          "matches": [
+            {
+              "name": "Campus Pond",
+              "score": 0.01639344262295082,
+              "semantic_score": 0.5150398133612254
+            },
+            {
+              "name": "Fine Arts Center",
+              "score": 0.016129032258064516,
+              "semantic_score": 0.48568232144152135
+            },
+            {
+              "name": "Durfee Conservatory",
+              "score": 0.015873015873015872,
+              "semantic_score": 0.47878118049075113
+            }
+          ]
+        },
+        {
+          "group": "existing",
+          "question": "Which campus rocket launch pad sends satellites into orbit?",
+          "expected": [],
+          "expected_first": false,
+          "expected_in_top_3": false,
+          "matches": [
+            {
+              "name": "Recreation Center",
+              "score": 0.01639344262295082,
+              "semantic_score": 0.5056238161030254
+            },
+            {
+              "name": "North campus solar canopies",
+              "score": 0.016129032258064516,
+              "semantic_score": 0.4853152172549524
+            },
+            {
+              "name": "Fleet EV charging at the Physical Plant",
+              "score": 0.015873015873015872,
+              "semantic_score": 0.47801619506078374
+            }
+          ]
+        },
+        {
+          "group": "existing",
+          "question": "I need a little tropical escape between lectures when everything outdoors is freezing. What place fits?",
+          "expected": [
+            "durfee-conservatory"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "Durfee Conservatory",
+              "score": 0.01639344262295082,
+              "semantic_score": 0.538450133343035
+            },
+            {
+              "name": "North Energy Exchange Center",
+              "score": 0.016129032258064516,
+              "semantic_score": 0.5039100196442047
+            },
+            {
+              "name": "Crotty Hall",
+              "score": 0.015873015873015872,
+              "semantic_score": 0.4783783360912959
+            }
+          ]
+        },
+        {
+          "group": "existing",
+          "question": "Our lab keeps throwing away the rigid boxes left after pipetting. Is there a way to give that plastic another life?",
+          "expected": [
+            "lab-plastic-recycling"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "Lab plastic recycling pilot",
+              "score": 0.01639344262295082,
+              "semantic_score": 0.6951437359877145
+            },
+            {
+              "name": "Surplus Property Barn",
+              "score": 0.016129032258064516,
+              "semantic_score": 0.5165924449673229
+            },
+            {
+              "name": "Life Science Laboratories",
+              "score": 0.015873015873015872,
+              "semantic_score": 0.5078902547294062
+            }
+          ]
+        },
+        {
+          "group": "existing",
+          "question": "I'm furnishing my student room on a tiny budget and need a used jacket too. Where should I look?",
+          "expected": [
+            "hampden-new2u"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "New2U Thrift Store",
+              "score": 0.01639344262295082,
+              "semantic_score": 0.6619730574988626
+            },
+            {
+              "name": "Surplus Property Barn",
+              "score": 0.016129032258064516,
+              "semantic_score": 0.5935377990005047
+            },
+            {
+              "name": "Franklin Dining Commons",
+              "score": 0.015873015873015872,
+              "semantic_score": 0.513641164926477
+            }
+          ]
+        },
+        {
+          "group": "existing",
+          "question": "Our academic unit needs cabinets another unit no longer wants. Is there a university reuse showroom?",
+          "expected": [
+            "surplus-property-barn"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "Surplus Property Barn",
+              "score": 0.01639344262295082,
+              "semantic_score": 0.7115997328281084
+            },
+            {
+              "name": "New2U Thrift Store",
+              "score": 0.016129032258064516,
+              "semantic_score": 0.628859099345723
+            },
+            {
+              "name": "Sustainable Engineering Laboratories",
+              "score": 0.015873015873015872,
+              "semantic_score": 0.5536889699882971
+            }
+          ]
+        },
+        {
+          "group": "existing",
+          "question": "Where can animals graze underneath equipment that harvests sunshine?",
+          "expected": [
+            "farm-agrivoltaics"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "Agrivoltaic solar array at the South Deerfield farm",
+              "score": 0.01639344262295082,
+              "semantic_score": 0.6115721562673864
+            },
+            {
+              "name": "Berkshire Dining Commons",
+              "score": 0.016129032258064516,
+              "semantic_score": 0.5340291857719421
+            },
+            {
+              "name": "North campus solar canopies",
+              "score": 0.015873015873015872,
+              "semantic_score": 0.5199992549417962
+            }
+          ]
+        },
+        {
+          "group": "existing",
+          "question": "How does the university avoid boiling perfectly drinkable water when it could use cleaned wastewater?",
+          "expected": [
+            "chp-reclaimed-water"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "Reclaimed water at the Central Heating Plant",
+              "score": 0.01639344262295082,
+              "semantic_score": 0.6159493467551275
+            },
+            {
+              "name": "Campus Pond",
+              "score": 0.016129032258064516,
+              "semantic_score": 0.5512185796006217
+            },
+            {
+              "name": "Solar hot water at the Central Heating Plant",
+              "score": 0.015873015873015872,
+              "semantic_score": 0.5350925292378017
+            }
+          ]
+        },
+        {
+          "group": "existing",
+          "question": "What uses free warmth from the sky to reduce the fuel needed to turn returning water into steam?",
+          "expected": [
+            "chp-solar-hot-water"
+          ],
+          "expected_first": false,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "Reclaimed water at the Central Heating Plant",
+              "score": 0.01639344262295082,
+              "semantic_score": 0.6363585699673759
+            },
+            {
+              "name": "Solar hot water at the Central Heating Plant",
+              "score": 0.016129032258064516,
+              "semantic_score": 0.6320973196145857
+            },
+            {
+              "name": "Central Heating Plant",
+              "score": 0.015873015873015872,
+              "semantic_score": 0.5619814208712984
+            }
+          ]
+        },
+        {
+          "group": "existing",
+          "question": "Is there a growing space whose harvest helps neighbors struggling to get enough to eat?",
+          "expected": [
+            "food-for-all-garden"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "Food for All Garden",
+              "score": 0.01639344262295082,
+              "semantic_score": 0.6044984833592756
+            },
+            {
+              "name": "Berkshire Dining Commons",
+              "score": 0.016129032258064516,
+              "semantic_score": 0.5619276835832259
+            },
+            {
+              "name": "UMass Permaculture gardens",
+              "score": 0.015873015873015872,
+              "semantic_score": 0.5596037578110445
+            }
+          ]
+        },
+        {
+          "group": "existing",
+          "question": "I want to see a planted habitat that gives nectar-seeking insects and hummingbirds food and water. Where should I look?",
+          "expected": [
+            "pollinator-garden"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "Pollinator Garden",
+              "score": 0.01639344262295082,
+              "semantic_score": 0.6561787948182118
+            },
+            {
+              "name": "UMass Permaculture gardens",
+              "score": 0.016129032258064516,
+              "semantic_score": 0.5848418969104454
+            },
+            {
+              "name": "Franklin Dining Commons",
+              "score": 0.015873015873015872,
+              "semantic_score": 0.5796946598191327
+            }
+          ]
+        },
+        {
+          "group": "existing",
+          "question": "How does the university look after its grounds while avoiding manufactured weed and bug treatments?",
+          "expected": [
+            "green-grounds"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "Green Grounds: campus landscape care",
+              "score": 0.01639344262295082,
+              "semantic_score": 0.7053708048275606
+            },
+            {
+              "name": "UMass Permaculture gardens",
+              "score": 0.016129032258064516,
+              "semantic_score": 0.5746583849598943
+            },
+            {
+              "name": "Campus Pond",
+              "score": 0.015873015873015872,
+              "semantic_score": 0.5724788048939251
+            }
+          ]
+        },
+        {
+          "group": "existing",
+          "question": "Which home of the people who study markets balances the power it consumes with power it makes?",
+          "expected": [
+            "crotty-hall"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "Crotty Hall",
+              "score": 0.01639344262295082,
+              "semantic_score": 0.5024593780765332
+            },
+            {
+              "name": "Central Heating Plant",
+              "score": 0.016129032258064516,
+              "semantic_score": 0.5012751227737059
+            },
+            {
+              "name": "North Energy Exchange Center",
+              "score": 0.015873015873015872,
+              "semantic_score": 0.4613458468134516
+            }
+          ]
+        },
+        {
+          "group": "existing",
+          "question": "Where can students work out beneath a rooftop that harvests sunlight for electricity?",
+          "expected": [
+            "recreation-center"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "Recreation Center",
+              "score": 0.01639344262295082,
+              "semantic_score": 0.640367107435161
+            },
+            {
+              "name": "Solar power at UMass Amherst",
+              "score": 0.016129032258064516,
+              "semantic_score": 0.6017674392295497
+            },
+            {
+              "name": "Fine Arts Center",
+              "score": 0.015873015873015872,
+              "semantic_score": 0.6004701616061354
+            }
+          ]
+        },
+        {
+          "group": "existing",
+          "question": "Can I sit among native plants above the architecture school's building rather than at ground level?",
+          "expected": [
+            "olver-green-roof"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "Rooftop courtyard and green roof",
+              "score": 0.01639344262295082,
+              "semantic_score": 0.6051803215800854
+            },
+            {
+              "name": "Southwest Concourse",
+              "score": 0.016129032258064516,
+              "semantic_score": 0.5633554458618204
+            },
+            {
+              "name": "Green Grounds: campus landscape care",
+              "score": 0.015873015873015872,
+              "semantic_score": 0.5459450971435216
+            }
+          ]
+        },
+        {
+          "group": "existing",
+          "question": "Which research facility can keep changing its laboratory layout as experiments change, rather than being knocked down?",
+          "expected": [
+            "physical-sciences-building"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "Physical Sciences Building",
+              "score": 0.01639344262295082,
+              "semantic_score": 0.5826304456436144
+            },
+            {
+              "name": "Life Science Laboratories",
+              "score": 0.016129032258064516,
+              "semantic_score": 0.5664850990194005
+            },
+            {
+              "name": "Sustainable Engineering Laboratories",
+              "score": 0.015873015873015872,
+              "semantic_score": 0.523196572495324
+            }
+          ]
+        },
+        {
+          "group": "existing",
+          "question": "What planted hollow beside the architecture building catches water from the roof so it can seep away?",
+          "expected": [
+            "olver-rain-garden"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "Design Building rain garden",
+              "score": 0.01639344262295082,
+              "semantic_score": 0.6401122092866558
+            },
+            {
+              "name": "Rooftop courtyard and green roof",
+              "score": 0.016129032258064516,
+              "semantic_score": 0.5978687768295513
+            },
+            {
+              "name": "Life Science Laboratories rainwater cistern",
+              "score": 0.015873015873015872,
+              "semantic_score": 0.5560027956962585
+            }
+          ]
+        },
+        {
+          "group": "existing",
+          "question": "What certification tells me how well a structure scored on saving resources, with a precious-metal top tier?",
+          "expected": [
+            "topic-leed"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "LEED certification",
+              "score": 0.01639344262295082,
+              "semantic_score": 0.6145722090002891
+            },
+            {
+              "name": "Life Science Laboratories",
+              "score": 0.016129032258064516,
+              "semantic_score": 0.5357895961560606
+            },
+            {
+              "name": "Sustainable Engineering Laboratories",
+              "score": 0.015873015873015872,
+              "semantic_score": 0.5238344555690649
+            }
+          ]
+        },
+        {
+          "group": "existing",
+          "question": "I'm new here and don't know the names of places. My laptop is almost dead, I'm waiting for public transport, and I would like an outdoor plug that gets its power from sunshine. What artifact should I look at?",
+          "expected": [
+            "solar-charging-haigis"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "Solar charging station at the Haigis Mall bus stop",
+              "score": 0.01639344262295082,
+              "semantic_score": 0.6444290412750975
+            },
+            {
+              "name": "EV charging at the Robsham Visitor Center lot",
+              "score": 0.016129032258064516,
+              "semantic_score": 0.5811397377072993
+            },
+            {
+              "name": "Agrivoltaic solar array at the South Deerfield farm",
+              "score": 0.015873015873015872,
+              "semantic_score": 0.5573972727419819
+            }
+          ]
+        },
+        {
+          "group": "existing",
+          "question": "I don't have a car and I am trying to spend less this semester. I remember hearing students could buy things other students left behind at move-out, like clothes and lamps. Which place is that?",
+          "expected": [
+            "hampden-new2u"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "New2U Thrift Store",
+              "score": 0.01639344262295082,
+              "semantic_score": 0.7293426983723686
+            },
+            {
+              "name": "Surplus Property Barn",
+              "score": 0.016129032258064516,
+              "semantic_score": 0.6352494253965497
+            },
+            {
+              "name": "Food for All Garden",
+              "score": 0.015873015873015872,
+              "semantic_score": 0.5613227413509005
+            }
+          ]
+        },
+        {
+          "group": "existing",
+          "question": "This probably sounds vague, but a friend mentioned a quiet place on campus with tropical plants where people warm up during winter between classes. I forgot its name. Can you find it?",
+          "expected": [
+            "durfee-conservatory"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "Durfee Conservatory",
+              "score": 0.01639344262295082,
+              "semantic_score": 0.7072230577469073
+            },
+            {
+              "name": "UMass Permaculture gardens",
+              "score": 0.016129032258064516,
+              "semantic_score": 0.6400772500130282
+            },
+            {
+              "name": "Hillside Permaculture Garden",
+              "score": 0.015873015873015872,
+              "semantic_score": 0.6256926432664878
+            }
+          ]
+        },
+        {
+          "group": "existing",
+          "question": "I'm not asking about the pond or the power station. I mean the tank hidden below the Life Science Laboratories landscape that saves rain for things that don't require drinking-quality water. What is it?",
+          "expected": [
+            "lsl-rainwater-cistern"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "Life Science Laboratories rainwater cistern",
+              "score": 0.01639344262295082,
+              "semantic_score": 0.7149504760174419
+            },
+            {
+              "name": "Campus Pond",
+              "score": 0.016129032258064516,
+              "semantic_score": 0.6340844486297751
+            },
+            {
+              "name": "Integrative Learning Center stormwater landscape",
+              "score": 0.015873015873015872,
+              "semantic_score": 0.6183605029936207
+            }
+          ]
+        },
+        {
+          "group": "existing",
+          "question": "There are so many sustainability projects that I can't remember which is which. The one I mean collects empty pipette boxes and sends the material back into making laboratory supplies, instead of treating it all as garbage.",
+          "expected": [
+            "lab-plastic-recycling"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "Lab plastic recycling pilot",
+              "score": 0.01639344262295082,
+              "semantic_score": 0.6491113158728743
+            },
+            {
+              "name": "Sustainable Engineering Laboratories",
+              "score": 0.016129032258064516,
+              "semantic_score": 0.5911481163148603
+            },
+            {
+              "name": "Life Science Laboratories",
+              "score": 0.015873015873015872,
+              "semantic_score": 0.583821942350637
+            }
+          ]
+        },
+        {
+          "group": "existing",
+          "question": "Someone told me there is an architecture and construction teaching building made from layers of wood glued into big structural panels. I am interested in the material, not gardens or solar panels. Which building?",
+          "expected": [
+            "olver-design-building"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "John W. Olver Design Building",
+              "score": 0.01639344262295082,
+              "semantic_score": 0.686697125434895
+            },
+            {
+              "name": "Integrative Learning Center",
+              "score": 0.016129032258064516,
+              "semantic_score": 0.6413778111855688
+            },
+            {
+              "name": "Sustainable Engineering Laboratories",
+              "score": 0.015873015873015872,
+              "semantic_score": 0.625439643859881
+            }
+          ]
+        },
+        {
+          "group": "existing",
+          "question": "I saw a project where raising electricity-generating panels higher left room underneath for crops or livestock. It was university agricultural land rather than a parking lot. Which project was that?",
+          "expected": [
+            "farm-agrivoltaics"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "Agrivoltaic solar array at the South Deerfield farm",
+              "score": 0.01639344262295082,
+              "semantic_score": 0.6774709166742523
+            },
+            {
+              "name": "North campus solar canopies",
+              "score": 0.016129032258064516,
+              "semantic_score": 0.6043848090791466
+            },
+            {
+              "name": "Solar canopies by the Fleet Garage",
+              "score": 0.015873015873015872,
+              "semantic_score": 0.5889156705788644
+            }
+          ]
+        },
+        {
+          "group": "existing",
+          "question": "I'd rather not drive or rent a bicycle. I am a student trying to reach the neighboring towns using frequent public transport without buying a ticket. Which campus service should I read about?",
+          "expected": [
+            "pvta-buses"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "PVTA bus service",
+              "score": 0.01639344262295082,
+              "semantic_score": 0.6560279540982348
+            },
+            {
+              "name": "ValleyBike",
+              "score": 0.016129032258064516,
+              "semantic_score": 0.6294558489971386
+            },
+            {
+              "name": "ValleyBike station at Haigis Mall",
+              "score": 0.015873015873015872,
+              "semantic_score": 0.5913424844349922
+            }
+          ]
+        },
+        {
+          "group": "existing",
+          "question": "pipete tip box recyling in the labs",
+          "expected": [
+            "lab-plastic-recycling"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "Lab plastic recycling pilot",
+              "score": 0.01639344262295082,
+              "semantic_score": 0.6492549212119227
+            },
+            {
+              "name": "Life Science Laboratories",
+              "score": 0.016129032258064516,
+              "semantic_score": 0.4907158315181732
+            },
+            {
+              "name": "Surplus Property Barn",
+              "score": 0.015873015873015872,
+              "semantic_score": 0.47928777213619866
+            }
+          ]
+        },
+        {
+          "group": "existing",
+          "question": "New2U thirft stroe used furnture",
+          "expected": [
+            "hampden-new2u"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "New2U Thrift Store",
+              "score": 0.01639344262295082,
+              "semantic_score": 0.5536422234497528
+            },
+            {
+              "name": "North Energy Exchange Center",
+              "score": 0.016129032258064516,
+              "semantic_score": 0.48121536225906314
+            },
+            {
+              "name": "Surplus Property Barn",
+              "score": 0.015873015873015872,
+              "semantic_score": 0.44852850147912615
+            }
+          ]
+        },
+        {
+          "group": "existing",
+          "question": "soler pannels above crops and grazng animals",
+          "expected": [
+            "farm-agrivoltaics"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "Agrivoltaic solar array at the South Deerfield farm",
+              "score": 0.01639344262295082,
+              "semantic_score": 0.5359228444329377
+            },
+            {
+              "name": "UMass Permaculture gardens",
+              "score": 0.016129032258064516,
+              "semantic_score": 0.5260372130826495
+            },
+            {
+              "name": "Berkshire Dining Commons",
+              "score": 0.015873015873015872,
+              "semantic_score": 0.5169705728327582
+            }
+          ]
+        },
+        {
+          "group": "existing",
+          "question": "ILC gren roof with sedum plnts",
+          "expected": [
+            "ilc-green-roof"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "Integrative Learning Center green roof",
+              "score": 0.01639344262295082,
+              "semantic_score": 0.6063309654400604
+            },
+            {
+              "name": "Rooftop courtyard and green roof",
+              "score": 0.016129032258064516,
+              "semantic_score": 0.5392392780210462
+            },
+            {
+              "name": "John W. Olver Design Building",
+              "score": 0.015873015873015872,
+              "semantic_score": 0.4710823629996377
+            }
+          ]
+        },
+        {
+          "group": "existing",
+          "question": "Not collecting rain in a tank: which heating-plant project uses water that has already gone through the town's sewage treatment?",
+          "expected": [
+            "chp-reclaimed-water"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "Reclaimed water at the Central Heating Plant",
+              "score": 0.01639344262295082,
+              "semantic_score": 0.6610865977017671
+            },
+            {
+              "name": "Solar hot water at the Central Heating Plant",
+              "score": 0.016129032258064516,
+              "semantic_score": 0.5702063185099806
+            },
+            {
+              "name": "Central Heating Plant",
+              "score": 0.015873015873015872,
+              "semantic_score": 0.5555779404137419
+            }
+          ]
+        },
+        {
+          "group": "existing",
+          "question": "I mean the training home of the basketball teams with solar on its roof, not the general student gym. Which building is it?",
+          "expected": [
+            "champions-center"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "Kennedy Champions Center",
+              "score": 0.01639344262295082,
+              "semantic_score": 0.7026049785003242
+            },
+            {
+              "name": "Recreation Center",
+              "score": 0.016129032258064516,
+              "semantic_score": 0.665623784438215
+            },
+            {
+              "name": "Computer Science Building",
+              "score": 0.015873015873015872,
+              "semantic_score": 0.6135153364484343
+            }
+          ]
+        },
+        {
+          "group": "existing",
+          "question": "Which reuse place sells students clothes and lamps, rather than transferring university office equipment between departments?",
+          "expected": [
+            "hampden-new2u"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "New2U Thrift Store",
+              "score": 0.01639344262295082,
+              "semantic_score": 0.6747211641649491
+            },
+            {
+              "name": "Surplus Property Barn",
+              "score": 0.016129032258064516,
+              "semantic_score": 0.6472853948898719
+            },
+            {
+              "name": "Recreation Center",
+              "score": 0.015873015873015872,
+              "semantic_score": 0.5078731491339319
+            }
+          ]
+        },
+        {
+          "group": "existing",
+          "question": "Which greenhouse is used for Plant, Soil, and Insect Sciences research and teaching and earned LEED Gold, rather than being the old rainforest refuge?",
+          "expected": [
+            "cns-greenhouse"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "CNS Research and Education Greenhouse",
+              "score": 0.01639344262295082,
+              "semantic_score": 0.7196631765767176
+            },
+            {
+              "name": "Life Science Laboratories",
+              "score": 0.016129032258064516,
+              "semantic_score": 0.6183801152253058
+            },
+            {
+              "name": "Durfee Conservatory",
+              "score": 0.015873015873015872,
+              "semantic_score": 0.6145826901000285
+            }
+          ]
+        },
+        {
+          "group": "lexical",
+          "question": "Durfee Conservatory",
+          "expected": [
+            "durfee-conservatory"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "Durfee Conservatory",
+              "score": 0.03278688524590164,
+              "semantic_score": 0.710969644131097,
+              "keyword_score": 0.27272728085517883
+            },
+            {
+              "name": "Fine Arts Center",
+              "score": 0.016129032258064516,
+              "semantic_score": 0.4726628910296373
+            },
+            {
+              "name": "Old Chapel",
+              "score": 0.015873015873015872,
+              "semantic_score": 0.45425001059473225
+            }
+          ]
+        },
+        {
+          "group": "lexical",
+          "question": "New2U Thrift Store",
+          "expected": [
+            "hampden-new2u"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "New2U Thrift Store",
+              "score": 0.03278688524590164,
+              "semantic_score": 0.7922050716815899,
+              "keyword_score": 0.2755681872367859
+            },
+            {
+              "name": "Surplus Property Barn",
+              "score": 0.016129032258064516,
+              "semantic_score": 0.52513819932938
+            },
+            {
+              "name": "Lab plastic recycling pilot",
+              "score": 0.015873015873015872,
+              "semantic_score": 0.45627010911224
+            }
+          ]
+        },
+        {
+          "group": "lexical",
+          "question": "Computer Science Building",
+          "expected": [
+            "computer-science-building"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "Computer Science Building",
+              "score": 0.01639344262295082,
+              "semantic_score": 0.7423001410901077,
+              "keyword_score": 0.2869728282094002
+            },
+            {
+              "name": "Computer Sciences Laboratories",
+              "score": 0.016129032258064516,
+              "semantic_score": 0.7347895977277923,
+              "keyword_score": 0.11382734775543213
+            },
+            {
+              "name": "Physical Sciences Building",
+              "score": 0.015873015873015872,
+              "semantic_score": 0.6301707535473526,
+              "keyword_score": 0.0036900369450449944
+            }
+          ]
+        },
+        {
+          "group": "lexical",
+          "question": "Central Heating Plant",
+          "expected": [
+            "central-heating-plant"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "Central Heating Plant",
+              "score": 0.03252247488101534,
+              "semantic_score": 0.6867658452961743,
+              "keyword_score": 0.27272728085517883
+            },
+            {
+              "name": "Solar hot water at the Central Heating Plant",
+              "score": 0.032266458495966696,
+              "semantic_score": 0.6893445415577435,
+              "keyword_score": 0.4518911838531494
+            },
+            {
+              "name": "Reclaimed water at the Central Heating Plant",
+              "score": 0.03200204813108039,
+              "semantic_score": 0.6632370322081841,
+              "keyword_score": 0.4564296007156372
+            }
+          ]
+        },
+        {
+          "group": "lexical",
+          "question": "ValleyBike",
+          "expected": [
+            "topic-valleybike"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "ValleyBike",
+              "score": 0.01639344262295082,
+              "semantic_score": 0.7307664247673125,
+              "keyword_score": 0.4125874191522598
+            },
+            {
+              "name": "ValleyBike station in Southwest",
+              "score": 0.016129032258064516,
+              "semantic_score": 0.6634070890746341,
+              "keyword_score": 0.4125874191522598
+            },
+            {
+              "name": "ValleyBike station at the Integrative Learning Center",
+              "score": 0.015873015873015872,
+              "semantic_score": 0.6472857436240489,
+              "keyword_score": 0.4125874191522598
+            }
+          ]
+        },
+        {
+          "group": "lexical",
+          "question": "LEED certification",
+          "expected": [
+            "topic-leed"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "LEED certification",
+              "score": 0.01639344262295082,
+              "semantic_score": 0.7475163792044451,
+              "keyword_score": 0.2929292991757393
+            },
+            {
+              "name": "CNS Research and Education Greenhouse",
+              "score": 0.016129032258064516,
+              "semantic_score": 0.6473225775572611,
+              "keyword_score": 0.1304347813129425
+            },
+            {
+              "name": "Integrative Learning Center",
+              "score": 0.015873015873015872,
+              "semantic_score": 0.6276020769349115,
+              "keyword_score": 0.1304347813129425
+            }
+          ]
+        },
+        {
+          "group": "lexical",
+          "question": "Polycarbin",
+          "expected": [
+            "lab-plastic-recycling"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "Lab plastic recycling pilot",
+              "score": 0.03278688524590164,
+              "semantic_score": 0.6133344356219763,
+              "keyword_score": 0.09090909361839294
+            },
+            {
+              "name": "Sustainable Engineering Laboratories",
+              "score": 0.016129032258064516,
+              "semantic_score": 0.4611397797888568
+            },
+            {
+              "name": "Life Science Laboratories",
+              "score": 0.015873015873015872,
+              "semantic_score": 0.4449684654110546
+            }
+          ]
+        },
+        {
+          "group": "lexical",
+          "question": "electrochromic",
+          "expected": [
+            "worcester-commons"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "Worcester Commons",
+              "score": 0.03047794966520434,
+              "semantic_score": 0.43769974259143973,
+              "keyword_score": 0.09090909361839294
+            },
+            {
+              "name": "LEED certification",
+              "score": 0.01639344262295082,
+              "semantic_score": 0.47544905396993054
+            },
+            {
+              "name": "CNS Research and Education Greenhouse",
+              "score": 0.016129032258064516,
+              "semantic_score": 0.47288897310364264
+            }
+          ]
+        },
+        {
+          "group": "lexical",
+          "question": "agrivoltaics",
+          "expected": [
+            "farm-agrivoltaics"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "Agrivoltaic solar array at the South Deerfield farm",
+              "score": 0.03278688524590164,
+              "semantic_score": 0.7502162381813583,
+              "keyword_score": 0.4125874191522598
+            },
+            {
+              "name": "Robsham Visitor Center solar canopies",
+              "score": 0.016129032258064516,
+              "semantic_score": 0.5370630969534494
+            },
+            {
+              "name": "North campus solar canopies",
+              "score": 0.015873015873015872,
+              "semantic_score": 0.5356596516548587
+            }
+          ]
+        },
+        {
+          "group": "lexical",
+          "question": "\"pipette tip boxes\"",
+          "expected": [
+            "lab-plastic-recycling"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "Lab plastic recycling pilot",
+              "score": 0.03278688524590164,
+              "semantic_score": 0.53497889429459,
+              "keyword_score": 0.09090909361839294
+            }
+          ]
+        },
+        {
+          "group": "lexical",
+          "question": "\"rainwater harvesting\"",
+          "expected": [
+            "franklin-permaculture-garden"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "Franklin Permaculture Garden",
+              "score": 0.03252247488101534,
+              "semantic_score": 0.38789862394333163,
+              "keyword_score": 0.09090909361839294
+            },
+            {
+              "name": "Life Science Laboratories rainwater cistern",
+              "score": 0.03252247488101534,
+              "semantic_score": 0.6399876260750083,
+              "keyword_score": 0.09090909361839294
+            }
+          ]
+        },
+        {
+          "group": "lexical",
+          "question": "\"Computer Science Building\"",
+          "expected": [
+            "computer-science-building"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "Computer Science Building",
+              "score": 0.03278688524590164,
+              "semantic_score": 0.7284237359691466,
+              "keyword_score": 0.27272728085517883
+            },
+            {
+              "name": "Computer Sciences Laboratories",
+              "score": 0.03225806451612903,
+              "semantic_score": 0.7160589268172745,
+              "keyword_score": 0.09090909361839294
+            }
+          ]
+        },
+        {
+          "group": "diagnostics",
+          "question": "Which artifact mentions electrochromic technology?",
+          "expected": [
+            "worcester-commons"
+          ],
+          "expected_first": false,
+          "expected_in_top_3": false,
+          "matches": [
+            {
+              "name": "South College",
+              "score": 0.01639344262295082,
+              "semantic_score": 0.48469165423765403
+            },
+            {
+              "name": "Old Chapel",
+              "score": 0.016129032258064516,
+              "semantic_score": 0.4571734274991035
+            },
+            {
+              "name": "Lab plastic recycling pilot",
+              "score": 0.015873015873015872,
+              "semantic_score": 0.4507812823634494
+            }
+          ]
+        },
+        {
+          "group": "diagnostics",
+          "question": "Where is the Polycarbin recycling project?",
+          "expected": [
+            "lab-plastic-recycling"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "Lab plastic recycling pilot",
+              "score": 0.01639344262295082,
+              "semantic_score": 0.6300518268130559
+            },
+            {
+              "name": "Life Science Laboratories",
+              "score": 0.016129032258064516,
+              "semantic_score": 0.481577519994387
+            },
+            {
+              "name": "Sustainable Engineering Laboratories",
+              "score": 0.015873015873015872,
+              "semantic_score": 0.46859342983004315
+            }
+          ]
+        },
+        {
+          "group": "diagnostics",
+          "question": "Where can I see agrivoltaics?",
+          "expected": [
+            "farm-agrivoltaics"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "Agrivoltaic solar array at the South Deerfield farm",
+              "score": 0.01639344262295082,
+              "semantic_score": 0.7187883090251302
+            },
+            {
+              "name": "North campus solar canopies",
+              "score": 0.016129032258064516,
+              "semantic_score": 0.553852567308799
+            },
+            {
+              "name": "Robsham Visitor Center solar canopies",
+              "score": 0.015873015873015872,
+              "semantic_score": 0.5498369276718964
+            }
+          ]
+        },
+        {
+          "group": "diagnostics",
+          "question": "Where is Durfee Conservatory?",
+          "expected": [
+            "durfee-conservatory"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "Durfee Conservatory",
+              "score": 0.01639344262295082,
+              "semantic_score": 0.6809403870808398,
+              "keyword_score": 0.27272728085517883
+            },
+            {
+              "name": "Fine Arts Center",
+              "score": 0.016129032258064516,
+              "semantic_score": 0.4482711820764126
+            },
+            {
+              "name": "Old Chapel",
+              "score": 0.015873015873015872,
+              "semantic_score": 0.4206180714455723
+            }
+          ]
+        },
+        {
+          "group": "diagnostics",
+          "question": "Show me New2U Thrift Store.",
+          "expected": [
+            "hampden-new2u"
+          ],
+          "expected_first": true,
+          "expected_in_top_3": true,
+          "matches": [
+            {
+              "name": "New2U Thrift Store",
+              "score": 0.01639344262295082,
+              "semantic_score": 0.7308034358146882
+            },
+            {
+              "name": "Surplus Property Barn",
+              "score": 0.016129032258064516,
+              "semantic_score": 0.5153217929985277
+            },
+            {
+              "name": "ValleyBike station at Haigis Mall",
+              "score": 0.015873015873015872,
+              "semantic_score": 0.4289730404583264
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "embedding_model_info": {
+    "dimension": 768,
+    "max_tokens": 512,
+    "name": "BAAI/bge-base-en-v1.5",
+    "pipeline_version": "fastembed-7.1.5/fp32/retrieval-v1",
+    "repository": "Xenova/bge-base-en-v1.5",
+    "revision": "4d6cd88e18e51a5e020c2c305726d76ada9c03cf"
+  },
+  "baseline_report": "2026-11-05-hybrid.json",
+  "environment": "Ryzen 9 6900HS; Ubuntu/WSL; debug build; CPU; two ONNX threads; cached model"
+}

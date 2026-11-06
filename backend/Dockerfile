@@ -23,11 +23,14 @@ WORKDIR /build
 # cargo something compilable per crate.
 COPY Cargo.toml Cargo.lock ./
 COPY libs/pintrail-storage/Cargo.toml libs/pintrail-storage/
+COPY libs/pintrail-embeddings/Cargo.toml libs/pintrail-embeddings/
 COPY services/pintrail-api/Cargo.toml services/pintrail-api/
 COPY services/pintrail-worker/Cargo.toml services/pintrail-worker/
 
-RUN mkdir -p libs/pintrail-storage/src services/pintrail-api/src services/pintrail-worker/src \
+RUN mkdir -p libs/pintrail-storage/src libs/pintrail-embeddings/src libs/pintrail-embeddings/examples services/pintrail-api/src services/pintrail-worker/src \
     && echo "" > libs/pintrail-storage/src/lib.rs \
+    && echo "" > libs/pintrail-embeddings/src/lib.rs \
+    && echo "fn main() {}" > libs/pintrail-embeddings/examples/postgres_search.rs \
     && echo "fn main() {}" > services/pintrail-api/src/main.rs \
     && echo "fn main() {}" > services/pintrail-worker/src/main.rs \
     # build.rs is referenced by pintrail-api's manifest, so it must exist now.
@@ -36,10 +39,10 @@ RUN mkdir -p libs/pintrail-storage/src services/pintrail-api/src services/pintra
     && cargo build --release \
     # Remove the stubs' own artifacts, or cargo considers the real sources
     # already built and ships an empty binary.
-    && rm -rf libs/pintrail-storage/src services/pintrail-api/src services/pintrail-worker/src \
+    && rm -rf libs/pintrail-storage/src libs/pintrail-embeddings/src libs/pintrail-embeddings/examples services/pintrail-api/src services/pintrail-worker/src \
     && rm -f target/release/pintrail-api target/release/pintrail-worker \
     && rm -f target/release/deps/pintrail_api* target/release/deps/pintrail_worker* \
-    && rm -f target/release/deps/libpintrail_storage*
+    && rm -f target/release/deps/libpintrail_storage* target/release/deps/libpintrail_embeddings*
 
 COPY migrations ./migrations
 COPY libs ./libs

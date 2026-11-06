@@ -1,0 +1,24 @@
+# Separate project, volume and port: never replaces the development database.
+name: pintrail-search-lab
+
+services:
+  postgres:
+    build:
+      context: database/search
+    image: pintrail-search-postgres:17-vector0.8.7
+    environment:
+      POSTGRES_USER: pintrail
+      POSTGRES_PASSWORD: pintrail
+      POSTGRES_DB: pintrail_search_lab
+    ports:
+      - "127.0.0.1:5434:5432"
+    volumes:
+      - search_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pintrail -d pintrail_search_lab"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+volumes:
+  search_pgdata:

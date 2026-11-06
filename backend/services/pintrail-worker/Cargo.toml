@@ -5,10 +5,15 @@ edition.workspace = true
 license.workspace = true
 rust-version.workspace = true
 
+[features]
+# Opt in while the pgvector database rollout is being reviewed.
+semantic-search = ["dep:pintrail-embeddings"]
+
 [dependencies]
 anyhow.workspace = true
 image.workspace = true
 pintrail-storage.workspace = true
+pintrail-embeddings = { workspace = true, features = ["postgres"], optional = true }
 reqwest.workspace = true
 webp.workspace = true
 chrono.workspace = true
