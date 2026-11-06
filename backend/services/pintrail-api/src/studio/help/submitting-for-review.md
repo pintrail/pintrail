@@ -1,4 +1,7 @@
-When an artifact is finished, submit it for review. Your instructor checks it, then approves it, which puts it in the app, or sends it back with a note.
+When an artifact is finished, submit it for review. **Tim (@timdrichards), a Studio
+admin, is the review contact for this collection.** Only admins can approve today;
+[#54](https://github.com/pintrail/pintrail/issues/54) discusses possible changes.
+The admin approves it, which puts it in the app, or sends it back with a note.
 
 ## Before you submit
 
@@ -6,7 +9,7 @@ Check it has:
 
 - a **name** people would recognise;
 - a **pin in the right place** (zoom in and look);
-- the right **kind**, and a few **tags**;
+- **Other** as the kind for this collection, and a few descriptive **tags**;
 - a **description** that says what it is, why it matters, and how it works, with a real number where you have one;
 - at least one **source link** for its facts;
 - a **photo** you took.

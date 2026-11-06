@@ -20,7 +20,41 @@ Put your **sources** in the [Links](/studio/help/links) card, not in the text.
 
 Compare a weak one: *"This is a battery. It stores energy. It is good for the environment."* It's true, but it says nothing a visitor couldn't guess, and has no numbers.
 
+## An example for search and questions
+
+Illustrative only; replace this with verified information about the actual place.
+
+> **Example:** This rain garden collects runoff from the surrounding paved area.
+> Water gathers temporarily and gradually soaks into the soil, helping reduce
+> surface runoff. [Add verified details about this particular garden and location.]
+
+Add its actual sources in **Links**. The description could answer “How does this
+garden reduce runoff?” or help a search for “stormwater management.” It cannot
+answer a construction-cost question without additional evidence.
+
+## Visitor and access details
+
+For now, put verified entrances, floor/room details, opening hours, restrictions,
+and accessibility information in the description. Include sources and a date
+checked for information that can change. Move the visitability information to
+the dedicated access field when [#51](https://github.com/pintrail/pintrail/issues/51)
+is implemented; that field is not available yet.
+
+## Contribute test questions
+
+Example visitor questions help test search and Q&A. Give each question an
+**expected artifact name and Studio link**, plus the **supporting sentence** in
+the description or document. Include a source/page when relevant.
+
+With GitHub access, add them to [#65](https://github.com/pintrail/pintrail/issues/65).
+Without access, send the same information as plain text to Tahsif; the coordinator
+will confirm the course submission channel. A GitHub account is not required.
+
 ## How to write it
+
+**Do not invent facts.** Omit details you cannot verify or ask Tim or the campus
+sustainability office. Example records illustrate a writing style; verify the
+facts before using them for a real artifact.
 
 - **Short paragraphs.** Press <kbd>Enter</kbd> twice between them. The Studio keeps your line breaks. Three or four short paragraphs is plenty.
 - **Your own words.** Don't paste text from a website. Summarize it, and link the page as a source.

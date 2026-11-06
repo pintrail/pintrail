@@ -114,7 +114,7 @@ pub static MANUAL: &[Section] = &[
             page!(
                 "kinds",
                 "Kinds",
-                "Building, room, artwork, installation, rooftop, or other: what each one is for."
+                "For this collection, use Other and tags; the existing kind list is still available."
             ),
             page!(
                 "tags",

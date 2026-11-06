@@ -74,7 +74,7 @@ Adding an artifact takes two steps. First you create it with just its name and w
 
 | Field | What to enter |
 |---|---|
-| **Kind** | One of `building`, `room`, `artwork`, `installation`, `rooftop`, or `other`. Use `installation` for equipment and site features (solar arrays, batteries, rain gardens, bike racks). A new artifact starts as `other` until you choose. |
+| **Kind** | For the current collection, choose **Other** (`other`) and describe the theme with tags, following [#56](https://github.com/pintrail/pintrail/issues/56). Leave existing records alone unless asked to update them. The kind/theme design will be revisited after real data is collected. |
 | **Description** | The heart of the artifact. See [Writing a good description](#writing-a-good-description) below. |
 | **Tags** | Themes someone might look for, such as *solar*, *stormwater*, or *energy storage*. Type a tag and press **Enter**; click **×** on a tag to remove it. As you type, existing tags are suggested: pick one when it fits, so the same theme isn't spelled two ways. |
 
@@ -159,7 +159,7 @@ If your phone says location access is blocked, turn it back on for the site in y
 
 ## 10. Submit your artifact for review
 
-Every artifact starts as a **Draft**. When it's finished, with a good description, its sources, and a photo, open it and click **Submit for review** in the Review card. Its status changes to **Ready for review**, and your instructor sees it in their review list.
+Every artifact starts as a **Draft**. When it's finished, with a good description, its sources, and a photo, open it and click **Submit for review** in the Review card. Its status changes to **Ready for review**. **Tim (@timdrichards), a Studio admin, is the review contact for this collection.** Only admins can approve entries today; [#54](https://github.com/pintrail/pintrail/issues/54) discusses possible changes to reviewer permissions.
 
 - Changed your mind? Click **Withdraw** to take it back and keep working.
 - If it comes back **sent back for changes**, the note at the top of the Review card says what to fix. Fix it, then click **Submit for review** again.
@@ -205,6 +205,67 @@ The topic's page puts every linked artifact on one map, so you can see the whole
 You can link only artifacts you own. To link a classmate's artifact, ask them or your instructor.
 
 ## Writing a good description
+
+### Collection checklist
+
+These are the inputs needed for the initial semantic-search and Q&A work. Use
+the existing Studio fields; no embeddings or technical metadata are required.
+
+| Information | Where in Studio | What to provide |
+|---|---|---|
+| **Name** | New artifact / Edit | A recognizable name; mention common alternative names in the description. |
+| **Kind and tags** | Edit | Choose **Other** for now and add relevant tags, reusing existing suggestions. |
+| **Description** | Edit | What it is, how it works or is used, and why it matters. Include specific, supported facts rather than repeated keywords. No fixed word count. |
+| **Location or parent** | New artifact / Edit | An accurate pin for a top-level place, or the correct parent and inherited location for a nested artifact. Topics have neither a location nor a parent. |
+| **Sources** | Links | Pages supporting the facts, with a note saying what each supports when useful. For a sign or direct observation, identify the evidence and date in the description or photo caption. |
+| **Photo** | Media | A clear photo you took or have permission to use, following the existing review guidance. Photos complete the visitor record even though text embeddings do not require them. |
+
+### A description that supports questions
+
+Illustrative only: verify details about the actual artifact before using them.
+
+> This rain garden collects runoff from the surrounding paved area. Water gathers
+> temporarily and gradually soaks into the soil, helping reduce surface runoff.
+> [Add verified details about this particular garden and where to find it.]
+
+Add the actual sources under **Links**. This information could answer “How does
+this garden reduce runoff?” or help someone searching for “stormwater management.”
+It cannot answer a question about construction cost without additional evidence.
+
+**Do not invent facts.** If a detail cannot be verified, omit it or ask Tim or the
+campus sustainability office. Do not copy the illustrative example as a real record.
+
+### Helpful additions
+
+- **Access information:** verified entrances, floors/rooms, hours, restrictions,
+  and accessibility details go in the description for now, with sources and a date
+  checked for changing information. Move the visitability information to the
+  dedicated access field once [#51](https://github.com/pintrail/pintrail/issues/51)
+  is implemented; it is not available yet.
+- **PDFs and captioned photos:** attach relevant reports, fact sheets, readable
+  signs, and pictures to the correct artifact. Prefer selectable PDF text when
+  available. These support future document and image indexing.
+- **Specific facts:** include sourced dates, units, specifications, and measured
+  benefits when available; a general claim is not a substitute for evidence.
+- **Topics and trails:** use the existing features when relevant. Optional
+  materials should not delay completing the core description and sources.
+
+**Example questions are especially useful for testing search.** Supply each as:
+
+```text
+Question: What would a visitor naturally ask?
+Expected artifact: Name and Studio link
+Supporting sentence: The exact sentence in the description/document that answers it
+Source/page: Link or attachment and page, if applicable
+```
+
+If you have GitHub access, add these to [#65](https://github.com/pintrail/pintrail/issues/65).
+Otherwise, send the same information as plain text to Tahsif; a GitHub account is
+not required to contribute questions. The collection coordinator will confirm the
+course submission channel before students are asked to use it. Do not add a
+question's answer as a fact unless it has supporting evidence.
+
+### Writing tips
 
 Someone will read this standing in front of the artifact, on their phone. Write for them. A good description answers:
 
