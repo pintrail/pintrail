@@ -8,8 +8,9 @@ use crate::{
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum Model {
-    #[default]
     BgeSmall,
+    #[default]
+    BgeBase,
     MiniLm,
 }
 
@@ -19,9 +20,10 @@ impl FromStr for Model {
     fn from_str(value: &str) -> Result<Self, Self::Err> {
         match value {
             "bge-small-en-v1.5" => Ok(Self::BgeSmall),
+            "bge-base-en-v1.5" => Ok(Self::BgeBase),
             "all-MiniLM-L6-v2" => Ok(Self::MiniLm),
             _ => Err(EmbeddingError::Configuration(
-                "model must be bge-small-en-v1.5 or all-MiniLM-L6-v2".into(),
+                "model must be bge-small-en-v1.5, bge-base-en-v1.5 or all-MiniLM-L6-v2".into(),
             )),
         }
     }
@@ -31,6 +33,7 @@ impl Model {
     fn engine_model(self) -> EmbeddingModel {
         match self {
             Self::BgeSmall => EmbeddingModel::BGESmallENV15,
+            Self::BgeBase => EmbeddingModel::BGEBaseENV15,
             Self::MiniLm => EmbeddingModel::AllMiniLML6V2,
         }
     }
@@ -38,6 +41,7 @@ impl Model {
     pub fn info(self) -> ModelInfo {
         let (name, max_tokens) = match self {
             Self::BgeSmall => ("BAAI/bge-small-en-v1.5", 512),
+            Self::BgeBase => ("BAAI/bge-base-en-v1.5", 512),
             Self::MiniLm => ("sentence-transformers/all-MiniLM-L6-v2", 256),
         };
         let engine_model = self.engine_model();
@@ -55,7 +59,7 @@ impl Model {
 
     fn prepare(self, text: &str, kind: InputKind) -> String {
         match (self, kind) {
-            (Self::BgeSmall, InputKind::Query) => {
+            (Self::BgeSmall | Self::BgeBase, InputKind::Query) => {
                 format!("Represent this sentence for searching relevant passages: {text}")
             }
             _ => text.to_owned(),
@@ -73,7 +77,7 @@ pub struct Config {
 impl Config {
     pub fn from_env() -> Result<Self, EmbeddingError> {
         let model = std::env::var("EMBEDDING_MODEL")
-            .unwrap_or_else(|_| "bge-small-en-v1.5".into())
+            .unwrap_or_else(|_| "bge-base-en-v1.5".into())
             .parse()?;
         let cache_dir = std::env::var("EMBEDDING_CACHE_DIR")
             .unwrap_or_else(|_| ".cache/pintrail-embeddings".into())

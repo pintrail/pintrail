@@ -35,6 +35,10 @@ fn invalid_inputs_fail_without_loading_a_model() {
 fn model_identity_includes_export_dimension_and_pipeline() {
     let bge = Model::BgeSmall.info();
     let mini = Model::MiniLm.info();
+    let base = Model::BgeBase.info();
+    assert_eq!(base.dimension, 768);
+    assert_eq!(base.max_tokens, 512);
+    assert_ne!(base.name, bge.name);
     assert_eq!((bge.dimension, mini.dimension), (384, 384));
     assert_ne!(
         bge.name, mini.name,

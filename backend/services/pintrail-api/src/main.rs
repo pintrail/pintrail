@@ -14,6 +14,7 @@ mod identity;
 mod mail;
 mod rate_limit;
 mod readers;
+mod search;
 mod serde_util;
 mod state;
 mod studio;
@@ -76,7 +77,7 @@ async fn main() -> anyhow::Result<()> {
     let settings = Settings::from_env()?;
     let bind_addr = settings.bind_addr.clone();
 
-    let state = AppState::connect(settings).await?;
+    let mut state = AppState::connect(settings).await?;
 
     // Ignoring migrations the database has but this binary lacks is what
     // makes a code-only rollback possible: after a deploy applies a new
@@ -107,6 +108,11 @@ async fn main() -> anyhow::Result<()> {
     // client address ever seen.
     rate_limit::spawn_sweeper(state.limiter.clone(), std::time::Duration::from_secs(3600));
 
+    // Operator commands above never need model files. Load once, after schema
+    // migration and before accepting requests; disabled by default.
+    state.search =
+        search::SearchService::configured(&state.db, state.settings.search_enabled).await?;
+
     let app = router(state);
 
     let listener = tokio::net::TcpListener::bind(&bind_addr).await?;
@@ -131,6 +137,7 @@ fn router(state: AppState) -> Router {
         .merge(authors::router())
         .merge(readers::router())
         .merge(artifacts::router())
+        .merge(search::router())
         .merge(attachments::router())
         .merge(trails::router())
         .merge(comments::router())

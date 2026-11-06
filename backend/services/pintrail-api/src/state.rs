@@ -17,6 +17,7 @@ pub struct AppState {
     pub mailer: SharedMailer,
     pub storage: Storage,
     pub limiter: RateLimiter,
+    pub search: Option<crate::search::SearchService>,
 }
 
 impl AppState {
@@ -50,6 +51,7 @@ impl AppState {
             mailer,
             storage,
             limiter: RateLimiter::new(),
+            search: None,
         })
     }
 }

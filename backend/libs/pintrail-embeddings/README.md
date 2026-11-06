@@ -3,12 +3,17 @@
 This is the embedding portion of issue #26: a shared Rust trait, a real CPU
 FastEmbed implementation, and a deterministic substitute for application tests.
 An optional PostgreSQL laboratory saves and searches vectors. An opt-in worker
-now generates embeddings automatically as prepared text changes. The HTTP
-`/search` endpoint and production rollout are still pending.
+now generates embeddings automatically as prepared text changes. An opt-in
+[HTTP `/search` endpoint](../../services/pintrail-api/SEARCH.md) uses these saved
+vectors and also supports keyword/hybrid retrieval. Production rollout remains pending.
 No model training or paid API key is required.
 
 See [model specifications and improvement plan](MODEL_COMPARISON.md) for the
 current models, larger candidates, latest results and measured limitations.
+The October measurements below describe the original text baseline. For current
+text including tags/topics, use `postgres_search evaluate`. The in-memory
+`evaluate_search` example intentionally retains the original canonical text for
+controlled comparisons; its input now differs from the updated text worker.
 
 ## How it fits
 
@@ -20,8 +25,8 @@ model's token limit; it never silently truncates text. Outputs are checked for
 count, dimension, finite values, and nonzero vectors.
 
 Inference is synchronous CPU work with two ONNX threads by default. The worker
-uses bounded blocking work outside database transactions. Future API integration
-must do the same and implement request deadlines/backpressure. A Tokio
+uses bounded blocking work outside database transactions. The API uses the same
+approach with a concurrency limit and request/database deadlines. A Tokio
 timeout alone cannot stop CPU inference that has already started. Answer/vision
 providers and their network timeouts are separate work; #26 is not complete.
 
@@ -29,11 +34,14 @@ providers and their network timeouts are separate work; #26 is not complete.
 
 | Setting | Model | Approximate parameters | Vector size | Input limit |
 |---|---|---|---|---|
-| `bge-small-en-v1.5` (default) | BAAI/bge-small-en-v1.5 | 33 million | 384 | 512 tokens |
+| `bge-base-en-v1.5` (default) | BAAI/bge-base-en-v1.5 | 110 million | 768 | 512 tokens |
+| `bge-small-en-v1.5` | BAAI/bge-small-en-v1.5 | 33 million | 384 | 512 tokens |
 | `all-MiniLM-L6-v2` | sentence-transformers/all-MiniLM-L6-v2 | 23 million | 384 | 256 tokens |
 
-Both are English-focused compact models. Parameter count, vector size, and input
+These are English-focused models. Parameter count, vector size, and input
 limit describe different things; none alone guarantees retrieval quality.
+Only the configured model is loaded. BGE-small and MiniLM remain optional
+comparison/fallback choices; an ordinary worker does not load all three.
 The models and their ONNX exports are listed in [FastEmbed's model list](https://github.com/Anush008/fastembed-rs#supported-models).
 See also the [BGE model card](https://huggingface.co/BAAI/bge-small-en-v1.5)
 and [MiniLM model card](https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2).
@@ -95,9 +103,9 @@ threads. The same 58 records produced 132 paragraph passages and eight questions
 
 Warm model initialization took 2.09 s and 1.20 s respectively. These are one-run
 observations, not server sizing guarantees or measured API response times.
-BGE-small remains the provisional default for its longer input allowance and
-these initial results; MiniLM is a smaller alternative worth testing with real
-collector queries. The small fixture does not establish a statistically reliable
+BGE-small was the provisional default after these initial results; the November
+comparison below led to BGE-base becoming the default on November 4. MiniLM is a
+smaller comparison choice. The small fixture does not establish a statistically reliable
 quality difference. Do not compare these CPU figures directly with the earlier
 GPU-backed Qwen/Ollama test.
 
@@ -115,18 +123,55 @@ not selectable through production model configuration and has no semantic meanin
 
 ## Next integration work
 
-- Add tags, linked topic names and per-link notes to prepared text and refresh triggers.
-- Implement lexical/hybrid retrieval and the public search handler.
+- Validate keyword/hybrid retrieval with independent collector questions.
 - Implement production passage splitting for longer collector descriptions.
 - Expand relevance evaluation with independently collected user questions.
 - Agree and test the pgvector database-image rollout before production enablement.
+
+## Tags, topics and automatic refresh
+
+The text worker now adds sorted, normalized tags and linked **published** topic
+names with their per-link notes. It does not copy a linked topic's description;
+the topic remains searchable as its own artifact. Neither account details nor
+unpublished topic names/notes enter this added context.
+
+`20261102000001_search_tags_topics.sql` is a normal core migration and does not
+require pgvector. Tag/link insertion, removal, moves and note changes invalidate
+the affected documents and enqueue text jobs. Renaming, withdrawing or deleting
+a topic does the same for its linked artifacts. The migration queues existing
+artifacts once so the added context reaches already-indexed records.
+
+Invalidation deletes prepared documents immediately; saved vectors and embedding
+jobs cascade away when the optional schema is installed. This avoids exposing
+withdrawn topic information while a background refresh waits. The trade-off is a
+brief absence from search until both workers finish. Artifact IDs remain stable;
+prepared-document IDs can change. The text worker locks the artifact **before**
+reading metadata in a fresh database statement, so concurrent metadata edits
+cannot restore stale text after invalidation. Tests cover that waiting-worker case.
+
+With `search-loop` running, the sequence is:
+
+```text
+Studio saves a tag/topic change
+  -> database invalidates old prepared text and queues a text job
+  -> worker builds current text and its content hash
+  -> embedding worker calculates a vector for the selected model
+  -> PostgreSQL stores that vector with model identity and source hash
+```
+
+This path is automatic after the worker starts. `index-search-once` remains the
+manual one-batch alternative. Neither mode creates the HTTP search endpoint.
+
+The normal retrieval path uses saved vectors directly. The unsuccessful
+reranking experiment was removed on November 4; its historical measurements
+remain in [MODEL_COMPARISON.md](MODEL_COMPARISON.md).
 
 ## Persistent search laboratory
 
 The `postgres` feature adds real PostgreSQL vector storage and persistent
 model-aware embedding jobs. The worker's `semantic-search` feature connects them
 to text preparation. Both continuous operation and an explicit one-batch command
-are available below. The HTTP search endpoint is not implemented yet.
+are available below. The opt-in HTTP endpoint is documented in the API guide.
 
 The tables have different jobs:
 
@@ -138,7 +183,7 @@ The tables have different jobs:
 | `search_embeddings` | A document's vector plus its model identity and source hash | Saves model output so search can reuse it |
 | `search_embedding_jobs` | Model-specific work, attempts, claim tokens and errors | Lets model work retry independently from preparing text |
 
-An embedding is a list of 384 floating-point numbers for the default BGE model.
+An embedding is a list of 768 floating-point numbers for the default BGE-base model.
 It is not a generated description, a trained model, or a collection of keywords.
 The already-trained model calculates the list locally from text. PostgreSQL's
 `vector` type stores that list; pgvector's cosine-distance operator compares it
@@ -350,7 +395,7 @@ both models. Each artifact receives its best passage score in that mode.
 At this 32-question stage, MiniLM looked promising
 for the current full-document pipeline. BGE retains the longer 512-token input
 limit versus MiniLM's 256. Both process all 58 current documents without truncation.
-Keep models selectable; the original configuration default remains BGE, while the
+Keep models selectable; the October configuration default was BGE-small, while the
 command above explicitly selects MiniLM for evaluating this new evidence.
 The larger follow-up below supersedes any apparent clear advantage. These
 authored cases are small and often contain informative names/facts, which
@@ -407,7 +452,7 @@ The full-document counts were reproduced using the actual stored PostgreSQL
 vectors. With paragraph inputs, BGE scored 55/64 first and 63/64 top-three;
 MiniLM scored 53/64 first and 63/64 top-three. Paragraph splitting therefore did
 not consistently improve retrieval. Neither model is a clear general winner.
-The configured BGE default remains reasonable provisionally for its longer input
+At that stage, BGE-small remained a provisional default for its longer input
 allowance, without claiming that allowance caused the ranking difference.
 
 Both models missed the expected Durfee artifact in their top three for “I need

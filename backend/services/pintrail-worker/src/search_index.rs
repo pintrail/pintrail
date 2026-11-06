@@ -19,6 +19,8 @@ struct Source {
     kind: String,
     description: String,
     ancestors: Vec<String>,
+    tags: Vec<String>,
+    topics: Vec<String>,
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -124,8 +126,17 @@ async fn process(db: &PgPool, job: &Job) -> anyhow::Result<Outcome> {
         .execute(&mut *tx)
         .await?;
 
-    let source = sqlx::query_as::<_, Source>(
-        r#"
+    // Take the source lock first, then read with a fresh statement snapshot.
+    // Otherwise a tag/topic transaction could commit while this read waits for
+    // its artifact lock, leaving child-table values from the older snapshot.
+    let live: Option<Uuid> =
+        sqlx::query_scalar("SELECT id FROM artifacts WHERE id=$1 AND deleted_at IS NULL FOR SHARE")
+            .bind(job.artifact_id)
+            .fetch_optional(&mut *tx)
+            .await?;
+    let source = if live.is_some() {
+        sqlx::query_as::<_, Source>(
+            r#"
         WITH RECURSIVE ancestors AS (
             SELECT p.name, p.parent_id, 1 AS depth
             FROM artifacts a JOIN artifacts p ON p.id = a.parent_id
@@ -137,14 +148,27 @@ async fn process(db: &PgPool, job: &Job) -> anyhow::Result<Outcome> {
         )
         SELECT a.name, a.kind::text AS kind, a.description,
             COALESCE((SELECT array_agg(name ORDER BY depth DESC) FROM ancestors),
-                     ARRAY[]::text[]) AS ancestors
+                     ARRAY[]::text[]) AS ancestors,
+            COALESCE((SELECT array_agg(tag ORDER BY tag) FROM (
+                SELECT DISTINCT lower(btrim(tag)) AS tag FROM artifact_tags
+                WHERE artifact_id=a.id
+            ) tags), ARRAY[]::text[]) AS tags,
+            COALESCE((SELECT array_agg(label ORDER BY lower(label),label) FROM (
+                SELECT DISTINCT btrim(t.name) || CASE WHEN btrim(l.note) = '' THEN ''
+                    ELSE ' (' || btrim(l.note) || ')' END AS label
+                FROM artifact_topics l JOIN artifacts t ON t.id=l.topic_id
+                WHERE l.artifact_id=a.id AND t.is_topic AND artifact_is_published(t.id)
+            ) topics), ARRAY[]::text[]) AS topics
         FROM artifacts a WHERE a.id = $1 AND a.deleted_at IS NULL
         FOR SHARE OF a
         "#,
-    )
-    .bind(job.artifact_id)
-    .fetch_optional(&mut *tx)
-    .await?;
+        )
+        .bind(job.artifact_id)
+        .fetch_optional(&mut *tx)
+        .await?
+    } else {
+        None
+    };
 
     let outcome = if let Some(source) = source {
         let content = canonical_text(&source);
@@ -205,6 +229,12 @@ fn canonical_text(source: &Source) -> String {
     if !source.description.trim().is_empty() {
         lines.push(format!("Description: {}", source.description.trim()));
     }
+    if !source.tags.is_empty() {
+        lines.push(format!("Tags: {}", source.tags.join(", ")));
+    }
+    if !source.topics.is_empty() {
+        lines.push(format!("Topics: {}", source.topics.join("; ")));
+    }
     lines.join("\n")
 }
 
@@ -246,5 +276,7 @@ async fn requeue_stuck(db: &PgPool, timeout_secs: i64, max_attempts: i32) -> any
     Ok(())
 }
 
+#[cfg(test)]
+mod metadata_tests;
 #[cfg(test)]
 mod tests;

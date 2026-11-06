@@ -32,7 +32,7 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: backend
-      - run: cargo clippy -p pintrail-embeddings --features postgres --all-targets --locked -- -D warnings
-      - run: cargo test -p pintrail-embeddings --features postgres --locked
-      - run: cargo clippy -p pintrail-worker --features semantic-search --all-targets --locked -- -D warnings
-      - run: cargo test -p pintrail-worker --features semantic-search --locked
+      - name: Lint search-enabled API, worker and storage
+        run: cargo clippy --workspace --features pintrail-api/semantic-search,pintrail-worker/semantic-search --all-targets --locked -- -D warnings
+      - name: Test search-enabled API, worker and storage
+        run: cargo test --workspace --features pintrail-api/semantic-search,pintrail-worker/semantic-search --locked

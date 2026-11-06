@@ -1,4 +1,4 @@
-//! Local embedding boundary shared by future indexing and query handlers.
+//! Local embedding boundary shared by indexing and query handlers.
 //!
 //! Inference is synchronous CPU work. Load once and call from a bounded blocking
 //! task when integrating with Tokio; never hold database locks during inference.
@@ -8,6 +8,9 @@ pub use local::{Config, LocalProvider, Model};
 
 #[cfg(feature = "postgres")]
 pub mod storage;
+
+#[cfg(feature = "postgres")]
+pub mod retrieval;
 
 #[cfg(feature = "postgres")]
 pub mod indexer;

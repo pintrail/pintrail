@@ -5,7 +5,7 @@ Postgres database and one S3-compatible bucket.
 
 | Crate | Role |
 |---|---|
-| [`services/pintrail-api`](services/pintrail-api) | axum HTTP API. Modules per concern (`authors/`, `readers/`, `artifacts/`, `attachments/`, `trails/`, `comments/`, `admin/`, `studio/`), each owning its own tables. |
+| [`services/pintrail-api`](services/pintrail-api) | axum HTTP API. Modules per concern (`authors/`, `readers/`, `artifacts/`, `search/`, `attachments/`, `trails/`, `comments/`, `admin/`, `studio/`). |
 | [`services/pintrail-worker`](services/pintrail-worker) | Attachment processing. Claims work from Postgres with `FOR UPDATE SKIP LOCKED` — no Redis. |
 | [`libs/pintrail-storage`](libs/pintrail-storage) | S3 client shared by both binaries. |
 
@@ -75,7 +75,11 @@ that fails when Postgres is unreachable.
 The [local embedding component](libs/pintrail-embeddings/README.md) has a Rust
 provider interface, a CPU demo, and an isolated pgvector storage/search lab
 against the UMass seed. Automatic embedding is available with the worker's
-opt-in `semantic-search` feature; public search endpoints are still pending.
+opt-in `semantic-search` feature. The API now provides authenticated semantic
+`GET /search?q=...&limit=...&mode=semantic|keyword|hybrid` when built with the same feature and started with
+`SEARCH_ENABLED=true`; see the [search API guide](services/pintrail-api/SEARCH.md).
+Semantic remains the default. Keyword uses PostgreSQL full-text search; hybrid
+combines both candidate rankings. The production database rollout remains pending.
 The lab uses its own database on port 5434;
 see the component guide for commands and the database-image rollout boundary.
 
@@ -97,7 +101,10 @@ interval, the worker can start roughly 120 jobs per minute before accounting
 for processing time and other worker tasks. A growing `search_documents` table
 after deployment is expected; larger collections take multiple polls.
 
-Each artifact document contains its name, kind, ancestor names, and description.
+Each artifact document contains its name, kind, ancestor names, description,
+tags, and linked published topic names with their per-link notes. Metadata edits
+invalidate affected search text and queue refreshes; withdrawing a topic removes
+its old linked context immediately, before the background rebuild.
 The SHA-256 content hash detects unchanged text and preserves the document ID
 and timestamp when no rewrite is needed. Attachment/chunk references are
 reserved for later PDF and image indexing; those processors are not implemented

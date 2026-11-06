@@ -26,13 +26,14 @@ pub struct Document {
     pub content_hash: String,
 }
 
-#[derive(Debug, sqlx::FromRow, serde::Serialize)]
+#[derive(Clone, Debug, sqlx::FromRow, serde::Serialize)]
 pub struct Hit {
     pub artifact_id: Uuid,
     pub document_id: Uuid,
     pub name: String,
     pub is_topic: bool,
     pub similarity: f64,
+    pub snippet: String,
 }
 
 pub async fn migrate(pool: &PgPool) -> Result<(), StorageError> {
@@ -144,18 +145,49 @@ pub async fn search(
     query: &[f32],
     limit: i64,
 ) -> Result<Vec<Hit>, StorageError> {
+    let mut connection = pool.acquire().await?;
+    search_on(&mut connection, model, query, limit).await
+}
+
+/// Allows the API to enforce a transaction-local statement timeout. Shares
+/// exactly the same model, source-version and publication filters as the CLI.
+pub async fn search_on(
+    connection: &mut sqlx::PgConnection,
+    model: &ModelInfo,
+    query: &[f32],
+    limit: i64,
+) -> Result<Vec<Hit>, StorageError> {
+    search_constrained_on(connection, model, query, limit, None).await
+}
+
+/// Hybrid queries with explicit phrases/exclusions constrain vector candidates
+/// before their limit, rather than filtering an already-truncated result list.
+pub(crate) async fn search_constrained_on(
+    connection: &mut sqlx::PgConnection,
+    model: &ModelInfo,
+    query: &[f32],
+    limit: i64,
+    required_text: Option<&str>,
+) -> Result<Vec<Hit>, StorageError> {
     let fingerprint = fingerprint(model)?;
     let value = vector_literal(query, model.dimension)?;
     Ok(sqlx::query_as(
         r#"
-        SELECT d.artifact_id, d.id AS document_id, a.name, a.is_topic,
-               1 - (e.embedding <=> $1::text::vector) AS similarity
+        WITH documents AS (
+        SELECT DISTINCT ON (d.artifact_id)
+               d.artifact_id, d.id AS document_id, a.name, a.is_topic,
+               1 - (e.embedding <=> $1::text::vector) AS similarity,
+               left(a.description, 280) AS snippet
         FROM search_embeddings e JOIN search_documents d ON d.id=e.document_id
         JOIN artifacts a ON a.id=d.artifact_id
         WHERE e.model_fingerprint=$2 AND e.dimension=$3
           AND e.source_content_hash=d.content_hash
           AND a.deleted_at IS NULL AND artifact_is_published(a.id)
-        ORDER BY e.embedding <=> $1::text::vector, d.id
+          AND ($5::text IS NULL OR d.search_terms @@ websearch_to_tsquery('english', $5))
+        ORDER BY d.artifact_id, e.embedding <=> $1::text::vector, d.id
+        )
+        SELECT * FROM documents
+        ORDER BY similarity DESC, document_id
         LIMIT $4
     "#,
     )
@@ -163,6 +195,7 @@ pub async fn search(
     .bind(fingerprint)
     .bind(model.dimension as i32)
     .bind(limit.clamp(1, 100))
-    .fetch_all(pool)
+    .bind(required_text)
+    .fetch_all(connection)
     .await?)
 }

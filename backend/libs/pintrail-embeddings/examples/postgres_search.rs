@@ -1,6 +1,9 @@
 //! Explicit local laboratory; never falls back to DATABASE_URL or production.
-use pintrail_embeddings::{storage, Config, EmbeddingProvider, InputKind, LocalProvider};
+use pintrail_embeddings::{
+    retrieval, storage, Config, EmbeddingProvider, InputKind, LocalProvider,
+};
 use sqlx::postgres::PgPoolOptions;
+use std::error::Error;
 
 #[derive(serde::Deserialize)]
 struct EvaluationSeed {
@@ -30,6 +33,13 @@ async fn evaluate(pool: &sqlx::PgPool, provider: &mut LocalProvider) -> Result<(
     let mut three = 0;
     let mut supported = 0;
     let mut results = Vec::new();
+    let mut candidate_hits = 0;
+    let corpus: String = sqlx::query_scalar(
+        "SELECT md5(string_agg(artifact_id::text || content_hash,'' ORDER BY artifact_id)) \
+         FROM search_documents",
+    )
+    .fetch_one(pool)
+    .await?;
     for case in cases {
         let mut expected = Vec::new();
         for key in &case.expected {
@@ -52,7 +62,11 @@ async fn evaluate(pool: &sqlx::PgPool, provider: &mut LocalProvider) -> Result<(
         let query = provider
             .embed(&[&case.question], InputKind::Query)?
             .remove(0);
-        let hits = storage::search(pool, provider.model_info(), &query, 3).await?;
+        let mut hits = storage::search(pool, provider.model_info(), &query, 20).await?;
+        if !expected.is_empty() {
+            candidate_hits += usize::from(hits.iter().any(|h| expected.contains(&h.artifact_id)));
+        }
+        hits.truncate(3);
         let hit_first = hits
             .first()
             .is_some_and(|h| expected.contains(&h.artifact_id));
@@ -69,13 +83,111 @@ async fn evaluate(pool: &sqlx::PgPool, provider: &mut LocalProvider) -> Result<(
         "{}",
         serde_json::to_string_pretty(&serde_json::json!({
         "model":provider.model_info(),"supported_queries":supported,"expected_first":first,"expected_in_top_3":three,
+        "expected_in_top_20":candidate_hits,"corpus_hash":corpus,
         "retrieval":"PostgreSQL pgvector using saved full-document embeddings; only questions were embedded during this evaluation",
         "results":results}))?
     );
     Ok(())
 }
-use std::error::Error;
 
+// Explicit real-model benchmark, separate from deterministic cargo tests.
+// Keep the original development suite and added lexical suite separate.
+async fn evaluate_modes(
+    pool: &sqlx::PgPool,
+    provider: &mut LocalProvider,
+) -> Result<(), Box<dyn Error>> {
+    let seed: EvaluationSeed = toml::from_str(include_str!("../../../seeds/umass/artifacts.toml"))?;
+    let names: std::collections::HashMap<_, _> =
+        seed.artifact.into_iter().map(|a| (a.key, a.name)).collect();
+    let mut existing: Vec<EvaluationCase> =
+        serde_json::from_str(include_str!("umass_queries.json"))?;
+    existing.extend(serde_json::from_str::<Vec<EvaluationCase>>(include_str!(
+        "semantic_cases.json"
+    ))?);
+    existing.extend(serde_json::from_str::<Vec<EvaluationCase>>(include_str!(
+        "harder_cases.json"
+    ))?);
+    let lexical: Vec<EvaluationCase> = serde_json::from_str(include_str!("lexical_cases.json"))?;
+    let diagnostics: Vec<EvaluationCase> =
+        serde_json::from_str(include_str!("hybrid_diagnostics.json"))?;
+    let groups = [
+        ("existing", existing),
+        ("lexical", lexical),
+        ("diagnostics", diagnostics),
+    ];
+    let mut reports = Vec::new();
+    for mode in ["semantic", "keyword", "hybrid"] {
+        let mut metrics = serde_json::Map::new();
+        let mut results = Vec::new();
+        for (group, cases) in &groups {
+            let (mut supported, mut first, mut three) = (0, 0, 0);
+            for case in cases {
+                let vector = if mode == "keyword" {
+                    None
+                } else {
+                    Some(
+                        provider
+                            .embed(&[&case.question], InputKind::Query)?
+                            .remove(0),
+                    )
+                };
+                let mut tx = pool.begin().await?;
+                sqlx::query("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY")
+                    .execute(&mut *tx)
+                    .await?;
+                sqlx::query("SET LOCAL statement_timeout = '3s'")
+                    .execute(&mut *tx)
+                    .await?;
+                let hits = match mode {
+                    "keyword" => retrieval::keyword_on(&mut tx, &case.question, 3).await?,
+                    "hybrid" => {
+                        retrieval::hybrid_on(
+                            &mut tx,
+                            provider.model_info(),
+                            vector.as_deref().expect("query vector"),
+                            &case.question,
+                            3,
+                        )
+                        .await?
+                    }
+                    _ => retrieval::from_semantic(
+                        storage::search_on(
+                            &mut tx,
+                            provider.model_info(),
+                            vector.as_deref().expect("query vector"),
+                            3,
+                        )
+                        .await?,
+                    ),
+                };
+                tx.commit().await?;
+                let expected: Vec<_> = case
+                    .expected
+                    .iter()
+                    .map(|key| names.get(key).ok_or("missing expected artifact"))
+                    .collect::<Result<_, _>>()?;
+                let one = hits.first().is_some_and(|h| expected.contains(&&h.name));
+                let top = hits.iter().any(|h| expected.contains(&&h.name));
+                if !expected.is_empty() {
+                    supported += 1;
+                    first += usize::from(one);
+                    three += usize::from(top);
+                }
+                let matches:Vec<_>=hits.into_iter().map(|h|serde_json::json!({"name":h.name,"score":h.score,"semantic_score":h.semantic_score,"keyword_score":h.keyword_score})).collect();
+                results.push(serde_json::json!({"group":group,"question":case.question,"expected":case.expected,"expected_first":one,"expected_in_top_3":top,"matches":matches}));
+            }
+            metrics.insert(group.to_string(),serde_json::json!({"supported":supported,"expected_first":first,"expected_in_top_3":three}));
+        }
+        reports.push(serde_json::json!({"mode":mode,"metrics":metrics,"results":results}));
+    }
+    println!(
+        "{}",
+        serde_json::to_string_pretty(
+            &serde_json::json!({"model":provider.model_info(),"hybrid_ranking_version":retrieval::HYBRID_RANKING_VERSION,"limitations":"Authored development fixtures; added lexical cases are not independent collector validation. No model training.","reports":reports})
+        )?
+    );
+    Ok(())
+}
 fn similarity(a: &[f32], b: &[f32]) -> f64 {
     let dot: f64 = a
         .iter()
@@ -100,6 +212,11 @@ async fn main() -> Result<(), Box<dyn Error>> {
         return Err("This example only operates on pintrail_search_lab".into());
     }
     let args: Vec<String> = std::env::args().skip(1).collect();
+    if args.iter().any(|a| a.starts_with("--")) {
+        return Err(
+            "Options are not supported; pass a command and, for search/compare, a question".into(),
+        );
+    }
     match args.first().map(String::as_str) {
         Some("init") => {
             sqlx::migrate!("../../migrations")
@@ -141,6 +258,10 @@ async fn main() -> Result<(), Box<dyn Error>> {
             let mut provider = LocalProvider::new(Config::from_env()?)?;
             evaluate(&pool, &mut provider).await?;
         }
+        Some("evaluate-modes") => {
+            let mut provider = LocalProvider::new(Config::from_env()?)?;
+            evaluate_modes(&pool,&mut provider).await?;
+        }
         Some("search") | Some("compare") => {
             let question = args.get(1..).unwrap_or_default().join(" ");
             let mut provider = LocalProvider::new(Config::from_env()?)?;
@@ -179,7 +300,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         }
         _ => {
             return Err(
-                "Usage: postgres_search init | index | search <question> | compare <question>"
+                "Usage: postgres_search init | index | evaluate | evaluate-modes | search <question> | compare <question>"
                     .into(),
             )
         }
