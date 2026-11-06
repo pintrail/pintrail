@@ -27,22 +27,37 @@ it on `PATH`, or build with `PATH="$HOME/.cargo/bin:$PATH" cargo build`.
 
 ## Getting started
 
+Requires **Docker Compose 2.24.4 or newer**: the override uses `!override` to replace
+ports and service settings rather than merge them. Check with `docker compose version`.
+See [Docker Compose merge rules](https://docs.docker.com/reference/compose-file/merge/#replace-value).
+
 Everything in containers:
 
 ```sh
 cd backend
-docker compose up -d --build     # postgres, minio, api, worker
+cp .env.example .env
+docker compose -f compose.yml -f compose.dev.yml up -d --build
 curl localhost:8080/health
 ```
 
 Or just the dependencies, with the binaries on the host for a faster edit loop:
 
 ```sh
-docker compose up -d postgres minio minio-init
 cp .env.example .env
+docker compose -f compose.yml -f compose.dev.yml up -d postgres minio minio-init
 cargo run -p pintrail-api        # migrations run automatically on boot
 cargo run -p pintrail-worker     # in another shell
 ```
+
+`compose.dev.yml` replaces the unavailable MinIO development images with Versity S3 Gateway **v1.8.0**
+for local development. It keeps the existing `minio` service name and media
+volume, and binds database/storage ports to localhost. Unlike
+`compose.versity.yml`, it does not require production TLS certificate paths.
+The storage service has no container healthcheck in this override; verify it
+with `curl -f http://localhost:9000/health` before starting host binaries.
+
+On Windows, run these commands inside Ubuntu/WSL, where Rust and Docker are
+installed. Navigate to your checkout using its WSL path.
 
 Verify:
 
@@ -55,6 +70,110 @@ curl localhost:8080/health/ready  # readiness -> {"status":"ready"}
 not restart a healthy API during a database blip; `/health/ready` is the one
 that fails when Postgres is unreachable.
 
+## Artifact search indexing
+
+The worker also processes `search_index_jobs` and writes derived text to
+`search_documents`. This stage prepares text; embedding generation and search
+endpoints are subsequent work.
+
+Migration `20261010000001_search_indexing.sql` queues existing non-deleted
+artifacts. Database triggers queue subsequent inserts and searchable edits from
+both the JSON API and Studio. Renaming or reparenting an ancestor also queues
+its descendants, because documents include ancestor names. Coordinate-only
+changes do not alter text and do not enqueue text indexing.
+
+Backfills run gradually: with the default batch size of 10 and five-second poll
+interval, the worker can start roughly 120 jobs per minute before accounting
+for processing time and other worker tasks. A growing `search_documents` table
+after deployment is expected; larger collections take multiple polls.
+
+Each artifact document contains its name, kind, ancestor names, and description.
+The SHA-256 content hash detects unchanged text and preserves the document ID
+and timestamp when no rewrite is needed. Attachment/chunk references are
+reserved for later PDF and image indexing; those processors are not implemented
+yet. Soft deletion immediately removes an artifact's search documents; hard
+deletion cascades documents and jobs through foreign keys.
+
+Jobs move through `queued`, `processing`, `processed`, or `failed`. The worker
+uses `FOR UPDATE SKIP LOCKED` to claim jobs, retries failures with bounded
+backoff, and recovers expired claims. Claim tokens prevent an old worker from
+completing a reclaimed job. Document writes and job completion are transactional;
+per-artifact locks serialize different jobs for the same artifact.
+
+Every poll also deletes up to 100 `processed` jobs whose `updated_at` is more
+than seven days old, using `FOR UPDATE SKIP LOCKED` so worker replicas do not
+wait on the same cleanup rows. Recent completed jobs and all queued, processing,
+and failed jobs are retained. Cleanup does not delete search documents or artifacts.
+
+**Admin → System** (`/admin/system`, admins only) shows the indexer at a glance:
+- **Progress:** how many artifacts have a document, out of all live artifacts.
+- **Queue:** queued, retrying, running, failed, and done in the last 7 days.
+- **Worker activity:** when the last job finished.
+- **Failed jobs:** each with its error and a **Retry** button.
+- **Recent work:** each with a **Re-index** button.
+- **Rebuild index:** queues every artifact.
+- **Gaps:** a warning for artifacts that have no document and nothing queued.
+
+The page refreshes itself while work is queued. The same actions are available as JSON for scripts. All are admin-only and use the author session cookie:
+
+| Method | Path | Does |
+|---|---|---|
+| `GET` | `/api/admin/system` | Build info, latest migration, search counts |
+| `GET` | `/api/admin/search/status` | Counts, failed jobs, recent jobs |
+| `POST` | `/api/admin/search/jobs/{id}/retry` | Requeue one failed job with a fresh attempt count |
+| `POST` | `/api/admin/search/retry-failed` | Requeue every failed job |
+| `POST` | `/api/admin/search/artifacts/{id}/reindex` | Queue one artifact, unless it is already waiting |
+| `POST` | `/api/admin/search/rebuild` | Queue every live artifact not already waiting |
+
+Rebuilding is cheap when nothing changed. The worker compares content hashes and skips unchanged text. That also means a rebuild does not force new documents for unchanged text; that will matter once embeddings arrive (#24).
+
+### Walking routes for trails
+
+When a trail's stops change, or a stop's location does, a database trigger queues a job in `trail_route_jobs`. The worker (`pintrail-worker/src/trail_route.rs`) then asks Valhalla for a pedestrian route through the stops in order, and stores the result in `trail_routes`:
+- the route line as GeoJSON;
+- distance and walking time;
+- per-leg maneuvers.
+
+`GET /trails/{id}` returns it as `route`. The job behaves like the other queues:
+
+- **Skips work:** stops that haven't changed (same fingerprint) are not routed again.
+- **Answers vs outages:** "no path" is stored as a failed route, not retried; a router that is down is retried with backoff.
+- **Large trails:** go in windows of 50 locations, Valhalla's limit.
+- **Same spot:** consecutive stops at one spot (two features of a building) get a zero-length leg.
+- **Privacy:** someone who can't see every stop gets no route, because it would show where the hidden stop is.
+- **Turning it on:** routing runs only when the worker has `VALHALLA_URL`; see docs/DEPLOYMENT.md, *Routing*.
+
+`GET /health` reports the running build, so a deploy can be checked without signing in: `commit` (the git commit CI built the image from, or `dev`), `built_at`, and `started_at`.
+
+Inspect indexing using the SQL terminal:
+
+```sql
+SELECT artifact_id, source_kind, content, updated_at FROM search_documents;
+SELECT artifact_id, status, attempts, error_message FROM search_index_jobs;
+```
+
+CI ([.github/workflows/ci.yml](../.github/workflows/ci.yml)) runs on every push to
+`main` and on pull requests into it. It fails if an existing migration file was
+edited, then runs the same three checks you can run locally:
+
+```sh
+cargo fmt --all --check
+cargo clippy --workspace --all-targets --locked -- -D warnings
+cargo test --workspace --locked      # needs DATABASE_URL, see below
+```
+
+Run the workspace tests with local PostgreSQL running:
+
+```sh
+export DATABASE_URL=postgres://pintrail:pintrail@localhost:5433/pintrail
+cargo test --workspace --locked
+```
+
+SQLx creates a separate database for each indexing integration test and applies
+all migrations there. Tests do not edit the development artifact collection or
+call an AI provider. The database account must be able to create test databases;
+the local development account has this capability.
+
 ## Containers
 
 One `Dockerfile`, two targets. The workspace compiles once in a shared builder
@@ -66,6 +185,8 @@ dominates, twice.
 docker build --target api    -t pintrail-api    .
 docker build --target worker -t pintrail-worker .
 ```
+
+In production these are not built on the server. CI builds both for every commit on `main` and publishes `ghcr.io/pintrail/pintrail-{api,worker}:<commit>`, which `deploy/redeploy.sh` pulls (docs/DEPLOYMENT.md, *Images*).
 
 **The worker image carries `libheif-examples` and `poppler-utils`**; the API
 image does not. The media pipeline shells out to `heif-convert` and `pdftoppm`

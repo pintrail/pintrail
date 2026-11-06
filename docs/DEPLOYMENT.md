@@ -41,7 +41,7 @@ Which files are used is set by `COMPOSE_FILE` in `backend/.env` (see §3).
 ## 2. Server prerequisites
 
 - Linux with Docker Engine and the Docker Compose plugin (`docker compose version` works).
-- The deploy user can run `docker`. Either add them to the `docker` group, or prefix every script with `DOCKER="sudo docker"`.
+- The deploy user is in the `docker` group (`sudo usermod -aG docker <user>`, then log in again). Running docker through `sudo` does not work: sudo drops the environment variables the scripts pass to compose, so a deploy would run the wrong images.
 - `git`, plus read access to `github.com/pintrail/pintrail` from the server. The scripts run `git fetch`.
 - The TLS certificate and key at the paths `compose.versity.yml` mounts:
   - `/etc/ssl/certs/mapindstudy-fullchain.pem`
@@ -124,7 +124,7 @@ The script shows the commits and any new migrations about to go out, and asks yo
 | Step | Command it runs | If this step fails |
 |---|---|---|
 | 1. Check out | `git fetch`, then `git checkout --detach <commit>` | Nothing running was touched. |
-| 2. Build | `docker compose build --pull` | Nothing running was touched. |
+| 2. Get images | `docker pull` the commit's images from GHCR (see *Images* below); builds on the host only if none were published | Nothing running was touched. |
 | 3. Back up | `pg_dump` into `backups/` | Nothing running was touched. |
 | 4. Migrate | `docker compose run --rm api migrate` | Nothing running was touched (see below). |
 | 5. Replace containers | `docker compose up -d --remove-orphans` | The new version is (partly) running. Roll back. |
@@ -144,10 +144,11 @@ The site stays up on the old version all through steps 1–4. So a broken build,
 | `--yes`, `-y` | Don't ask for confirmation. |
 | `--no-fetch` | Don't run `git fetch` first. |
 | `--skip-backup` | Don't take a database backup. Only use this if you just took one another way. |
+| `--build` | Build the images on the server instead of pulling them. For emergencies, such as GHCR being down. |
 
 | Environment variable | Default | Meaning |
 |---|---|---|
-| `DOCKER` | `docker` | Set `DOCKER="sudo docker"` if the deploy user isn't in the docker group. |
+| `DOCKER` | `docker` | The docker command. Must not go through `sudo`; see the prerequisites. |
 | `BACKUP_KEEP` | `10` | How many database dumps to keep. |
 | `BACKUP_DIR` | `backups` | Where dumps and the deploy log go, relative to `backend/`. |
 | `HEALTH_TIMEOUT` | `180` | Seconds to wait for the API to become healthy. |
@@ -156,6 +157,114 @@ The site stays up on the old version all through steps 1–4. So a broken build,
 
 - **The working tree must be clean.** A deploy must match a commit exactly. Never edit code on the server; commit, push, and deploy instead.
 - **`COMPOSE_FILE` must be set** (§3).
+
+### Images
+
+CI builds the API and worker images for every commit on `main`, after the tests pass, and publishes them to GitHub's container registry:
+
+- `ghcr.io/pintrail/pintrail-api:<commit>` and `:main`
+- `ghcr.io/pintrail/pintrail-worker:<commit>` and `:main`
+
+`redeploy.sh` sets `PINTRAIL_TAG` to the commit it deploys and pulls those images, so the server never compiles Rust and the image that runs is the one CI tested. Once the new version passes its health checks, the script tags the images `deployed`. `compose.prod.yml` uses that tag when `PINTRAIL_TAG` is unset, so `docker compose` commands you run by hand (`run --rm api create-author`, `restart`, `logs`) use the last successful deploy.
+
+The server builds on the host instead, under the same names, when:
+
+- `--build` is passed;
+- the commit has no published images (it is not on `main`, or CI has not finished);
+- the commit is from before CI published images, which matters when rolling back to one.
+
+The images are built for `linux/amd64`.
+
+**Registry access, once per server.** GHCR packages start private. Either make both packages public (GitHub → the `pintrail` organization → **Packages** → each package → **Package settings** → **Change visibility**), or log the deploy user in with a token that has `read:packages`:
+
+```sh
+docker login ghcr.io -u <github-user>     # paste the token as the password
+```
+
+The code is open source, so public images reveal nothing new. They contain no secrets; `.env` is excluded by `.dockerignore`.
+
+### Automatic deploys
+
+`deploy/auto-deploy.sh` deploys `main` without anyone logging in. A systemd timer runs it every five minutes. Each run:
+
+1. Takes a lock, so two deploys never overlap.
+2. Fetches `origin/main` and compares it with the last deployed commit in `backups/deploy.log`. If nothing changed, it exits quietly.
+3. Asks GitHub whether the CI workflow (`.github/workflows/ci.yml`) passed on that commit. If CI is still running, it waits for the next run.
+4. Runs `deploy/redeploy.sh --yes` for exactly that commit: pull its images, back up, migrate, replace the containers, check health. A green CI run on `main` means that commit's images are published.
+
+It never rolls back on its own. When CI fails on main, or a deploy fails, it logs that, optionally opens a GitHub issue, and does not retry that commit (so a failed migration is not re-run every five minutes). The next commit on main is tried as usual.
+
+A commit that was deployed before is never redeployed automatically. That keeps a rollback in place: after `deploy/rollback.sh`, `main` still points at the bad commit, and the timer leaves it alone until a new commit lands.
+
+**Install it once on the server** (needs `sudo` for the unit files; the deploy itself runs as the deploy user):
+
+1. `deploy/systemd/pintrail-autodeploy.service` is set for the production host (user `richards`, `/home/richards/pintrail/backend`); change `User=` and the three paths only on a different host. Check with a dry run first, as the deploy user:
+   ```sh
+   cd ~/pintrail/backend
+   deploy/auto-deploy.sh --dry-run
+   ```
+   It needs `git`, `curl`, `python3` and `flock` (util-linux), all standard on Ubuntu and Debian.
+2. Optional but recommended: add a GitHub token to `backend/.env`. Without one the GitHub API allows 60 requests an hour per IP address, shared with everyone behind the same campus address. A fine-grained token for `pintrail/pintrail` with **Actions: read** is enough; add **Issues: write** and `AUTODEPLOY_ISSUES=1` to get an issue when something fails.
+   ```sh
+   AUTODEPLOY_GITHUB_TOKEN=github_pat_...
+   AUTODEPLOY_ISSUES=1
+   ```
+3. Install and start the timer:
+   ```sh
+   sudo cp deploy/systemd/pintrail-autodeploy.{service,timer} /etc/systemd/system/
+   sudo systemctl daemon-reload
+   sudo systemctl enable --now pintrail-autodeploy.timer
+   ```
+   The copies in `/etc/systemd/system` do not update with the repository. Copy them again if the unit files change.
+
+**Day to day:**
+
+| Task | Command |
+|---|---|
+| When it next runs | `systemctl list-timers pintrail-autodeploy.timer` |
+| What it did | `journalctl -u pintrail-autodeploy.service -n 100` |
+| Run a check now | `sudo systemctl start pintrail-autodeploy.service` |
+| Pause automatic deploys | `touch backups/auto-deploy.paused` (delete the file to resume) |
+| Commits it gave up on | `cat backups/auto-deploy.state` |
+| Retry a commit it gave up on | Deploy it by hand with `deploy/redeploy.sh --ref <commit>` |
+| Turn it off | `sudo systemctl disable --now pintrail-autodeploy.timer` |
+
+**Before merging a risky migration** (anything that is not purely additive, §7), pause automatic deploys, merge, and deploy by hand so someone is watching.
+
+### Routing (walking routes)
+
+Trails get walking routes from **Valhalla**, a routing engine that runs as the `valhalla` service on OpenStreetMap data (#90). It's optional and behind the `routing` compose profile. Without it, trails still work, and maps fall back to straight lines between stops.
+
+**On in production by default.** `compose.prod.yml` includes the `valhalla` service and points the worker at it (`VALHALLA_URL` defaults to `http://valhalla:8002`), so the next deploy starts it with nothing to set on the server. Development opts in with `--profile routing`. To turn routing off in production, set `VALHALLA_URL=` (empty) in `backend/.env` so the worker stops routing, and stop the service: `docker compose stop valhalla`.
+
+On its first start the service downloads the Geofabrik Massachusetts extract (about 310 MB) and builds its routing data into the `valhalla` volume, then starts serving. It stays unhealthy until the build finishes, and route jobs wait and retry meanwhile, so maps show straight lines until it's ready. Measured on a laptop: about 2 minutes and about 0.5 GB of memory, sampled every 20 seconds, so peaks may be higher. Allow 2 GB of RAM and 10–30 minutes on the server. If the build is killed (exit code 137), lower `VALHALLA_THREADS` in `.env` (default 2). Later starts reuse the built data and take seconds.
+
+The worker and API reach it at `http://valhalla:8002`. It has no public port. Check it from the server:
+
+```sh
+docker compose exec valhalla curl -s localhost:8002/status
+```
+
+**Disk.** One built copy is about 500 MB. The first build also keeps about 670 MB of build leftovers until its first refresh. Allow 2 GB for the volume.
+
+**Monthly refresh.** OpenStreetMap changes, so the data is rebuilt from a fresh extract every 30 days:
+
+- **How:** `deploy/routing-refresh.sh` builds the new copy beside the live one (`next/`), then swaps it in (`current/`). The old copy is kept as `previous/`.
+- **If the new copy won't serve:** the script swaps the old copy back.
+- **Undo a refresh:** `deploy/routing-refresh.sh --rollback`.
+- **When it runs:** nothing to install. The auto-deploy timer runs it: on a run with nothing to deploy, if Valhalla is healthy and the data is more than `ROUTING_REFRESH_DAYS` (default 30) old, going by `backups/routing-refreshed-at`, it refreshes. The clock starts the first time it sees the first build serving.
+- **If a refresh fails:** it's reported like a failed deploy, and tried again a day later. Deploys wait while a refresh runs.
+- **Optional dedicated timer:** `deploy/systemd/pintrail-routing-refresh.{service,timer}` runs it monthly with a longer time limit. It shares the stamp, so the refresh still happens once. Installing it takes sudo:
+
+  ```sh
+  sudo cp deploy/systemd/pintrail-routing-refresh.{service,timer} /etc/systemd/system/
+  sudo systemctl daemon-reload
+  sudo systemctl enable --now pintrail-routing-refresh.timer
+  ```
+
+**Other extracts.** `VALHALLA_PBF_URL` in `.env` points at a different extract. A smaller region uses less memory and disk if the server is tight.
+
+**If the server can't run it.** If even a small extract is too much, a hosted routing API (OpenRouteService, Stadia) can stand in. The worker would call it instead (#90, #75).
 
 ## 6. Rolling back
 
@@ -243,7 +352,8 @@ Run all of these from `~/pintrail/backend`. Compose picks up `COMPOSE_FILE` from
 | Create an author | `docker compose run --rm api create-author <email> <viewer\|editor\|admin>` (or use the admin panel) |
 | Reset a password (also signs the author out everywhere) | In the admin panel: **Authors → Edit → Reset password**, which also makes them choose their own on next sign-in. From the command line: `docker compose run --rm api reset-password <email>` (doesn't force a change; use it for your own account or when the panel is unavailable) |
 | Change an author's email, name, or role; suspend or delete them | Admin panel: **Authors → Edit** |
-| Which commit is deployed | `git log --oneline -1` or `tail -1 backups/deploy.log` |
+| Which commit is deployed | From anywhere: `curl https://pintrail.cs.umass.edu/health` (its `commit` field) or **Admin → System**. On the server: `tail -1 backups/deploy.log` |
+| What the search indexer is doing | **Admin → System**: progress, queue, failures with Retry, Re-index and Rebuild. JSON: `GET /api/admin/search/status` |
 | Restart one service | `docker compose restart api` |
 | Open a SQL shell | `docker compose exec postgres psql -U pintrail -d pintrail` |
 
@@ -255,7 +365,7 @@ Authors created from the command line keep the password you type. Authors create
 
 **`the working tree has uncommitted changes`**: someone edited files on the server. See what changed with `git status` and `git diff`. Then either commit the change properly elsewhere, or discard it with `git checkout -- <file>`.
 
-**`permission denied while trying to connect to the docker API`**: the user isn't in the `docker` group. Use `DOCKER="sudo docker" deploy/redeploy.sh`, or add the user to the group and log in again.
+**`permission denied while trying to connect to the docker API`**: the user isn't in the `docker` group. Add them (`sudo usermod -aG docker <user>`) and log in again; for the timer, run `sudo systemctl restart pintrail-autodeploy.timer`.
 
 **`api did not become healthy`**: the script prints the last 50 lines of the API log. Common causes:
 - A missing or wrong `.env` value. The API exits at startup, naming the setting.

@@ -10,6 +10,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{{ title }} · Pintrail Admin</title>
+  {% block head %}{% endblock %}
   <style>
     :root {
       color-scheme: light dark;
@@ -197,6 +198,29 @@
     .auth-foot { color: var(--muted); font-size: .8rem; text-align: center; margin: 1.25rem 0 0; }
 
     .muted { color: var(--muted); font-size: .85rem; }
+    .alert-warn { background: var(--warn-soft); border-color: var(--warn-line); color: var(--warn); }
+    .alert-warn::before { content: "!"; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; white-space: pre-wrap; word-break: break-word; }
+
+    /* System tab */
+    .sys-section { margin-bottom: 1.25rem; }
+    .sys-section h2 { font-size: 1rem; margin: 0 0 .75rem; }
+    .sys-head { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-bottom: .75rem; }
+    .sys-head h2 { margin: 0; }
+    .sys-actions { display: flex; gap: .5rem; }
+    .facts { display: grid; gap: .5rem; margin: 0; }
+    .facts div { display: grid; grid-template-columns: 9rem 1fr; gap: 1rem; }
+    .facts dt { color: var(--muted); font-size: .85rem; }
+    .facts dd { margin: 0; }
+    .progress { height: .5rem; border-radius: 999px; background: var(--chip); overflow: hidden; }
+    .progress span { display: block; height: 100%; background: var(--accent); }
+    .progress-label { margin: .5rem 0 1rem; }
+    .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr)); gap: .75rem; margin-bottom: .75rem; }
+    .stat { background: var(--chip); border-radius: var(--radius); padding: .75rem 1rem; display: flex; flex-direction: column; }
+    .stat .n { font-size: 1.4rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+    .stat .l { color: var(--muted); font-size: .8rem; }
+    .stat-bad .n { color: var(--danger); }
+    @media (max-width: 640px) { .facts div { grid-template-columns: 1fr; gap: .1rem; } }
     .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
                overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 
@@ -226,6 +250,7 @@
         <a href="/admin/comments" {% if section == 'comments' %}aria-current="page"{% endif %}>Comments</a>
         <a href="/admin/trails" {% if section == 'trails' %}aria-current="page"{% endif %}>Trails</a>
         <a href="/admin/authors" {% if section == 'authors' %}aria-current="page"{% endif %}>Authors</a>
+        <a href="/admin/system" {% if section == 'system' %}aria-current="page"{% endif %}>System</a>
       </nav>
       <details class="menu">
         <summary aria-label="Account menu">

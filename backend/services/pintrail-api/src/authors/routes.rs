@@ -15,8 +15,8 @@ use super::auth::{
 use super::extractors::{AuthenticatedAuthor, RequireAdmin};
 use super::model::{looks_like_email, validate_password, Author, AuthorRole, AuthorView};
 use crate::client_ip::ClientIp;
-use crate::rate_limit::{LOGIN_PER_ACCOUNT, LOGIN_PER_IP};
 use crate::error::{AppError, AppResult};
+use crate::rate_limit::{LOGIN_PER_ACCOUNT, LOGIN_PER_IP};
 use crate::state::AppState;
 
 pub fn router() -> Router<AppState> {
@@ -115,10 +115,7 @@ async fn login(
 
     let jar = jar.add(session_cookie(token.raw, &state, token.expires_at));
 
-    Ok((
-        jar,
-        Json(json!({ "author": AuthorView::from(author) })),
-    ))
+    Ok((jar, Json(json!({ "author": AuthorView::from(author) }))))
 }
 
 /// Clears the session, deleting the server-side row rather than only the
@@ -137,7 +134,11 @@ async fn logout(
     }
 
     // Overwrite with an already-expired cookie so the browser drops it.
-    let mut removal = session_cookie(String::new(), &state, Utc::now() - chrono::Duration::days(1));
+    let mut removal = session_cookie(
+        String::new(),
+        &state,
+        Utc::now() - chrono::Duration::days(1),
+    );
     removal.make_removal();
 
     Ok((jar.add(removal), Json(json!({ "status": "logged out" }))))
@@ -275,11 +276,10 @@ async fn update_author(
     .ok_or(AppError::NotFound("author"))?;
 
     // Losing the last admin bricks account management for everyone.
-    let active_admins: i64 = sqlx::query_scalar(
-        "SELECT count(*) FROM authors WHERE role = 'admin' AND is_active",
-    )
-    .fetch_one(&mut *tx)
-    .await?;
+    let active_admins: i64 =
+        sqlx::query_scalar("SELECT count(*) FROM authors WHERE role = 'admin' AND is_active")
+            .fetch_one(&mut *tx)
+            .await?;
 
     if active_admins == 0 {
         return Err(AppError::Conflict(

@@ -1,0 +1,28 @@
+{# The artifact finder's frame: search box and filter chips, which stay put,
+   and a body below them that /studio/finder fills and replaces. Keeping the
+   controls out of the swapped part means typing never loses focus.
+
+   Use it anywhere: {% from "studio_finder_frame.html" import finder %}
+   {{ finder() }} in the sidebar, {{ finder(mode="pick") }} to choose an
+   artifact (listen for the artifact-picked event on .finder). #}
+{% macro finder(mode="navigate", label="Find an artifact") %}
+<div class="finder" data-mode="{{ mode }}">
+  <form class="finder-controls" role="search"
+        hx-get="/studio/finder" hx-target="next .finder-body" hx-swap="outerHTML"
+        hx-trigger="input changed delay:250ms from:find input[type=search], change, submit">
+    <input type="hidden" name="mode" value="{{ mode }}">
+    <input type="search" name="q" placeholder="{{ label }}" aria-label="{{ label }}" autocomplete="off"
+           data-tip="Search names and tags at every level. Press / to jump here.">
+    <div class="finder-chips" role="radiogroup" aria-label="Show">
+      <label class="chip-radio"><input type="radio" name="filter" value="all" checked><span>All</span></label>
+      {% if mode == "navigate" %}<label class="chip-radio"><input type="radio" name="filter" value="mine"><span>Mine</span></label>{% endif %}
+      <label class="chip-radio"><input type="radio" name="filter" value="drafts"><span>Drafts</span></label>
+      <label class="chip-radio"><input type="radio" name="filter" value="review"><span>In review</span></label>
+      <label class="chip-radio"><input type="radio" name="filter" value="topics"><span>Topics</span></label>
+    </div>
+  </form>
+  <div class="finder-body" hx-get="/studio/finder?mode={{ mode }}" hx-trigger="load" hx-swap="outerHTML">
+    <p class="finder-hint">Loading…</p>
+  </div>
+</div>
+{% endmacro %}

@@ -1,0 +1,168 @@
+# Backend CI: format, lint and test the Rust workspace in backend/, then, on
+# main only, build the API and worker images and publish them to GHCR.
+#
+# Runs on every push to main (every merged PR) and on pull requests into
+# main, so breakage shows up before a merge as well as after it. The
+# automated deploy (#77) only deploys commits whose run here passed, so a
+# green run on main means the tested images for that commit are published.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+# A newer push to a PR branch makes an in-progress run pointless. On main,
+# every commit's run finishes, so each commit's images get published.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+
+    services:
+      # The SQLx integration tests create a throwaway database per test and
+      # apply every migration to it, so the account must be able to create
+      # databases; the image's superuser can.
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: pintrail
+          POSTGRES_PASSWORD: pintrail
+          POSTGRES_DB: pintrail
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U pintrail -d pintrail"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgres://pintrail:pintrail@localhost:5432/pintrail
+      CARGO_TERM_COLOR: always
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # The migration check below compares against the previous commit.
+          fetch-depth: 0
+
+      # Migrations that have run anywhere must never change: SQLx refuses to
+      # start when an applied migration's checksum differs, which on the
+      # server would stop the API. New migrations are always new files.
+      - name: Existing migrations are unchanged
+        env:
+          BASE: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          if [ -z "$BASE" ] || [ "$BASE" = 0000000000000000000000000000000000000000 ]; then
+            echo "no previous commit to compare against"; exit 0
+          fi
+          changed=$(git diff --name-only --diff-filter=MDR "$BASE" HEAD -- migrations)
+          if [ -n "$changed" ]; then
+            echo "::error::These existing migrations were edited, renamed or deleted:"
+            echo "$changed"
+            echo "Add a new migration file instead."
+            exit 1
+          fi
+
+      # The UMass seed: artifacts.toml must be valid, and the committed SQL
+      # must be what generate_sql.py makes from it.
+      - name: UMass seed is valid and regenerated
+        run: |
+          python3 seeds/umass/generate_sql.py --check
+          for mode in dev prod; do
+            python3 seeds/umass/generate_sql.py --mode $mode | diff -u seeds/umass/seed-$mode.sql - \
+              || { echo "::error::seeds/umass/seed-$mode.sql is out of date; regenerate it (seeds/umass/README.md)"; exit 1; }
+          done
+          python3 seeds/umass/generate_sql.py --remove | diff -u seeds/umass/remove.sql -
+
+      # rust-toolchain.toml picks the channel and adds rustfmt and clippy.
+      - name: Install the Rust toolchain
+        run: rustup toolchain install
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: backend
+
+      - name: Format
+        run: cargo fmt --all --check
+
+      - name: Lint
+        run: cargo clippy --workspace --all-targets --locked -- -D warnings
+
+      - name: Test
+        run: cargo test --workspace --locked
+
+  # Tagged with the full commit SHA (what deploy/redeploy.sh pulls) and with
+  # "main". Built once per run: the two targets share the builder stage, so
+  # the second build reuses the first one's cache.
+  images:
+    needs: backend
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build time
+        id: when
+        run: echo "built_at=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: API image
+        uses: docker/build-push-action@v6
+        with:
+          context: backend
+          target: api
+          platforms: linux/amd64
+          push: true
+          build-args: |
+            PINTRAIL_GIT_SHA=${{ github.sha }}
+            PINTRAIL_BUILT_AT=${{ steps.when.outputs.built_at }}
+          tags: |
+            ghcr.io/pintrail/pintrail-api:${{ github.sha }}
+            ghcr.io/pintrail/pintrail-api:main
+          labels: |
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+          cache-from: type=gha,scope=backend
+          cache-to: type=gha,scope=backend,mode=max
+
+      - name: Worker image
+        uses: docker/build-push-action@v6
+        with:
+          context: backend
+          target: worker
+          platforms: linux/amd64
+          push: true
+          build-args: |
+            PINTRAIL_GIT_SHA=${{ github.sha }}
+            PINTRAIL_BUILT_AT=${{ steps.when.outputs.built_at }}
+          tags: |
+            ghcr.io/pintrail/pintrail-worker:${{ github.sha }}
+            ghcr.io/pintrail/pintrail-worker:main
+          labels: |
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+          cache-from: type=gha,scope=backend
+          cache-to: type=gha,scope=backend,mode=max

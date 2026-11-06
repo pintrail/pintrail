@@ -1,0 +1,11 @@
+# Monthly, early on a Sunday morning, when nobody is building trails.
+[Unit]
+Description=Refresh PinTrail's walking-route data monthly
+
+[Timer]
+OnCalendar=Sun *-*-01..07 04:30:00
+RandomizedDelaySec=30m
+Persistent=true
+
+[Install]
+WantedBy=timers.target

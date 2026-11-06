@@ -8,6 +8,7 @@ than once.
 |---|---|
 | `examples.sql` | Loads two real campus buildings, each with child artifacts, tags, and source links, plus one topic (*Example: LEED certification*, linked from the Integrative Learning Center), as worked examples for new authors. Every name starts with `Example:`. They load **approved** and with no owner, so only an admin can change or delete them. |
 | `remove-examples.sql` | Deletes them again, children, tags, and links included. Their entries in `artifact_history` stay, by design. |
+| `umass/` | About 60 real UMass sustainability artifacts built from public data: `seed-dev.sql` (approved), `seed-prod.sql` (drafts for review), `remove.sql`. Generated from `umass/artifacts.toml`; see [umass/README.md](umass/README.md). |
 
 The examples show what a good artifact looks like: what it is, where it is,
 why it matters, how it works, real numbers, and a source. They also show the

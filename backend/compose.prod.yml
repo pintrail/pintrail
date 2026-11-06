@@ -46,7 +46,13 @@ services:
       S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY:?set S3_SECRET_ACCESS_KEY}
       S3_BUCKET: ${S3_BUCKET:?set S3_BUCKET}
 
+  # Images come from GHCR, published by CI for every commit on main.
+  # deploy/redeploy.sh sets PINTRAIL_TAG to the commit it deploys, pulls (or,
+  # failing that, builds) <image>:<commit>, and once the new version is
+  # healthy tags it "deployed". Unset, PINTRAIL_TAG means "deployed", so a
+  # docker compose command run by hand uses the last successful deploy.
   api:
+    image: ghcr.io/pintrail/pintrail-api:${PINTRAIL_TAG:-deployed}
     environment:
       <<: *prod-app-env
       BIND_ADDR: 0.0.0.0:8080
@@ -63,13 +69,17 @@ services:
       # bucket, because the only address the API would see is Caddy's.
       TRUST_PROXY_HEADERS: "true"
       MAILER: ${MAILER:-log}
+      VALHALLA_URL: ${VALHALLA_URL:-http://valhalla:8002}
     # Only Caddy talks to it.
     ports: !override []
 
   worker:
+    image: ghcr.io/pintrail/pintrail-worker:${PINTRAIL_TAG:-deployed}
     environment:
       <<: *prod-app-env
       WORKER_POLL_INTERVAL_SECS: ${WORKER_POLL_INTERVAL_SECS:-5}
+      # Production routes trails by default (#90, #91).
+      VALHALLA_URL: ${VALHALLA_URL:-http://valhalla:8002}
 
   caddy:
     image: caddy:2-alpine
@@ -86,6 +96,11 @@ services:
       - caddy-data:/data      # ACME account and certificates; losing this
       - caddy-config:/config  # re-issues certs and can hit rate limits
     restart: unless-stopped
+
+  # Walking routes are on in production; development opts in with
+  # --profile routing. !reset clears the profile from compose.yml.
+  valhalla:
+    profiles: !reset []
 
 volumes:
   caddy-data:

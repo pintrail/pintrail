@@ -78,8 +78,12 @@ impl Settings {
             public_base_url: optional("PUBLIC_BASE_URL", "http://localhost:8080"),
             mailer: optional("MAILER", "log"),
             trust_proxy_headers: parsed("TRUST_PROXY_HEADERS", false)?,
-            s3_endpoint: env::var("S3_ENDPOINT").ok().filter(|v| !v.trim().is_empty()),
-            s3_public_endpoint: env::var("S3_PUBLIC_ENDPOINT").ok().filter(|v| !v.trim().is_empty()),
+            s3_endpoint: env::var("S3_ENDPOINT")
+                .ok()
+                .filter(|v| !v.trim().is_empty()),
+            s3_public_endpoint: env::var("S3_PUBLIC_ENDPOINT")
+                .ok()
+                .filter(|v| !v.trim().is_empty()),
             s3_region: optional("S3_REGION", "us-east-1"),
             s3_bucket: required("S3_BUCKET")?,
             s3_access_key_id: required("S3_ACCESS_KEY_ID")?,
@@ -112,10 +116,13 @@ where
     match env::var(name) {
         Err(_) => Ok(default),
         Ok(raw) if raw.trim().is_empty() => Ok(default),
-        Ok(raw) => raw.trim().parse().map_err(|e: T::Err| ConfigError::Invalid {
-            name,
-            value: raw,
-            reason: e.to_string(),
-        }),
+        Ok(raw) => raw
+            .trim()
+            .parse()
+            .map_err(|e: T::Err| ConfigError::Invalid {
+                name,
+                value: raw,
+                reason: e.to_string(),
+            }),
     }
 }

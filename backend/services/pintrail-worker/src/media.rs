@@ -149,10 +149,7 @@ impl TempWork {
         static COUNTER: AtomicU64 = AtomicU64::new(0);
         let n = COUNTER.fetch_add(1, Ordering::Relaxed);
 
-        let dir = std::env::temp_dir().join(format!(
-            "pintrail-{tag}-{}-{n}",
-            std::process::id()
-        ));
+        let dir = std::env::temp_dir().join(format!("pintrail-{tag}-{}-{n}", std::process::id()));
         std::fs::create_dir_all(&dir).context("creating temp work directory")?;
 
         Ok(Self { dir })
@@ -208,8 +205,12 @@ fn pdf_first_page_png(bytes: &[u8]) -> anyhow::Result<Vec<u8>> {
         "pdftoppm",
         &[
             "-png", // PNG rather than JPEG: no generation loss before the WebP encode
-            "-f", "1", "-l", "1", // first page only
-            "-r", "150", // enough resolution to downscale from cleanly
+            "-f",
+            "1",
+            "-l",
+            "1", // first page only
+            "-r",
+            "150", // enough resolution to downscale from cleanly
             "-singlefile",
         ],
         bytes,

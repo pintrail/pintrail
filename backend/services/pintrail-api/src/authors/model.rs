@@ -8,7 +8,9 @@ use uuid::Uuid;
 /// order here is load-bearing: reordering these silently changes who can do
 /// what. New levels must be inserted at the correct privilege position, not
 /// appended.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, sqlx::Type)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, sqlx::Type,
+)]
 #[sqlx(type_name = "author_role", rename_all = "lowercase")]
 #[serde(rename_all = "lowercase")]
 pub enum AuthorRole {
@@ -42,6 +44,8 @@ impl std::str::FromStr for AuthorRole {
     }
 }
 
+// Mirrors the table row for sqlx::FromRow; not every column is read yet.
+#[allow(dead_code)]
 #[derive(Debug, Clone, sqlx::FromRow)]
 pub struct Author {
     pub id: Uuid,
@@ -127,15 +131,6 @@ pub fn looks_like_email(candidate: &str) -> bool {
     }
 }
 
-#[derive(Debug, Clone, sqlx::FromRow)]
-pub struct AuthorSession {
-    pub id: Uuid,
-    pub author_id: Uuid,
-    pub token_hash: String,
-    pub expires_at: DateTime<Utc>,
-    pub created_at: DateTime<Utc>,
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -150,7 +145,10 @@ mod tests {
     #[test]
     fn role_parses_case_insensitively() {
         assert_eq!("ADMIN".parse::<AuthorRole>().unwrap(), AuthorRole::Admin);
-        assert_eq!(" editor ".parse::<AuthorRole>().unwrap(), AuthorRole::Editor);
+        assert_eq!(
+            " editor ".parse::<AuthorRole>().unwrap(),
+            AuthorRole::Editor
+        );
         assert!("root".parse::<AuthorRole>().is_err());
     }
 

@@ -75,6 +75,10 @@ services:
     build:
       context: .
       target: api
+      # deploy/redeploy.sh sets PINTRAIL_TAG to the commit, so a build on the
+      # host still reports which commit it is.
+      args:
+        PINTRAIL_GIT_SHA: ${PINTRAIL_TAG:-dev}
     environment:
       <<: *app-env
       BIND_ADDR: 0.0.0.0:8080
@@ -83,6 +87,9 @@ services:
       # operations, but signs upload/download URLs against localhost:9000.
       S3_PUBLIC_ENDPOINT: ${S3_PUBLIC_ENDPOINT:-http://localhost:9000}
       PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-http://localhost:8080}
+      # Only for the admin System tab's "is the router answering" check;
+      # the worker does the routing (#91). Empty unless routing is on.
+      VALHALLA_URL: ${VALHALLA_URL:-}
       # Local development is plain http, so a Secure cookie would never be
       # sent back. Both of these flip in compose.prod.yml.
       COOKIE_SECURE: "false"
@@ -103,9 +110,15 @@ services:
     build:
       context: .
       target: worker
+      args:
+        PINTRAIL_GIT_SHA: ${PINTRAIL_TAG:-dev}
     environment:
       <<: *app-env
       WORKER_POLL_INTERVAL_SECS: "5"
+      # Walking routes for trails (#91). Empty here, so development doesn't
+      # route unless asked (--profile routing plus VALHALLA_URL in .env);
+      # compose.prod.yml defaults it to http://valhalla:8002.
+      VALHALLA_URL: ${VALHALLA_URL:-}
     depends_on:
       # Waits for the API because that is what runs migrations. The worker
       # would survive starting first -- a failed poll cycle does not kill it --
@@ -116,6 +129,42 @@ services:
         condition: service_completed_successfully
     restart: unless-stopped
 
+  # Walking routes for trails (#34, #90). Valhalla, self-hosted, on the
+  # Geofabrik Massachusetts OpenStreetMap extract. Opt-in for development:
+  # start it with --profile routing. Production turns it on in
+  # compose.prod.yml. On first start it downloads the extract and builds its routing
+  # data into the valhalla volume, which takes a while (docs/DEPLOYMENT.md,
+  # "Routing"); after that it starts in seconds from the built data.
+  # deploy/routing-refresh.sh rebuilds it from a fresh extract every 30 days
+  # (run by deploy/auto-deploy.sh) without taking the live copy down. Internal only: the worker reaches it
+  # at http://valhalla:8002.
+  valhalla:
+    image: ghcr.io/valhalla/valhalla-scripted:3.9.1
+    profiles: [routing]
+    environment:
+      tile_urls: ${VALHALLA_PBF_URL:-https://download.geofabrik.de/north-america/us/massachusetts-latest.osm.pbf}
+      # The live data lives in /custom_files/current; the refresh builds the
+      # next copy in /custom_files/next and swaps it in.
+      path_extension: current
+      # Fewer threads keep memory down during a build; a build that gets
+      # killed (exit 137) needs fewer still.
+      server_threads: ${VALHALLA_THREADS:-2}
+      # Never rebuild on a restart; only the refresh script rebuilds.
+      use_tiles_ignore_pbf: "True"
+      build_elevation: "False"
+      build_transit: "False"
+    volumes:
+      - valhalla:/custom_files
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8002/status >/dev/null || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      # The first start builds the data before it can answer.
+      start_period: 90m
+    restart: unless-stopped
+
 volumes:
   pgdata:
   miniodata:
+  valhalla:

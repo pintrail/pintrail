@@ -51,7 +51,9 @@ pub fn healthcheck(bind_addr: &str) -> anyhow::Result<()> {
     // The configured address may be a wildcard, which is valid to listen on
     // but not to connect to.
     let target = match bind_addr.rsplit_once(':') {
-        Some((host, port)) if host.is_empty() || host == "0.0.0.0" || host == "::" || host == "[::]" => {
+        Some((host, port))
+            if host.is_empty() || host == "0.0.0.0" || host == "::" || host == "[::]" =>
+        {
             format!("127.0.0.1:{port}")
         }
         _ => bind_addr.to_string(),

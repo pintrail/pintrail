@@ -29,7 +29,9 @@ use serde::Deserialize;
 use serde_json::{json, Value as Json};
 use uuid::Uuid;
 
-use super::routes::{base_ctx, environment, render, require_csrf, require_editor, respond, session_token};
+use super::routes::{
+    base_ctx, environment, render, require_csrf, require_editor, respond, session_token,
+};
 use crate::artifacts::routes::RESOLVED_COORDS_CTE;
 use crate::audit;
 use crate::authors::extractors::AuthenticatedAuthor;
@@ -44,11 +46,26 @@ pub fn router() -> Router<AppState> {
     Router::new()
         .route("/studio/topics", get(list))
         .route("/studio/topics/new", get(new_form))
-        .route("/studio/topics/{id}/artifacts", get(topic_card).post(topic_link))
-        .route("/studio/topics/{id}/artifacts/{artifact_id}/delete", post(topic_unlink))
-        .route("/studio/artifacts/{id}/topics", get(artifact_card).post(artifact_link))
-        .route("/studio/artifacts/{id}/topics/{topic_id}", post(artifact_note))
-        .route("/studio/artifacts/{id}/topics/{topic_id}/delete", post(artifact_unlink))
+        .route(
+            "/studio/topics/{id}/artifacts",
+            get(topic_card).post(topic_link),
+        )
+        .route(
+            "/studio/topics/{id}/artifacts/{artifact_id}/delete",
+            post(topic_unlink),
+        )
+        .route(
+            "/studio/artifacts/{id}/topics",
+            get(artifact_card).post(artifact_link),
+        )
+        .route(
+            "/studio/artifacts/{id}/topics/{topic_id}",
+            post(artifact_note),
+        )
+        .route(
+            "/studio/artifacts/{id}/topics/{topic_id}/delete",
+            post(artifact_unlink),
+        )
 }
 
 // --- the list ----------------------------------------------------------------
@@ -107,7 +124,10 @@ fn excerpt(text: &str, max: usize) -> String {
     }
     let cut: String = flat.chars().take(max).collect();
     let cut = cut.rsplit_once(' ').map(|(head, _)| head).unwrap_or(&cut);
-    format!("{}…", cut.trim_end_matches(|c: char| c.is_ascii_punctuation()))
+    format!(
+        "{}…",
+        cut.trim_end_matches(|c: char| c.is_ascii_punctuation())
+    )
 }
 
 async fn new_form(
@@ -154,28 +174,45 @@ fn clean_note(note: &str) -> Result<String, String> {
 /// What kind of row `id` is: Some(true) a topic, Some(false) an artifact,
 /// None if it doesn't exist (or is deleted).
 async fn is_topic(state: &AppState, id: Uuid) -> AppResult<Option<bool>> {
-    Ok(sqlx::query_scalar("SELECT is_topic FROM artifacts WHERE id = $1 AND deleted_at IS NULL")
-        .bind(id)
-        .fetch_optional(&state.db)
-        .await?)
+    Ok(
+        sqlx::query_scalar("SELECT is_topic FROM artifacts WHERE id = $1 AND deleted_at IS NULL")
+            .bind(id)
+            .fetch_optional(&state.db)
+            .await?,
+    )
 }
 
 /// Links `artifact` to `topic`, or says why not in words for the card.
 /// Linking twice is not an error: the note is updated instead.
-async fn link(state: &AppState, author: &Author, artifact: Uuid, topic: Uuid, note: &str) -> AppResult<Option<String>> {
+async fn link(
+    state: &AppState,
+    author: &Author,
+    artifact: Uuid,
+    topic: Uuid,
+    note: &str,
+) -> AppResult<Option<String>> {
     require_editor(author)?;
     let note = match clean_note(note) {
         Ok(n) => n,
         Err(msg) => return Ok(Some(msg)),
     };
-    match (is_topic(state, artifact).await?, is_topic(state, topic).await?) {
+    match (
+        is_topic(state, artifact).await?,
+        is_topic(state, topic).await?,
+    ) {
         (Some(false), Some(true)) => {}
-        (None, _) | (_, None) => return Ok(Some("That no longer exists. Reload the page and try again.".into())),
+        (None, _) | (_, None) => {
+            return Ok(Some(
+                "That no longer exists. Reload the page and try again.".into(),
+            ))
+        }
         _ => return Ok(Some("Choose an artifact and a topic.".into())),
     }
     let own = audit::ownership(&state.db, artifact).await?;
     if !audit::may_modify(author, &own) {
-        return Ok(Some("Only the artifact's owner (or an admin) can link it to a topic.".into()));
+        return Ok(Some(
+            "Only the artifact's owner (or an admin) can link it to a topic.".into(),
+        ));
     }
     let mut tx = audit::begin_as(&state.db, author.id).await?;
     sqlx::query(
@@ -197,12 +234,13 @@ async fn unlink(state: &AppState, author: &Author, artifact: Uuid, topic: Uuid) 
     require_editor(author)?;
     let mut tx = audit::begin_as(&state.db, author.id).await?;
     audit::ensure_can_modify(&mut *tx, author, artifact).await?;
-    let removed = sqlx::query("DELETE FROM artifact_topics WHERE artifact_id = $1 AND topic_id = $2")
-        .bind(artifact)
-        .bind(topic)
-        .execute(&mut *tx)
-        .await?
-        .rows_affected();
+    let removed =
+        sqlx::query("DELETE FROM artifact_topics WHERE artifact_id = $1 AND topic_id = $2")
+            .bind(artifact)
+            .bind(topic)
+            .execute(&mut *tx)
+            .await?
+            .rows_affected();
     if removed > 0 {
         audit::touch(&mut tx, author, artifact).await?;
     }
@@ -254,7 +292,10 @@ async fn render_artifact_card(
     } else {
         Vec::new()
     };
-    let choices: Vec<Json> = choices.iter().map(|(id, name)| json!({ "id": id.to_string(), "name": name })).collect();
+    let choices: Vec<Json> = choices
+        .iter()
+        .map(|(id, name)| json!({ "id": id.to_string(), "name": name }))
+        .collect();
     render(
         &environment(),
         "studio_artifact_topics.html",
@@ -374,11 +415,16 @@ async fn render_topic_card(
         ORDER BY lower(a.name), a.id
         "#
     );
-    let rows = sqlx::query_as::<_, LinkedArtifact>(&sql).bind(topic).fetch_all(&state.db).await?;
+    let rows = sqlx::query_as::<_, LinkedArtifact>(&sql)
+        .bind(topic)
+        .fetch_all(&state.db)
+        .await?;
     let linked: Vec<Json> = rows
         .iter()
         .map(|r| {
-            let own = audit::Ownership { created_by: r.created_by };
+            let own = audit::Ownership {
+                created_by: r.created_by,
+            };
             json!({
                 "id": r.id.to_string(), "name": r.name, "kind": r.kind, "status": r.status,
                 "note": r.note, "parent_name": r.parent_name, "placed": r.lat.is_some(),
@@ -456,7 +502,11 @@ async fn topic_link(
         Ok(artifact) => link(&state, &author.0, artifact, id, &f.note).await?,
         Err(_) => Some("Choose an artifact to link.".to_string()),
     };
-    Ok(render_topic_card(&state, &author.0, &jar, id, error.as_deref()).await?.into_response())
+    Ok(
+        render_topic_card(&state, &author.0, &jar, id, error.as_deref())
+            .await?
+            .into_response(),
+    )
 }
 
 async fn topic_unlink(

@@ -98,11 +98,7 @@ pub fn sanitize_filename(raw: &str) -> String {
         .trim()
         .trim_start_matches('.');
 
-    let cleaned: String = base
-        .chars()
-        .filter(|c| !c.is_control())
-        .take(200)
-        .collect();
+    let cleaned: String = base.chars().filter(|c| !c.is_control()).take(200).collect();
 
     if cleaned.is_empty() {
         "upload".to_string()
@@ -118,13 +114,19 @@ mod tests {
     #[test]
     fn classifies_supported_types() {
         assert_eq!(classify("image/jpeg").unwrap().extension, "jpg");
-        assert_eq!(classify("application/pdf").unwrap().kind, AttachmentKind::Pdf);
+        assert_eq!(
+            classify("application/pdf").unwrap().kind,
+            AttachmentKind::Pdf
+        );
         assert_eq!(classify("image/heic").unwrap().kind, AttachmentKind::Image);
     }
 
     #[test]
     fn ignores_parameters_and_case() {
-        assert_eq!(classify("TEXT/PLAIN; charset=utf-8").unwrap().extension, "txt");
+        assert_eq!(
+            classify("TEXT/PLAIN; charset=utf-8").unwrap().extension,
+            "txt"
+        );
         assert_eq!(classify("  image/PNG  ").unwrap().extension, "png");
     }
 

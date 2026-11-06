@@ -2,9 +2,15 @@
 #
 # Everything here runs from backend/, where compose.yml and .env live.
 
-# `DOCKER="sudo docker"` for a host where the deploy user is not in the
-# docker group. Left unquoted where used so that form splits into two words.
+# The deploy user must be in the docker group. Running docker through sudo
+# is refused: sudo resets the environment, so compose would never see
+# PINTRAIL_TAG and would run the previous "deployed" images (or build its
+# own) while the deploy log records the new commit.
 DOCKER=${DOCKER:-docker}
+if [[ $DOCKER == sudo* ]]; then
+  printf '\033[31merror:\033[0m %s\n' "DOCKER=\"$DOCKER\" is not supported: sudo drops PINTRAIL_TAG. Add $(id -un) to the docker group instead." >&2
+  exit 1
+fi
 BACKUP_DIR=${BACKUP_DIR:-backups}
 BACKUP_KEEP=${BACKUP_KEEP:-10}
 DEPLOY_LOG="$BACKUP_DIR/deploy.log"
@@ -99,4 +105,34 @@ wait_for_service() {
 record_deploy() {
   mkdir -p "$BACKUP_DIR"
   printf '%s\t%s\t%s\t%s\n' "$(date -u +%FT%TZ)" "$1" "$2" "${3:--}" >>"$DEPLOY_LOG"
+}
+
+# Where CI publishes our images, and the local tag hand-run compose commands
+# use (compose.prod.yml defaults PINTRAIL_TAG to it).
+IMAGE_PREFIX=${IMAGE_PREFIX:-ghcr.io/pintrail/pintrail}
+DEPLOYED_TAG=deployed
+
+# True when the checked-out compose files run the published images. Older
+# commits build locally, so a rollback to one of them must build too.
+uses_registry_images() {
+  compose config 2>/dev/null | grep -q "image: $IMAGE_PREFIX-api:"
+}
+
+# Pulls <prefix>-{api,worker}:<commit>. Fails if either is missing, so the
+# caller can build instead and a half-published commit never runs.
+pull_images() {
+  local sha=$1 svc
+  log "pulling images for ${sha:0:10}"
+  for svc in api worker; do
+    $DOCKER pull --quiet "$IMAGE_PREFIX-$svc:$sha" >/dev/null || return 1
+  done
+}
+
+# Points "deployed" at the images now running. Only after the health checks,
+# so a failed deploy leaves it on the last good version.
+mark_deployed() {
+  local sha=$1 svc
+  for svc in api worker; do
+    $DOCKER tag "$IMAGE_PREFIX-$svc:$sha" "$IMAGE_PREFIX-$svc:$DEPLOYED_TAG"
+  done
 }

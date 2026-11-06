@@ -83,7 +83,10 @@ mod tests {
         // The domain separator is what guarantees this; without it the value
         // in a form field would equal the value in the sessions table.
         let session = "session-abc";
-        assert_ne!(token_for_session(session), crate::crypto::hash_token(session));
+        assert_ne!(
+            token_for_session(session),
+            crate::crypto::hash_token(session)
+        );
     }
 
     #[test]

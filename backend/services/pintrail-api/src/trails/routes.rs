@@ -8,8 +8,8 @@ use sqlx::PgConnection;
 use uuid::Uuid;
 
 use super::model::{
-    CreateTrail, ReplaceStops, StopInput, Trail, TrailDetail, TrailStopRow, TrailStopView,
-    TrailSummary, TrailVisibility, UpdateTrail,
+    CreateTrail, ReplaceStops, StopInput, Trail, TrailDetail, TrailRouteView, TrailStopRow,
+    TrailStopView, TrailSummary, TrailVisibility, UpdateTrail,
 };
 use crate::crypto::generate_token;
 use crate::error::{AppError, AppResult};
@@ -44,7 +44,7 @@ WITH RECURSIVE resolved AS (
            COALESCE(a.lng, r.effective_lng)
     FROM artifacts a JOIN resolved r ON a.parent_id = r.id
 )
-SELECT s.id, s.artifact_id, s.position, s.note,
+SELECT s.id, s.artifact_id, s.position, s.note, s.directions,
        a.name AS artifact_name,
        a.kind AS artifact_kind,
        r.effective_lat AS lat,
@@ -84,7 +84,19 @@ async fn list(
 
     // Two shapes, one query: either everything this caller owns (any
     // visibility), or the public catalogue.
-    let rows = sqlx::query_as::<_, (Uuid, String, String, OwnerType, TrailVisibility, i64, chrono::DateTime<chrono::Utc>, chrono::DateTime<chrono::Utc>)>(
+    let rows = sqlx::query_as::<
+        _,
+        (
+            Uuid,
+            String,
+            String,
+            OwnerType,
+            TrailVisibility,
+            i64,
+            chrono::DateTime<chrono::Utc>,
+            chrono::DateTime<chrono::Utc>,
+        ),
+    >(
         r#"
         SELECT t.id, t.title, t.description, t.owner_type, t.visibility,
                (SELECT count(*) FROM trail_stops s WHERE s.trail_id = t.id) AS stop_count,
@@ -109,7 +121,16 @@ async fn list(
     let trails: Vec<TrailSummary> = rows
         .into_iter()
         .map(
-            |(id, title, description, owner_type, visibility, stop_count, created_at, updated_at)| {
+            |(
+                id,
+                title,
+                description,
+                owner_type,
+                visibility,
+                stop_count,
+                created_at,
+                updated_at,
+            )| {
                 TrailSummary {
                     id,
                     title,
@@ -130,14 +151,20 @@ async fn list(
 /// Public author trails are the curated set everyone sees in the app, so only
 /// an admin may make one public (the Studio applies the same rule). Explorers'
 /// own trails are theirs to share.
-fn ensure_may_publish(identity: &Identity, visibility: Option<TrailVisibility>, current: Option<TrailVisibility>) -> AppResult<()> {
+fn ensure_may_publish(
+    identity: &Identity,
+    visibility: Option<TrailVisibility>,
+    current: Option<TrailVisibility>,
+) -> AppResult<()> {
     match identity {
         Identity::Author(a)
             if visibility == Some(TrailVisibility::Public)
                 && current != Some(TrailVisibility::Public)
                 && !crate::audit::is_admin(a) =>
         {
-            Err(AppError::BadRequest("only an admin can make an author trail public".into()))
+            Err(AppError::BadRequest(
+                "only an admin can make an author trail public".into(),
+            ))
         }
         _ => Ok(()),
     }
@@ -217,7 +244,9 @@ async fn detail(
         return Err(AppError::NotFound("trail"));
     }
 
-    Ok(Json(json!({ "trail": build_detail(&state, trail, is_owner, !identity.is_author()).await? })))
+    Ok(Json(
+        json!({ "trail": build_detail(&state, trail, is_owner, !identity.is_author()).await? }),
+    ))
 }
 
 /// Resolves an unlisted share link.
@@ -243,7 +272,9 @@ async fn resolve_share_token(
         return Err(AppError::NotFound("trail"));
     }
 
-    Ok(Json(json!({ "trail": build_detail(&state, trail, false, !identity.is_author()).await? })))
+    Ok(Json(
+        json!({ "trail": build_detail(&state, trail, false, !identity.is_author()).await? }),
+    ))
 }
 
 async fn update(
@@ -287,7 +318,9 @@ async fn update(
     .fetch_one(&state.db)
     .await?;
 
-    Ok(Json(json!({ "trail": build_detail(&state, updated, true, !identity.is_author()).await? })))
+    Ok(Json(
+        json!({ "trail": build_detail(&state, updated, true, !identity.is_author()).await? }),
+    ))
 }
 
 /// Replaces the whole ordered stop list.
@@ -364,13 +397,11 @@ pub(crate) fn new_share_token() -> String {
 }
 
 async fn load_trail(state: &AppState, id: Uuid) -> AppResult<Trail> {
-    sqlx::query_as::<_, Trail>(&format!(
-        "SELECT {TRAIL_COLUMNS} FROM trails WHERE id = $1"
-    ))
-    .bind(id)
-    .fetch_optional(&state.db)
-    .await?
-    .ok_or(AppError::NotFound("trail"))
+    sqlx::query_as::<_, Trail>(&format!("SELECT {TRAIL_COLUMNS} FROM trails WHERE id = $1"))
+        .bind(id)
+        .fetch_optional(&state.db)
+        .await?
+        .ok_or(AppError::NotFound("trail"))
 }
 
 /// Loads a trail the caller owns, or reports it as missing.
@@ -387,7 +418,11 @@ async fn load_owned_trail(state: &AppState, id: Uuid, identity: &Identity) -> Ap
     Ok(trail)
 }
 
-async fn load_stops(state: &AppState, trail_id: Uuid, reader: bool) -> AppResult<Vec<TrailStopView>> {
+async fn load_stops(
+    state: &AppState,
+    trail_id: Uuid,
+    reader: bool,
+) -> AppResult<Vec<TrailStopView>> {
     let rows = sqlx::query_as::<_, TrailStopRow>(STOPS_QUERY)
         .bind(trail_id)
         .bind(reader)
@@ -397,8 +432,32 @@ async fn load_stops(state: &AppState, trail_id: Uuid, reader: bool) -> AppResult
     Ok(rows.into_iter().map(TrailStopView::from).collect())
 }
 
-async fn build_detail(state: &AppState, trail: Trail, is_owner: bool, reader: bool) -> AppResult<TrailDetail> {
+async fn load_route(state: &AppState, trail_id: Uuid) -> AppResult<Option<TrailRouteView>> {
+    Ok(sqlx::query_as::<_, TrailRouteView>(
+        "SELECT status, geometry, distance_m, duration_s, legs, error_message, computed_at, \
+                EXISTS (SELECT 1 FROM trail_route_jobs j WHERE j.trail_id = r.trail_id \
+                        AND j.status IN ('queued', 'processing')) AS updating \
+         FROM trail_routes r WHERE r.trail_id = $1",
+    )
+    .bind(trail_id)
+    .fetch_optional(&state.db)
+    .await?)
+}
+
+async fn build_detail(
+    state: &AppState,
+    trail: Trail,
+    is_owner: bool,
+    reader: bool,
+) -> AppResult<TrailDetail> {
     let stops = load_stops(state, trail.id, reader).await?;
+    // A route passes through every stop, so for someone who can't see one of
+    // them (unpublished or deleted) it would give that stop's location away.
+    let route = if !is_owner && stops.iter().any(|s| !s.available) {
+        None
+    } else {
+        load_route(state, trail.id).await?
+    };
 
     Ok(TrailDetail {
         id: trail.id,
@@ -410,6 +469,7 @@ async fn build_detail(state: &AppState, trail: Trail, is_owner: bool, reader: bo
         share_token: is_owner.then_some(trail.share_token).flatten(),
         is_owner,
         stops,
+        route,
         created_at: trail.created_at,
         updated_at: trail.updated_at,
     })
@@ -449,16 +509,82 @@ async fn insert_stops(
         }
 
         sqlx::query(
-            "INSERT INTO trail_stops (trail_id, artifact_id, position, note) \
-             VALUES ($1, $2, $3, $4)",
+            "INSERT INTO trail_stops (trail_id, artifact_id, position, note, directions) \
+             VALUES ($1, $2, $3, $4, $5)",
         )
         .bind(trail_id)
         .bind(stop.artifact_id)
         .bind(index as i32)
         .bind(stop.note.as_deref().map(str::trim))
+        .bind(
+            stop.directions
+                .as_deref()
+                .map(str::trim)
+                .filter(|s| !s.is_empty()),
+        )
         .execute(&mut *conn)
         .await?;
     }
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use sqlx::PgPool;
+
+    #[sqlx::test(migrations = "../../migrations")]
+    async fn stop_directions_round_trip_and_blank_means_none(db: PgPool) -> anyhow::Result<()> {
+        let author: Uuid = sqlx::query_scalar(
+            "INSERT INTO authors (email, password_hash, role) VALUES ('a@example.test', 'x', 'editor') RETURNING id",
+        )
+        .fetch_one(&db)
+        .await?;
+        let trail: Uuid = sqlx::query_scalar(
+            "INSERT INTO trails (title, owner_type, owner_id) VALUES ('Walk', 'author', $1) RETURNING id",
+        )
+        .bind(author)
+        .fetch_one(&db)
+        .await?;
+        let mut ids = Vec::new();
+        for name in ["Plant", "Pond"] {
+            let id: Uuid = sqlx::query_scalar(
+                "INSERT INTO artifacts (kind, name, description, lat, lng) \
+                 VALUES ('other', $1, 'x', 42.39, -72.53) RETURNING id",
+            )
+            .bind(name)
+            .fetch_one(&db)
+            .await?;
+            ids.push(id);
+        }
+        let stops = vec![
+            StopInput {
+                artifact_id: ids[0],
+                note: None,
+                directions: Some("  Start at Lot 44.  ".into()),
+            },
+            StopInput {
+                artifact_id: ids[1],
+                note: Some("Look for the logs".into()),
+                directions: Some("   ".into()),
+            },
+        ];
+        let mut conn = db.acquire().await?;
+        insert_stops(&mut conn, trail, &stops, false).await?;
+
+        let rows = sqlx::query_as::<_, TrailStopRow>(STOPS_QUERY)
+            .bind(trail)
+            .bind(false)
+            .fetch_all(&db)
+            .await?;
+        let views: Vec<TrailStopView> = rows.into_iter().map(TrailStopView::from).collect();
+        assert_eq!(views[0].directions.as_deref(), Some("Start at Lot 44."));
+        assert_eq!(
+            views[1].directions, None,
+            "blank directions are stored as none"
+        );
+        assert_eq!(views[1].note.as_deref(), Some("Look for the logs"));
+        Ok(())
+    }
 }

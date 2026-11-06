@@ -63,6 +63,8 @@ pub struct TrailDetail {
     /// Whether the caller may edit this trail.
     pub is_owner: bool,
     pub stops: Vec<TrailStopView>,
+    /// The walking route through the stops (#91), when one has been computed.
+    pub route: Option<TrailRouteView>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
@@ -73,6 +75,7 @@ pub struct TrailStopRow {
     pub artifact_id: Uuid,
     pub position: i32,
     pub note: Option<String>,
+    pub directions: Option<String>,
     pub artifact_name: Option<String>,
     pub artifact_kind: Option<ArtifactKind>,
     pub lat: Option<f64>,
@@ -93,6 +96,9 @@ pub struct TrailStopView {
     pub artifact_id: Uuid,
     pub position: i32,
     pub note: Option<String>,
+    /// "Getting here": how to walk to this stop from the previous one (for
+    /// the first stop, how to reach the start), in the author's words.
+    pub directions: Option<String>,
     pub available: bool,
     pub artifact_name: Option<String>,
     pub artifact_kind: Option<ArtifactKind>,
@@ -109,6 +115,7 @@ impl From<TrailStopRow> for TrailStopView {
             artifact_id: row.artifact_id,
             position: row.position,
             note: row.note,
+            directions: row.directions,
             available,
             // Nothing about a deleted artifact is worth showing.
             artifact_name: available.then_some(row.artifact_name).flatten(),
@@ -117,6 +124,26 @@ impl From<TrailStopRow> for TrailStopView {
             lng: available.then_some(row.lng).flatten(),
         }
     }
+}
+
+/// The stored walking route, as the worker computed it with Valhalla.
+#[derive(Debug, Serialize, sqlx::FromRow)]
+pub struct TrailRouteView {
+    /// ok, too_few_stops, or failed (see `error`).
+    pub status: String,
+    /// GeoJSON LineString of [lng, lat] pairs; present when status is ok.
+    pub geometry: Option<serde_json::Value>,
+    pub distance_m: Option<f64>,
+    pub duration_s: Option<f64>,
+    /// Per pair of consecutive stops: from_stop, to_stop, distance_m,
+    /// duration_s, and maneuvers [{instruction, distance_m}].
+    pub legs: serde_json::Value,
+    #[sqlx(rename = "error_message")]
+    pub error: Option<String>,
+    pub computed_at: DateTime<Utc>,
+    /// The stops changed and a new route is being computed; this one may be
+    /// out of date.
+    pub updating: bool,
 }
 
 #[derive(Debug, Deserialize)]
@@ -147,6 +174,9 @@ pub struct UpdateTrail {
 pub struct StopInput {
     pub artifact_id: Uuid,
     pub note: Option<String>,
+    /// How to get to this stop from the previous one.
+    #[serde(default)]
+    pub directions: Option<String>,
 }
 
 /// The whole ordered list, replacing whatever was there.

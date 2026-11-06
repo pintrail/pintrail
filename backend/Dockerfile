@@ -83,6 +83,14 @@ ENV BIND_ADDR=0.0.0.0:8080
 HEALTHCHECK --interval=15s --timeout=5s --start-period=20s --retries=3 \
     CMD ["/usr/local/bin/pintrail-api", "healthcheck"]
 
+# Which build this is, shown by /health and the admin System tab. CI passes
+# both (see .github/workflows/ci.yml); a host build gets the commit from
+# deploy/redeploy.sh via compose.yml. Declared last, so a new commit only
+# changes this layer and never invalidates the build cache.
+ARG PINTRAIL_GIT_SHA=dev
+ARG PINTRAIL_BUILT_AT=
+ENV PINTRAIL_GIT_SHA=${PINTRAIL_GIT_SHA} PINTRAIL_BUILT_AT=${PINTRAIL_BUILT_AT}
+
 ENTRYPOINT ["/usr/local/bin/pintrail-api"]
 
 # ---------------------------------------------------------------------------
@@ -104,5 +112,13 @@ RUN apt-get update \
 USER pintrail
 
 COPY --from=builder /build/target/release/pintrail-worker /usr/local/bin/pintrail-worker
+
+# Which build this is, shown by /health and the admin System tab. CI passes
+# both (see .github/workflows/ci.yml); a host build gets the commit from
+# deploy/redeploy.sh via compose.yml. Declared last, so a new commit only
+# changes this layer and never invalidates the build cache.
+ARG PINTRAIL_GIT_SHA=dev
+ARG PINTRAIL_BUILT_AT=
+ENV PINTRAIL_GIT_SHA=${PINTRAIL_GIT_SHA} PINTRAIL_BUILT_AT=${PINTRAIL_BUILT_AT}
 
 ENTRYPOINT ["/usr/local/bin/pintrail-worker"]

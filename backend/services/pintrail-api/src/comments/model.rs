@@ -11,6 +11,8 @@ pub enum CommentStatus {
     Flagged,
 }
 
+// Mirrors the table row for sqlx::FromRow; not every column is read yet.
+#[allow(dead_code)]
 #[derive(Debug, Clone, sqlx::FromRow)]
 pub struct CommentRow {
     pub id: Uuid,

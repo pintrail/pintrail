@@ -147,7 +147,10 @@ mod tests {
 
         assert_ne!(a.raw, b.raw);
         assert_eq!(a.raw.len(), 64, "32 bytes hex-encoded");
-        assert_ne!(a.raw, a.hash, "the raw token must never equal what is stored");
+        assert_ne!(
+            a.raw, a.hash,
+            "the raw token must never equal what is stored"
+        );
         assert_eq!(a.hash, hash_token(&a.raw));
         assert!(a.expires_at > Utc::now());
     }

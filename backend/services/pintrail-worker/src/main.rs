@@ -1,4 +1,4 @@
-//! Attachment processing worker.
+//! Attachment processing, artifact search indexing, and trail routing worker.
 //!
 //! Claims queued attachments from Postgres with `FOR UPDATE SKIP LOCKED`,
 //! turns originals into what the app displays, and writes the output back to
@@ -7,6 +7,8 @@
 
 mod media;
 mod queue;
+mod search_index;
+mod trail_route;
 
 use std::time::Duration;
 
@@ -28,6 +30,9 @@ struct Config {
     /// its owner died.
     stuck_timeout_secs: i64,
     storage: StorageConfig,
+    /// Valhalla's base URL (http://valhalla:8002 in compose). Unset: trail
+    /// routes are not computed, and their jobs wait until it is set.
+    valhalla_url: Option<String>,
 }
 
 impl Config {
@@ -77,6 +82,10 @@ impl Config {
                 // The worker never presigns; this only satisfies the shared type.
                 presign_ttl: Duration::from_secs(900),
             },
+            valhalla_url: std::env::var("VALHALLA_URL")
+                .ok()
+                .map(|v| v.trim().to_string())
+                .filter(|v| !v.is_empty()),
         })
     }
 }
@@ -102,19 +111,33 @@ async fn main() -> anyhow::Result<()> {
     let storage = Storage::connect(&config.storage).await?;
     storage.check().await?;
 
+    let router = match &config.valhalla_url {
+        Some(url) => Some(trail_route::Valhalla::new(url)?),
+        None => {
+            tracing::info!("VALHALLA_URL is not set; trail routes will not be computed");
+            None
+        }
+    };
+
     tracing::info!(
         poll_interval = ?config.poll_interval,
         batch_size = config.batch_size,
+        routing = router.is_some(),
         "pintrail-worker started"
     );
 
-    run(&db, &storage, &config).await;
+    run(&db, &storage, &config, router.as_ref()).await;
 
     tracing::info!("pintrail-worker stopped");
     Ok(())
 }
 
-async fn run(db: &PgPool, storage: &Storage, config: &Config) {
+async fn run(
+    db: &PgPool,
+    storage: &Storage,
+    config: &Config,
+    router: Option<&trail_route::Valhalla>,
+) {
     let mut ticker = tokio::time::interval(config.poll_interval);
     // If a batch overruns a tick, catch up with one run rather than firing
     // every missed tick back to back.
@@ -127,6 +150,33 @@ async fn run(db: &PgPool, storage: &Storage, config: &Config) {
                     // A failed cycle must not kill the worker; the next tick
                     // retries.
                     tracing::error!(error = ?err, "poll cycle failed");
+                }
+                // Keep the queues independent: a media failure must not prevent
+                // text indexing, and an empty media queue must not skip it.
+                if let Err(err) = search_index::poll_once(
+                    db,
+                    config.batch_size,
+                    config.max_attempts,
+                    config.stuck_timeout_secs,
+                )
+                .await
+                {
+                    tracing::error!(error = ?err, "search indexing cycle failed");
+                }
+                // Routing is its own queue too: a slow or down router must
+                // not hold up media or search.
+                if let Some(router) = router {
+                    if let Err(err) = trail_route::poll_once(
+                        db,
+                        router,
+                        config.batch_size,
+                        config.max_attempts,
+                        config.stuck_timeout_secs,
+                    )
+                    .await
+                    {
+                        tracing::error!(error = ?err, "trail routing cycle failed");
+                    }
                 }
             }
             _ = shutdown_signal() => break,
@@ -185,21 +235,22 @@ async fn process(storage: &Storage, job: &Job) -> anyhow::Result<queue::Success>
     // runtime; this hands them to the blocking pool.
     let kind = job.kind;
     let mime = job.original_mime_type.clone();
-    let processed = tokio::task::spawn_blocking(move || -> anyhow::Result<Option<media::Processed>> {
-        match kind {
-            AttachmentKind::Image => Ok(Some(media::process_image(&original, &mime)?)),
-            AttachmentKind::Pdf => Ok(Some(media::process_pdf(&original)?)),
-            // A text block has nothing to render.
-            AttachmentKind::Text => Ok(None),
-            // Rejected at upload time; reaching here means the allowlist and
-            // this dispatch have drifted apart.
-            AttachmentKind::Audio | AttachmentKind::Video => {
-                anyhow::bail!("{kind:?} processing is not implemented in v1")
+    let processed =
+        tokio::task::spawn_blocking(move || -> anyhow::Result<Option<media::Processed>> {
+            match kind {
+                AttachmentKind::Image => Ok(Some(media::process_image(&original, &mime)?)),
+                AttachmentKind::Pdf => Ok(Some(media::process_pdf(&original)?)),
+                // A text block has nothing to render.
+                AttachmentKind::Text => Ok(None),
+                // Rejected at upload time; reaching here means the allowlist and
+                // this dispatch have drifted apart.
+                AttachmentKind::Audio | AttachmentKind::Video => {
+                    anyhow::bail!("{kind:?} processing is not implemented in v1")
+                }
             }
-        }
-    })
-    .await
-    .context("processing task panicked")??;
+        })
+        .await
+        .context("processing task panicked")??;
 
     let Some(processed) = processed else {
         // Nothing to render: the original is what gets served.

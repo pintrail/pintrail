@@ -24,7 +24,9 @@ use serde::Deserialize;
 use serde_json::{json, Value as Json};
 use uuid::Uuid;
 
-use super::routes::{base_ctx, environment, render, require_csrf, require_editor, respond, session_token, CsrfForm};
+use super::routes::{
+    base_ctx, environment, render, require_csrf, require_editor, respond, session_token, CsrfForm,
+};
 use crate::artifacts::routes::RESOLVED_COORDS_CTE;
 use crate::audit;
 use crate::authors::extractors::AuthenticatedAuthor;
@@ -42,7 +44,10 @@ pub fn router() -> Router<AppState> {
         .route("/studio/trails/{id}", get(detail).post(update))
         .route("/studio/trails/{id}/edit", get(edit_form))
         .route("/studio/trails/{id}/delete", post(remove))
-        .route("/studio/trails/{id}/stops", get(stops_fragment).post(add_stop))
+        .route(
+            "/studio/trails/{id}/stops",
+            get(stops_fragment).post(add_stop),
+        )
         .route("/studio/trails/{id}/stops/order", post(reorder_stops))
         .route("/studio/trail-stops/{id}", post(update_stop))
         .route("/studio/trail-stops/{id}/delete", post(delete_stop))
@@ -79,7 +84,11 @@ fn may_modify(author: &Author, trail: &TrailRow) -> bool {
 
 async fn load_owned(state: &AppState, author: &Author, id: Uuid) -> AppResult<TrailRow> {
     let trail = load_trail(state, id).await?;
-    if may_modify(author, &trail) { Ok(trail) } else { Err(AppError::Forbidden) }
+    if may_modify(author, &trail) {
+        Ok(trail)
+    } else {
+        Err(AppError::Forbidden)
+    }
 }
 
 fn visibility_str(v: TrailVisibility) -> &'static str {
@@ -175,7 +184,12 @@ async fn detail(
     respond(&environment(), &headers, "studio_trail.html", ctx)
 }
 
-async fn detail_ctx(state: &AppState, author: &Author, jar: &CookieJar, id: Uuid) -> AppResult<Value> {
+async fn detail_ctx(
+    state: &AppState,
+    author: &Author,
+    jar: &CookieJar,
+    id: Uuid,
+) -> AppResult<Value> {
     let t = load_trail(state, id).await?;
     let people = super::profile::load_people(&state.db, &[t.owner_id]).await?;
     let trail = json!({
@@ -193,7 +207,13 @@ async fn detail_ctx(state: &AppState, author: &Author, jar: &CookieJar, id: Uuid
 }
 
 /// The trail and its effects: one success response for every change.
-async fn after_change(state: &AppState, author: &Author, jar: &CookieJar, headers: &HeaderMap, id: Uuid) -> AppResult<Response> {
+async fn after_change(
+    state: &AppState,
+    author: &Author,
+    jar: &CookieJar,
+    headers: &HeaderMap,
+    id: Uuid,
+) -> AppResult<Response> {
     let ctx = detail_ctx(state, author, jar, id).await?;
     let body = respond(&environment(), headers, "studio_trail.html", ctx)?;
     Ok(([("HX-Push-Url", format!("/studio/trails/{id}"))], body).into_response())
@@ -212,7 +232,11 @@ pub struct TrailForm {
     visibility: String,
 }
 
-async fn new_form(author: AuthenticatedAuthor, jar: CookieJar, headers: HeaderMap) -> AppResult<Html<String>> {
+async fn new_form(
+    author: AuthenticatedAuthor,
+    jar: CookieJar,
+    headers: HeaderMap,
+) -> AppResult<Html<String>> {
     require_editor(&author.0)?;
     let form = context! { title => "", description => "", visibility => "private" };
     render_form(&author.0, &jar, &headers, None, form, None)
@@ -254,7 +278,11 @@ fn render_form(
 }
 
 /// Validates a submitted form; on failure returns the message to show.
-fn validate(author: &Author, f: &TrailForm, current: Option<TrailVisibility>) -> Result<TrailVisibility, String> {
+fn validate(
+    author: &Author,
+    f: &TrailForm,
+    current: Option<TrailVisibility>,
+) -> Result<TrailVisibility, String> {
     let title = f.title.trim();
     if title.is_empty() {
         return Err("Give the trail a title.".into());
@@ -263,7 +291,10 @@ fn validate(author: &Author, f: &TrailForm, current: Option<TrailVisibility>) ->
         return Err("The title can be at most 200 characters.".into());
     }
     let vis = parse_visibility(&f.visibility).map_err(|e| e.to_string())?;
-    if vis == TrailVisibility::Public && current != Some(TrailVisibility::Public) && !audit::is_admin(author) {
+    if vis == TrailVisibility::Public
+        && current != Some(TrailVisibility::Public)
+        && !audit::is_admin(author)
+    {
         return Err("Only an admin can make a trail public. Keep it private or share it by link, and ask your instructor to publish it.".into());
     }
     Ok(vis)
@@ -282,7 +313,9 @@ async fn create(
         Ok(v) => v,
         Err(msg) => {
             let form = context! { title => f.title, description => f.description, visibility => f.visibility };
-            return Ok(render_form(&author.0, &jar, &headers, None, form, Some(&msg))?.into_response());
+            return Ok(
+                render_form(&author.0, &jar, &headers, None, form, Some(&msg))?.into_response(),
+            );
         }
     };
     let token = (vis == TrailVisibility::Unlisted).then(new_share_token);
@@ -316,7 +349,9 @@ async fn update(
         Ok(v) => v,
         Err(msg) => {
             let form = context! { title => f.title, description => f.description, visibility => f.visibility };
-            return Ok(render_form(&author.0, &jar, &headers, Some(id), form, Some(&msg))?.into_response());
+            return Ok(
+                render_form(&author.0, &jar, &headers, Some(id), form, Some(&msg))?.into_response(),
+            );
         }
     };
     // Becoming unlisted needs a link; leaving unlisted keeps it, so a trail
@@ -348,7 +383,10 @@ async fn remove(
 ) -> AppResult<Response> {
     require_csrf(&jar, &f.csrf_token)?;
     load_owned(&state, &author.0, id).await?;
-    sqlx::query("DELETE FROM trails WHERE id = $1").bind(id).execute(&state.db).await?;
+    sqlx::query("DELETE FROM trails WHERE id = $1")
+        .bind(id)
+        .execute(&state.db)
+        .await?;
     tracing::info!(trail_id = %id, actor = %author.0.id, "trail deleted in the studio");
     let body = list(author, State(state), jar, headers).await?;
     Ok(([("HX-Push-Url", "/studio/trails")], body).into_response())
@@ -361,6 +399,7 @@ struct StopRow {
     id: Uuid,
     artifact_id: Uuid,
     note: Option<String>,
+    directions: Option<String>,
     name: String,
     kind: String,
     status: String,
@@ -380,6 +419,59 @@ struct PickRow {
     status: String,
 }
 
+#[derive(sqlx::FromRow)]
+struct RouteRow {
+    status: String,
+    geometry: Option<Json>,
+    distance_m: Option<f64>,
+    duration_s: Option<f64>,
+    legs: Json,
+    error_message: Option<String>,
+    updating: bool,
+}
+
+/// The walking route the worker stored for this trail (#91), if any.
+async fn load_route(state: &AppState, trail_id: Uuid) -> AppResult<Option<RouteRow>> {
+    Ok(sqlx::query_as::<_, RouteRow>(
+        "SELECT status, geometry, distance_m, duration_s, legs, error_message, \
+                EXISTS (SELECT 1 FROM trail_route_jobs j WHERE j.trail_id = r.trail_id \
+                        AND j.status IN ('queued', 'processing')) AS updating \
+         FROM trail_routes r WHERE r.trail_id = $1",
+    )
+    .bind(trail_id)
+    .fetch_optional(&state.db)
+    .await?)
+}
+
+async fn route_job_waiting(state: &AppState, trail_id: Uuid) -> AppResult<bool> {
+    Ok(sqlx::query_scalar(
+        "SELECT EXISTS (SELECT 1 FROM trail_route_jobs WHERE trail_id = $1 \
+         AND status IN ('queued', 'processing') AND attempts < 3)",
+    )
+    .bind(trail_id)
+    .fetch_one(&state.db)
+    .await?)
+}
+
+/// "350 m", "2.5 km".
+fn distance_text(m: f64) -> String {
+    if m < 995.0 {
+        format!("{} m", ((m / 10.0).round() * 10.0) as i64)
+    } else {
+        format!("{:.1} km", m / 1000.0)
+    }
+}
+
+/// "4 min", "1 h 05 min".
+fn duration_text(secs: f64) -> String {
+    let mins = (secs / 60.0).round().max(1.0) as i64;
+    if mins < 60 {
+        format!("{mins} min")
+    } else {
+        format!("{} h {:02} min", mins / 60, mins % 60)
+    }
+}
+
 /// The stops card: the ordered list, the map, and (for editors) the picker.
 async fn render_stops(
     state: &AppState,
@@ -394,7 +486,7 @@ async fn render_stops(
     let sql = format!(
         r#"
         {RESOLVED_COORDS_CTE}
-        SELECT s.id, s.artifact_id, s.note, a.name, a.kind::text AS kind, a.status::text AS status,
+        SELECT s.id, s.artifact_id, s.note, s.directions, a.name, a.kind::text AS kind, a.status::text AS status,
                (a.deleted_at IS NOT NULL) AS deleted, artifact_is_published(a.id) AS published,
                r.effective_lat AS lat, r.effective_lng AS lng,
                (SELECT p.name FROM artifacts p WHERE p.id = a.parent_id) AS parent_name
@@ -405,14 +497,18 @@ async fn render_stops(
         ORDER BY s.position
         "#
     );
-    let rows = sqlx::query_as::<_, StopRow>(&sql).bind(trail_id).fetch_all(&state.db).await?;
+    let rows = sqlx::query_as::<_, StopRow>(&sql)
+        .bind(trail_id)
+        .fetch_all(&state.db)
+        .await?;
     let stops: Vec<Json> = rows
         .iter()
         .enumerate()
         .map(|(i, r)| {
             json!({
                 "id": r.id.to_string(), "n": i + 1, "artifact_id": r.artifact_id.to_string(),
-                "note": r.note.clone().unwrap_or_default(), "name": r.name, "kind": r.kind,
+                "note": r.note.clone().unwrap_or_default(),
+                "directions": r.directions.clone().unwrap_or_default(), "name": r.name, "kind": r.kind,
                 "status": r.status, "deleted": r.deleted, "published": r.published,
                 "lat": r.lat, "lng": r.lng, "parent_name": r.parent_name,
             })
@@ -423,15 +519,63 @@ async fn render_stops(
         .filter(|s| !s["deleted"].as_bool().unwrap_or(false) && s["lat"].is_number())
         .map(|s| json!({ "n": s["n"], "name": s["name"], "lat": s["lat"], "lng": s["lng"], "artifact_id": s["artifact_id"] }))
         .collect();
-    let picks = if can_edit { load_pick_options(state).await? } else { Vec::new() };
-    let warn = stops.iter().filter(|s| !s["published"].as_bool().unwrap_or(false)).count();
+    let route = load_route(state, trail_id).await?;
+    // Each stop after the first shows the walk from the one before it.
+    let mut stops = stops;
+    if let Some(r) = route.as_ref().filter(|r| r.status == "ok") {
+        for leg in r.legs.as_array().into_iter().flatten() {
+            let to = leg["to_stop"].as_str().unwrap_or_default();
+            if let Some(stop) = stops.iter_mut().find(|s| s["id"] == to) {
+                let m = leg["distance_m"].as_f64().unwrap_or(0.0);
+                let secs = leg["duration_s"].as_f64().unwrap_or(0.0);
+                let prev = stop["n"].as_u64().unwrap_or(1).saturating_sub(1);
+                if m < 1.0 {
+                    stop["walk"] = json!(format!("Same place as stop {prev}"));
+                    stop["same_spot"] = json!(true);
+                } else {
+                    stop["walk"] = json!(format!(
+                        "{} · {} walk from stop {prev}",
+                        distance_text(m),
+                        duration_text(secs)
+                    ));
+                }
+            }
+        }
+    }
+    let route_ctx = route.as_ref().map(|r| {
+        context! {
+            status => r.status.clone(),
+            distance => r.distance_m.map(distance_text),
+            duration => r.duration_s.map(duration_text),
+            updating => r.updating,
+            error => r.error_message.clone(),
+        }
+    });
+    let route_line = route
+        .as_ref()
+        .filter(|r| r.status == "ok")
+        .and_then(|r| r.geometry.as_ref())
+        .map(|g| g["coordinates"].clone());
+    let picks = if can_edit {
+        load_pick_options(state).await?
+    } else {
+        Vec::new()
+    };
+    let warn = stops
+        .iter()
+        .filter(|s| !s["published"].as_bool().unwrap_or(false))
+        .count();
     render(
         &environment(),
         "studio_trail_stops.html",
         context! {
             trail_id => trail_id.to_string(),
             stops => Value::from_serialize(&stops),
-            map_data => super::routes::script_json(&json!({ "points": map_points })),
+            map_data => super::routes::script_json(&json!({ "points": map_points, "line": route_line })),
+            route => route_ctx,
+            // A recompute is queued: check back shortly (the card reloads).
+            route_pending => route.as_ref().map(|r| r.updating).unwrap_or(false)
+                || (route.is_none() && route_job_waiting(state, trail_id).await?),
             picks => Value::from_serialize(&picks),
             can_edit => can_edit,
             unpublished => warn,
@@ -455,15 +599,37 @@ async fn load_pick_options(state: &AppState) -> AppResult<Vec<Json>> {
     for r in &rows {
         kids.entry(r.parent_id).or_default().push(r);
     }
-    fn walk(parent: Option<Uuid>, prefix: &str, depth: usize, kids: &HashMap<Option<Uuid>, Vec<&PickRow>>, out: &mut Vec<Json>) {
+    fn walk(
+        parent: Option<Uuid>,
+        prefix: &str,
+        depth: usize,
+        kids: &HashMap<Option<Uuid>, Vec<&PickRow>>,
+        out: &mut Vec<Json>,
+    ) {
         if depth > 64 {
             return;
         }
         for r in kids.get(&parent).map(Vec::as_slice).unwrap_or(&[]) {
-            let path = if prefix.is_empty() { r.name.clone() } else { format!("{prefix} › {}", r.name) };
-            let note = if r.status == "approved" { String::new() } else { format!(" · {}", match r.status.as_str() {
-                "draft" => "draft", "ready" => "waiting for review", other => other }) };
-            out.push(json!({ "id": r.id.to_string(), "label": format!("{path} ({}){note}", r.kind) }));
+            let path = if prefix.is_empty() {
+                r.name.clone()
+            } else {
+                format!("{prefix} › {}", r.name)
+            };
+            let note = if r.status == "approved" {
+                String::new()
+            } else {
+                format!(
+                    " · {}",
+                    match r.status.as_str() {
+                        "draft" => "draft",
+                        "ready" => "waiting for review",
+                        other => other,
+                    }
+                )
+            };
+            out.push(
+                json!({ "id": r.id.to_string(), "label": format!("{path} ({}){note}", r.kind) }),
+            );
             walk(Some(r.id), &path, depth + 1, kids, out);
         }
     }
@@ -488,6 +654,8 @@ pub struct AddStopForm {
     artifact_id: String,
     #[serde(default)]
     note: String,
+    #[serde(default)]
+    directions: String,
 }
 
 fn clean_note(s: &str) -> Option<String> {
@@ -505,15 +673,35 @@ async fn add_stop(
     require_csrf(&jar, &f.csrf_token)?;
     load_owned(&state, &author.0, id).await?;
     let Ok(artifact_id) = f.artifact_id.parse::<Uuid>() else {
-        return Ok(render_stops(&state, &author.0, &jar, id, Some("Choose an artifact to add."), None).await?.into_response());
+        return Ok(render_stops(
+            &state,
+            &author.0,
+            &jar,
+            id,
+            Some("Choose an artifact to add."),
+            None,
+        )
+        .await?
+        .into_response());
     };
     // Topics aren't places, so they can't be stops (the database refuses too).
-    let exists: Option<Uuid> = sqlx::query_scalar("SELECT id FROM artifacts WHERE id = $1 AND deleted_at IS NULL AND NOT is_topic")
-        .bind(artifact_id)
-        .fetch_optional(&state.db)
-        .await?;
+    let exists: Option<Uuid> = sqlx::query_scalar(
+        "SELECT id FROM artifacts WHERE id = $1 AND deleted_at IS NULL AND NOT is_topic",
+    )
+    .bind(artifact_id)
+    .fetch_optional(&state.db)
+    .await?;
     if exists.is_none() {
-        return Ok(render_stops(&state, &author.0, &jar, id, Some("That artifact no longer exists."), None).await?.into_response());
+        return Ok(render_stops(
+            &state,
+            &author.0,
+            &jar,
+            id,
+            Some("That artifact no longer exists."),
+            None,
+        )
+        .await?
+        .into_response());
     }
     let count: i64 = sqlx::query_scalar("SELECT count(*) FROM trail_stops WHERE trail_id = $1")
         .bind(id)
@@ -521,19 +709,24 @@ async fn add_stop(
         .await?;
     if count as usize >= MAX_STOPS {
         let msg = format!("A trail can have at most {MAX_STOPS} stops.");
-        return Ok(render_stops(&state, &author.0, &jar, id, Some(&msg), None).await?.into_response());
+        return Ok(render_stops(&state, &author.0, &jar, id, Some(&msg), None)
+            .await?
+            .into_response());
     }
     sqlx::query(
-        "INSERT INTO trail_stops (trail_id, artifact_id, position, note) \
-         VALUES ($1, $2, (SELECT COALESCE(max(position) + 1, 0) FROM trail_stops WHERE trail_id = $1), $3)",
+        "INSERT INTO trail_stops (trail_id, artifact_id, position, note, directions) \
+         VALUES ($1, $2, (SELECT COALESCE(max(position) + 1, 0) FROM trail_stops WHERE trail_id = $1), $3, $4)",
     )
     .bind(id)
     .bind(artifact_id)
     .bind(clean_note(&f.note))
+    .bind(clean_note(&f.directions))
     .execute(&state.db)
     .await?;
     touch(&state, id).await?;
-    Ok(render_stops(&state, &author.0, &jar, id, None, None).await?.into_response())
+    Ok(render_stops(&state, &author.0, &jar, id, None, None)
+        .await?
+        .into_response())
 }
 
 /// The trail a stop belongs to, after checking the author may change it.
@@ -552,6 +745,8 @@ pub struct StopNoteForm {
     csrf_token: String,
     #[serde(default)]
     note: String,
+    #[serde(default)]
+    directions: String,
 }
 
 async fn update_stop(
@@ -563,9 +758,10 @@ async fn update_stop(
 ) -> AppResult<Html<String>> {
     require_csrf(&jar, &f.csrf_token)?;
     let trail_id = stop_trail(&state, &author.0, id).await?;
-    sqlx::query("UPDATE trail_stops SET note = $2 WHERE id = $1")
+    sqlx::query("UPDATE trail_stops SET note = $2, directions = $3 WHERE id = $1")
         .bind(id)
         .bind(clean_note(&f.note))
+        .bind(clean_note(&f.directions))
         .execute(&state.db)
         .await?;
     touch(&state, trail_id).await?;
@@ -582,8 +778,13 @@ async fn delete_stop(
     require_csrf(&jar, &f.csrf_token)?;
     let trail_id = stop_trail(&state, &author.0, id).await?;
     let mut tx = state.db.begin().await?;
-    sqlx::query("SET CONSTRAINTS trail_stops_trail_position_key DEFERRED").execute(&mut *tx).await?;
-    sqlx::query("DELETE FROM trail_stops WHERE id = $1").bind(id).execute(&mut *tx).await?;
+    sqlx::query("SET CONSTRAINTS trail_stops_trail_position_key DEFERRED")
+        .execute(&mut *tx)
+        .await?;
+    sqlx::query("DELETE FROM trail_stops WHERE id = $1")
+        .bind(id)
+        .execute(&mut *tx)
+        .await?;
     // Close the gap, so positions stay 0..n-1.
     sqlx::query(
         "UPDATE trail_stops s SET position = o.rn - 1 FROM \
@@ -620,10 +821,11 @@ async fn reorder_stops(
         .map(|s| s.trim().parse::<Uuid>())
         .collect::<Result<_, _>>()
         .map_err(|_| AppError::BadRequest("bad stop order".into()))?;
-    let current: Vec<Uuid> = sqlx::query_scalar("SELECT id FROM trail_stops WHERE trail_id = $1 ORDER BY position")
-        .bind(id)
-        .fetch_all(&state.db)
-        .await?;
+    let current: Vec<Uuid> =
+        sqlx::query_scalar("SELECT id FROM trail_stops WHERE trail_id = $1 ORDER BY position")
+            .bind(id)
+            .fetch_all(&state.db)
+            .await?;
     // The new order must be a rearrangement of exactly the stops there now,
     // so a stale page can't drop or duplicate one.
     let mut a = ids.clone();
@@ -634,7 +836,9 @@ async fn reorder_stops(
         return render_stops(&state, &author.0, &jar, id, Some("The trail changed while you were reordering it. Here is the current order; try again."), None).await;
     }
     let mut tx = state.db.begin().await?;
-    sqlx::query("SET CONSTRAINTS trail_stops_trail_position_key DEFERRED").execute(&mut *tx).await?;
+    sqlx::query("SET CONSTRAINTS trail_stops_trail_position_key DEFERRED")
+        .execute(&mut *tx)
+        .await?;
     for (pos, sid) in ids.iter().enumerate() {
         sqlx::query("UPDATE trail_stops SET position = $2 WHERE id = $1 AND position <> $2")
             .bind(sid)
@@ -645,4 +849,19 @@ async fn reorder_stops(
     tx.commit().await?;
     touch(&state, id).await?;
     render_stops(&state, &author.0, &jar, id, None, None).await
+}
+
+#[cfg(test)]
+mod route_text_tests {
+    use super::{distance_text, duration_text};
+
+    #[test]
+    fn distances_and_times_read_naturally() {
+        assert_eq!(distance_text(927.4), "930 m");
+        assert_eq!(distance_text(1056.0), "1.1 km");
+        assert_eq!(distance_text(2503.0), "2.5 km");
+        assert_eq!(duration_text(20.0), "1 min");
+        assert_eq!(duration_text(1807.0), "30 min");
+        assert_eq!(duration_text(3900.0), "1 h 05 min");
+    }
 }
